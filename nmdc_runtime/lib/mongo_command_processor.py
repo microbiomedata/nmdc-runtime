@@ -93,26 +93,26 @@ class MongoCommandProcessor:
         """Returns the names of all collections described by the NMDC Schema."""
         return get_collection_names_from_schema(schema_view=self.schema_view)
 
+    @staticmethod
     def _generate_batches[T](
-        self,
         items: list[T],
-        batch_size: int | None = None,
+        batch_size: int  = 1,
     ) -> Iterator[list[T]]:
         """
-        Yields batches of the specified items, of the specified size. If no size is specified,
-        uses the value of `self.NUM_DOCUMENTS_PER_DELETION_BATCH` as the batch size.
-
-        >>> list(self._generate_batches([1, 2, 3, 4, 5], 2))
+        Yields batches of the specified items, of the specified size.
+        
+        >>> list(MongoCommandProcessor._generate_batches([1, 2, 3, 4, 5], 2))
         [[1, 2], [3, 4], [5]]
 
-        >>> list(self._generate_batches(["a", "b", "c"], 2))
+        >>> list(MongoCommandProcessor._generate_batches(["a", "b", "c"], 2))
         [['a', 'b'], ['c']]
 
-        >>> list(self._generate_batches([], 2))
+        >>> list(MongoCommandProcessor._generate_batches(["a", "b", "c"]))  # default batch size is 1
+        [['a'], ['b'], ['c']]
+
+        >>> list(MongoCommandProcessor._generate_batches([], 2))
         []
         """
-        if not isinstance(batch_size, int):
-            batch_size = self.NUM_DOCUMENTS_PER_DELETION_BATCH
         for batch_start in range(0, len(items), batch_size):
             yield items[batch_start : batch_start + batch_size]
 
@@ -209,13 +209,19 @@ class MongoCommandProcessor:
         # Note: These descriptors will identify referring _documents_, but not referring _fields_.
         descriptors_of_broken_references: list = []
 
-        # Get the `id` and `type` values of the documents that would be deleted.
-        target_document_descriptors = list(
-            collection.find(
-                filter={"_id": {"$in": target_document_oids}},
+        # Get the `id` and `type` values of the documents that would be deleted. Do the lookups in
+        # batches so the `_id` list embedded in each `find` command isn't so long that we risk
+        # reaching MongoDB's 16 MiB document size limit.
+        target_document_descriptors = list()
+        for target_document_oids_in_batch in self._generate_batches(
+            items=target_document_oids,
+            batch_size=self.NUM_DOCUMENTS_PER_DELETION_BATCH,
+        ):
+            target_document_descriptors_in_batch = collection.find(
+                filter={"_id": {"$in": target_document_oids_in_batch}},
                 projection={"_id": 1, "id": 1, "type": 1},
             )
-        )
+            target_document_descriptors.extend(target_document_descriptors_in_batch)
 
         # Make a set, so existence searches are faster (than with a list).
         target_document_oids_set: set = set(target_document_oids)
@@ -328,13 +334,8 @@ class MongoCommandProcessor:
             logger.debug("No documents were specified to be backed up.")
             return None
 
-        # Get a cursor referencing the documents that would be deleted.
+        # Get references to the source and archive collections.
         collection = self.db.get_collection(collection_name)
-        target_documents_cursor = collection.find(
-            filter={"_id": {"$in": target_document_oids}},
-        )
-
-        # Insert each of those documents into the deletion archive database (e.g. "nmdc_deleted").
         deleted_at = now()  # they'll all have the same `deleted_at` timestamp.
         deletion_archive_db = self.db.client.get_database(
             self.DELETION_ARCHIVE_DATABASE_NAME
@@ -342,22 +343,30 @@ class MongoCommandProcessor:
         deletion_archive_collection = deletion_archive_db.get_collection(
             collection_name
         )
-        documents_to_back_up = []
-        for target_document in target_documents_cursor:
-            documents_to_back_up.append(
-                dict(doc=target_document, deleted_at=deleted_at)
-            )
 
-        if len(documents_to_back_up) < len(target_document_oids):
-            logger.warning(
-                f"We expected to back up {len(target_document_oids)} documents, "
-                f"but we found only {len(documents_to_back_up)} documents to back up."
+        # Look up and archive the documents. Do it in batches so the `_id` list embedded in each
+        # `find` command isn't so long that we risk reaching MongoDB's 16 MiB document size limit.
+        total_num_documents_backed_up = 0
+        for target_document_oids_in_batch in self._generate_batches(
+            items=target_document_oids,
+            batch_size=self.NUM_DOCUMENTS_PER_DELETION_BATCH,
+        ):
+            target_documents_cursor = collection.find(
+                filter={"_id": {"$in": target_document_oids_in_batch}},
             )
+            documents_to_back_up = []
+            for target_document in target_documents_cursor:
+                documents_to_back_up.append(
+                    dict(doc=target_document, deleted_at=deleted_at)
+                )
 
-        if len(documents_to_back_up) > 0:
+            if len(documents_to_back_up) == 0:
+                continue
+
             insert_many_result = deletion_archive_collection.insert_many(
                 documents_to_back_up
             )
+            total_num_documents_backed_up += len(insert_many_result.inserted_ids)
 
             # If we didn't back up all of the documents we found, raise an exception.
             # TODO: Consider delegating the reporting that "no documents have been deleted" to the
@@ -370,7 +379,14 @@ class MongoCommandProcessor:
                         "The entire operation has been aborted. No documents have been deleted."
                     ),
                 )
-        else:
+
+        if total_num_documents_backed_up < len(target_document_oids):
+            logger.warning(
+                f"We expected to back up {len(target_document_oids)} documents, "
+                f"but we found only {total_num_documents_backed_up} documents to back up."
+            )
+
+        if total_num_documents_backed_up == 0:
             logger.debug("There are no documents to back up.")
 
     @staticmethod
