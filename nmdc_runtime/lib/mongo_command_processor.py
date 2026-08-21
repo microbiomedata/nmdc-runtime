@@ -92,17 +92,17 @@ class MongoCommandProcessor:
         """Returns the names of all collections described by the NMDC Schema."""
         return get_collection_names_from_schema(schema_view=self.schema_view)
 
-    def _get_oids_of_specified_documents(
+    def _get_target_document_oids_for_deletion(
         self, delete_command: DeleteCommand
     ) -> List[ObjectId]:
         """
         Returns a sorted list of the `ObjectId`s (i.e. `_id` values) of the documents matching a
         given command, considering all of the command's constituent specifications.
 
-        Note: For commands that contain more than one specification, we process each specification
-              against the _same_ source data; instead of trying to simulate the effects of executing
-              the command with its earlier specifications (such as deletions or specifications that
-              contain a "limit") before executing it with its later specifications.
+        For commands containing multiple specifications, documents selected by earlier
+        specifications are excluded from later specifications. This is to simulate the way MongoDB
+        processes sequences of specifications (i.e. MongoDB deletes the documents matching earlier
+        specifications before processing later specifications).
 
         >>> # Seed the mock database:
         >>> from mongomock import MongoClient
@@ -120,29 +120,49 @@ class MongoCommandProcessor:
         ...     {"q": {"name": "apple"}, "limit": 0},                       # 1 again
         ...     {"q": {"name": "daikon"}, "limit": 0},                      # 4
         ... ])
-        >>> MongoCommandProcessor(db)._get_oids_of_specified_documents(command)
+        >>> MongoCommandProcessor(db)._get_target_document_oids_for_deletion(command)
         [ObjectId('000000000000000000000001'), ObjectId('000000000000000000000002'), ObjectId('000000000000000000000004')]
 
         2. The "limit" gets applied, but we don't know which document Mongo will pick.
         >>> command = DeleteCommand(delete="food_set", deletes=[
         ...     {"q": {"name": {"$in": ["apple", "banana"]}}, "limit": 1},  # 1 or 2, we don't know
         ... ])
-        >>> oids = MongoCommandProcessor(db)._get_oids_of_specified_documents(command)
+        >>> oids = MongoCommandProcessor(db)._get_target_document_oids_for_deletion(command)
         >>> len(oids)
         1
         >>> any([ObjectId('000000000000000000000001') in oids, ObjectId('000000000000000000000002') in oids])
         True
+
+        3. Specifications are processed sequentially (we leverage "limit" for this demonstration).
+        >>> command = DeleteCommand(delete="food_set", deletes=[
+        ...     {"q": {"name": {"$in": ["apple", "banana"]}}, "limit": 1},
+        ...     {"q": {"name": {"$in": ["apple", "banana"]}}, "limit": 1},
+        ... ])
+        >>> MongoCommandProcessor(db)._get_target_document_oids_for_deletion(command)
+        [ObjectId('000000000000000000000001'), ObjectId('000000000000000000000002')]
         """
-        oids: set[ObjectId] = set()
+        document_oids: set[ObjectId] = set()
 
         collection = self.db.get_collection(delete_command.delete)
         delete_specs: DeleteSpecs = derive_delete_specs(delete_command=delete_command)
         for spec in delete_specs:
-            options = {**spec, "projection": {"_id": 1}}
-            oids_from_spec = [doc["_id"] for doc in collection.find(**options)]
-            oids.update(oids_from_spec)
+            specified_documents_cursor = collection.find(
+                filter=spec["filter"],
+                projection={"_id": 1},
+                hint=spec["hint"] if "hint" in spec else None,
+                limit=0,  # we apply the limit, if any, manually below
+            )
+            for document in specified_documents_cursor:
+                document_oid = document["_id"]
 
-        return sorted(oids, key=str)
+                # If we've already dealt with this document, skip it.
+                # This simulates MongoDB having deleted it already.
+                if document_oid not in document_oids:
+                    document_oids.add(document_oid)
+                    if spec["limit"] == 1:
+                        break
+
+        return sorted(document_oids, key=str)
 
     def _identify_broken_references_deletion_would_leave_behind(
         self,
@@ -369,7 +389,7 @@ class MongoCommandProcessor:
             )
 
         # Get the `_id` values of the documents that would be deleted.
-        target_document_oids = self._get_oids_of_specified_documents(command)
+        target_document_oids = self._get_target_document_oids_for_deletion(command)
 
         # Determine whether any documents that reference those documents would be left behind
         # if the deletion were to be performed.
