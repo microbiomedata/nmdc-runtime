@@ -96,11 +96,11 @@ class MongoCommandProcessor:
     @staticmethod
     def _generate_batches[T](
         items: list[T],
-        batch_size: int  = 1,
+        batch_size: int = 1,
     ) -> Iterator[list[T]]:
         """
         Yields batches of the specified items, of the specified size.
-        
+
         >>> list(MongoCommandProcessor._generate_batches([1, 2, 3, 4, 5], 2))
         [[1, 2], [3, 4], [5]]
 
