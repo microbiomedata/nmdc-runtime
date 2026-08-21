@@ -94,7 +94,9 @@ class MongoCommandProcessor:
         return get_collection_names_from_schema(schema_view=self.schema_view)
 
     def _generate_batches[T](
-        self, items: list[T], batch_size: int | None = None,
+        self,
+        items: list[T],
+        batch_size: int | None = None,
     ) -> Iterator[list[T]]:
         """
         Yields batches of the specified items, of the specified size. If no size is specified,
