@@ -1,6 +1,6 @@
 from json import dumps
 from logging import getLogger
-from typing import Any, List
+from typing import Any, Iterator, List
 import uuid
 
 from bson import ObjectId
@@ -92,6 +92,27 @@ class MongoCommandProcessor:
     def _get_nmdc_schema_collection_names(self) -> list[str]:
         """Returns the names of all collections described by the NMDC Schema."""
         return get_collection_names_from_schema(schema_view=self.schema_view)
+
+    def _generate_batches[T](
+        self, items: list[T], batch_size: int | None = None,
+    ) -> Iterator[list[T]]:
+        """
+        Yields batches of the specified items, of the specified size. If no size is specified,
+        uses the value of `self.NUM_DOCUMENTS_PER_DELETION_BATCH` as the batch size.
+
+        >>> list(self._generate_batches([1, 2, 3, 4, 5], 2))
+        [[1, 2], [3, 4], [5]]
+
+        >>> list(self._generate_batches(["a", "b", "c"], 2))
+        [['a', 'b'], ['c']]
+
+        >>> list(self._generate_batches([], 2))
+        []
+        """
+        if not isinstance(batch_size, int):
+            batch_size = self.NUM_DOCUMENTS_PER_DELETION_BATCH
+        for batch_start in range(0, len(items), batch_size):
+            yield items[batch_start : batch_start + batch_size]
 
     def _get_target_document_oids_for_deletion(
         self, delete_command: DeleteCommand
@@ -453,27 +474,11 @@ class MongoCommandProcessor:
         #       given _command_ document.
         #       Docs: https://www.mongodb.com/docs/manual/core/document/#document-size-limit
         #
-        # Example scenario to explain loop-related variables:
-        # - Given: target_document_oids = ["a", "b", "c", ..., "y"], start = 0, stop = 25, step = 5
-        # - Then : index_of_first_oid_in_batch =  0, target_document_oids_in_batch = ["a", "b", "c", "d", "e"] (i.e., elements  0- 4)
-        # - Then : index_of_first_oid_in_batch =  5, target_document_oids_in_batch = ["f", "g", "h", "i", "j"] (i.e., elements  5- 9)
-        # - Then : index_of_first_oid_in_batch = 10, target_document_oids_in_batch = ["k", "l", "m", "n", "o"] (i.e., elements 10-14)
-        # - Then : index_of_first_oid_in_batch = 15, target_document_oids_in_batch = ["p", "q", "r", "s", "t"] (i.e., elements 15-19)
-        # - Then : index_of_first_oid_in_batch = 20, target_document_oids_in_batch = ["u", "v", "w", "x", "y"] (i.e., elements 20-24)
-        #
         num_documents_deleted_total = 0
-        range_args = dict(
-            start=0,
-            stop=len(target_document_oids),
-            step=self.NUM_DOCUMENTS_PER_DELETION_BATCH,
-        )
-        for index_of_first_oid_in_batch in range(
-            range_args["start"], range_args["stop"], range_args["step"]
+        for target_document_oids_in_batch in self._generate_batches(
+            items=target_document_oids,
+            batch_size=self.NUM_DOCUMENTS_PER_DELETION_BATCH,
         ):
-            target_document_oids_in_batch = target_document_oids[
-                index_of_first_oid_in_batch : index_of_first_oid_in_batch
-                + self.NUM_DOCUMENTS_PER_DELETION_BATCH
-            ]
             delete_command = DeleteCommand(
                 delete=collection_name,
                 deletes=[
