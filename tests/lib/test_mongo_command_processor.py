@@ -1,16 +1,22 @@
 from uuid import uuid4
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.models.query import DeleteCommand, DeleteCommandResponse, DeleteStatement
+from nmdc_runtime.api.models.query import (
+    CollStatsCommand,
+    CollStatsCommandResponse,
+    CountCommand,
+    CountCommandResponse,
+    DeleteCommand,
+    DeleteCommandResponse,
+    DeleteStatement,
+)
 from nmdc_runtime.lib.mongo_command_processor import MongoCommandProcessor
 from tests.lib.faker import Faker
 
 
 class TestMongoCommandProcessor:
-    def test_it_uses_same_oids_for_backup_and_deletion(self):
-        """
-        Confirms the `MongoCommandProcessor` backs up the same documents that it deletes.
-        """
+    def test_it_backs_up_documents_before_deleting_them(self):
+        """Confirms that the documents that get backed up are the same ones that get deleted."""
 
         db = get_mongo_db()
         study_set = db.get_collection("study_set")
@@ -36,7 +42,11 @@ class TestMongoCommandProcessor:
             response = MongoCommandProcessor(db=db).process(
                 command=DeleteCommand(
                     delete="study_set",
-                    deletes=[DeleteStatement(q={"title": title_of_studies_to_delete}, limit=0)],
+                    deletes=[
+                        DeleteStatement(
+                            q={"title": title_of_studies_to_delete}, limit=0
+                        )
+                    ],
                 ),
             )
             assert isinstance(response, DeleteCommandResponse)
@@ -44,16 +54,68 @@ class TestMongoCommandProcessor:
 
             # Confirm the studies that were backed up were the ones that were deleted.
             assert study_set.count_documents({"title": title_of_studies_to_delete}) == 0
-            assert deleted_study_set.count_documents({"doc._id": {"$in": studies_to_delete_oids}}) == 2
+            assert (
+                deleted_study_set.count_documents(
+                    {"doc._id": {"$in": studies_to_delete_oids}}
+                )
+                == 2
+            )
             for deleted_study in studies_to_delete:
                 deleted_study_oid = deleted_study["_id"]
-                backed_up_study = deleted_study_set.find_one({"doc._id": deleted_study_oid})["doc"]
+                backed_up_study = deleted_study_set.find_one(
+                    {"doc._id": deleted_study_oid}
+                )["doc"]
                 assert deleted_study == backed_up_study
 
             # Also, confirm the studies that were not deleted were not backed up.
             assert study_set.count_documents({"title": title_of_studies_to_spare}) == 2
-            assert deleted_study_set.count_documents({"doc._id": {"$in": studies_to_spare_oids}}) == 0
+            assert (
+                deleted_study_set.count_documents(
+                    {"doc._id": {"$in": studies_to_spare_oids}}
+                )
+                == 0
+            )
         finally:
             # Clean up both databases.
             study_set.delete_many({"_id": {"$in": inserted_oids}})
             deleted_study_set.delete_many({"doc._id": {"$in": inserted_oids}})
+
+    def test_it_processes_count_commands(self):
+        """Confirms the processor can count documents matching a query."""
+
+        # Seed the database with a couple studies that we can count.
+        db = get_mongo_db()
+        study_set = db.get_collection("study_set")
+        study_title = f"CountCommand test {uuid4()}"
+        studies = Faker().generate_studies(2, title=study_title)
+        assert study_set.count_documents({"title": study_title}) == 0
+        inserted_oids = study_set.insert_many(studies).inserted_ids
+        assert study_set.count_documents({"title": study_title}) == 2
+
+        try:
+            response = MongoCommandProcessor(db=db).process(
+                command=CountCommand(
+                    count="study_set",
+                    query={"title": study_title},
+                )
+            )
+
+            assert isinstance(response, CountCommandResponse)
+            assert response.ok == 1
+            assert response.n == 2
+        finally:
+            # Clean up the database.
+            study_set.delete_many({"_id": {"$in": inserted_oids}})
+
+    def test_it_processes_collstats_commands(self):
+        """Confirms the processor can retrieve statistics for a collection."""
+
+        db = get_mongo_db()
+        response = MongoCommandProcessor(db=db).process(
+            command=CollStatsCommand(collStats="study_set")
+        )
+
+        assert isinstance(response, CollStatsCommandResponse)
+        assert response.ok == 1
+        assert response.ns == f"{db.name}.study_set"
+        assert response.count >= 0
