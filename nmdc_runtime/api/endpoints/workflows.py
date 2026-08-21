@@ -159,7 +159,7 @@ async def post_workflow_execution(
     # TODO: Decouple this endpoint's authorization criteria from that of the `/metadata/json:submit`
     #       endpoint. For now, we use the same criteria, since the core functionality of both
     #       endpoints are so similar to one another (i.e. insert metadata as an `nmdc:Database`).
-    if not check_action_permitted(user.username, AllowanceAction.SUBMIT_JSON.value):
+    if not check_action_permitted(user.username, AllowanceAction.SUBMIT_JSON):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only specific users can submit workflow executions.",

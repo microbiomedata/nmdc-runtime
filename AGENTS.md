@@ -32,7 +32,7 @@
 
 ### Main technologies
 
-- Python
+- Python 3.12
 - FastAPI
 - MongoDB
 - Dagster

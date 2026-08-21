@@ -110,7 +110,70 @@ sample_set:
           env_local_scale: area of evergreen forest [ENVO:01000843]
           samp_store_temp: -80 Cel
           slope_gradient: 0.5%
-      metagenome_sequencing_non_interleaved_data:
+        - elev: 1325
+          depth: 0 - 1
+          lat_lon: 43 -120
+          samp_name: sample name isolate genome interleaved url
+          env_medium: bulk soil [ENVO:00005802]
+          store_cond: frozen
+          geo_loc_name: "USA: Fake, Fake"
+          growth_facil: field
+          analysis_type:
+            - isolate genome sequencing
+          collection_date: 2025-01-01
+          env_broad_scale: mixed forest biome [ENVO:01000198]
+          env_local_scale: area of evergreen forest [ENVO:01000843]
+          samp_store_temp: -80 Cel
+          slope_gradient: 0.5%
+        - elev: 1325
+          depth: 0 - 1
+          lat_lon: 43 -120
+          samp_name: sample name isolate genome sra accession
+          env_medium: bulk soil [ENVO:00005802]
+          store_cond: frozen
+          geo_loc_name: "USA: Fake, Fake"
+          growth_facil: field
+          analysis_type:
+            - isolate genome sequencing
+          collection_date: 2025-01-01
+          env_broad_scale: mixed forest biome [ENVO:01000198]
+          env_local_scale: area of evergreen forest [ENVO:01000843]
+          samp_store_temp: -80 Cel
+          slope_gradient: 0.5%
+        - elev: 1325
+          depth: 0 - 1
+          lat_lon: 43 -120
+          samp_name: sample name isolate transcriptome non-interleaved
+          env_medium: bulk soil [ENVO:00005802]
+          store_cond: frozen
+          geo_loc_name: "USA: Fake, Fake"
+          growth_facil: field
+          analysis_type:
+            - isolate transcriptome sequencing
+          collection_date: 2025-01-01
+          env_broad_scale: mixed forest biome [ENVO:01000198]
+          env_local_scale: area of evergreen forest [ENVO:01000843]
+          samp_store_temp: -80 Cel
+          slope_gradient: 0.5%
+      dna_sequencing_interleaved_data:
+        - samp_name: sample name isolate genome interleaved url
+          analysis_type:
+            - isolate genome sequencing
+          model: novaseq_6000
+          processing_institution: UCSD
+          insdc_bioproject_identifiers: bioproject:PRJNA366857
+          insdc_run_identifiers: insdc.run:SRR400868
+          interleaved_url: https://example.com/read1.fastq
+          interleaved_md5_checksum: 0123456789abcdef0123456789abcdef
+        - samp_name: sample name isolate genome sra accession
+          analysis_type:
+            - isolate genome sequencing
+          model: novaseq_6000
+          processing_institution: UCSD
+          protocol_link: https://example.com/protocol.html
+          insdc_bioproject_identifiers: bioproject:PRJNA366857
+          insdc_run_identifiers: insdc.run:SRR400868
+      dna_sequencing_non_interleaved_data:
         - model: hiseq_1500
           samp_name: "001"
           read_1_url: http://example.com/001-1.fastq.gz
@@ -136,7 +199,7 @@ sample_set:
           processing_institution: UCSD
           insdc_bioproject_identifiers: bioproject:PRJNA366857
           insdc_experiment_identifiers: insdc.sra:ERX000000
-      metatranscriptome_sequencing_interleaved_data:
+      rna_sequencing_interleaved_data:
       - model: nextseq
         samp_name: "002"
         analysis_type:
@@ -158,6 +221,19 @@ sample_set:
         interleaved_md5_checksum: 8a7a02537074949bbef514cba5d669d8; 2dee554dd9bd8d2403e3b5430d19e3c3
         insdc_bioproject_identifiers: bioproject:PRJNA366858
         insdc_experiment_identifiers: insdc.sra:DRX000002
+      rna_sequencing_non_interleaved_data:
+        - samp_name: sample name isolate transcriptome non-interleaved
+          analysis_type:
+            - isolate transcriptome sequencing
+          model: novaseq_6000
+          processing_institution: UCSD
+          protocol_link: https://example.com/protocol.html
+          insdc_bioproject_identifiers: bioproject:PRJNA366857
+          insdc_run_identifiers: insdc.run:SRR400868
+          read_1_url: https://example.com/read1.fastq
+          read_1_md5_checksum: 0123456789abcdef0123456789abcdef
+          read_2_url: https://example.com/read2.fastq
+          read_2_md5_checksum: 0123456789abcdef0123456789abcdef
   sample_environment_form:
     packageName:
       - soil

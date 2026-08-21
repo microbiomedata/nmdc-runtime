@@ -7,6 +7,7 @@ import yaml
 from linkml_runtime.dumpers import json_dumper
 import pytest
 from linkml_runtime.linkml_model import SlotDefinition
+from nmdc_schema import nmdc
 from nmdc_schema.nmdc import (
     InstrumentModelEnum,
     InstrumentVendorEnum,
@@ -101,7 +102,7 @@ def test_get_study_dois():
                     {
                         "provider": "zenodo",
                         "value": "10.99999/abcd",
-                    }
+                    },
                 ],
             },
         }
@@ -457,7 +458,7 @@ def test_instruments(test_minter):
                     _mock_soil_data("001"),
                     _mock_soil_data("002"),
                 ],
-                "metagenome_sequencing_interleaved_data": [
+                "dna_sequencing_interleaved_data": [
                     {
                         "model": "hiseq_1500",
                         "samp_name": "001",
@@ -502,6 +503,88 @@ def test_instruments(test_minter):
     assert len(database.data_generation_set) == 2
     instruments_used = {dg.instrument_used[0] for dg in database.data_generation_set}
     assert instruments_used == {minted_instrument_id, known_instrument_id}
+
+
+def test_get_analyte_category():
+    translator = SubmissionPortalTranslator()
+
+    assert translator._get_analyte_category(
+        "dna_sequencing_interleaved_data", ["metagenomics"]
+    ) == nmdc.NucleotideSequencingEnum(nmdc.NucleotideSequencingEnum.metagenome)
+
+    assert translator._get_analyte_category(
+        "dna_sequencing_non_interleaved_data", ["metagenomics", "metatranscriptomics"]
+    ) == nmdc.NucleotideSequencingEnum(nmdc.NucleotideSequencingEnum.metagenome)
+
+    assert translator._get_analyte_category(
+        "rna_sequencing_interleaved_data", ["metatranscriptomics"]
+    ) == nmdc.NucleotideSequencingEnum(nmdc.NucleotideSequencingEnum.metatranscriptome)
+
+    assert translator._get_analyte_category(
+        "rna_sequencing_non_interleaved_data", ["metagenomics", "metatranscriptomics"]
+    ) == nmdc.NucleotideSequencingEnum(nmdc.NucleotideSequencingEnum.metatranscriptome)
+
+    assert translator._get_analyte_category(
+        "dna_sequencing_interleaved_data", ["isolate genome sequencing"]
+    ) == nmdc.NucleotideSequencingEnum(nmdc.NucleotideSequencingEnum.isolate_genome)
+
+    assert translator._get_analyte_category(
+        "rna_sequencing_interleaved_data", ["isolate transcriptome sequencing"]
+    ) == nmdc.NucleotideSequencingEnum(
+        nmdc.NucleotideSequencingEnum.isolate_transcriptome
+    )
+
+    with pytest.raises(ValueError):
+        translator._get_analyte_category(
+            "dna_sequencing_interleaved_data",
+            ["metagenomics", "isolate genome sequencing"],
+        )
+
+    with pytest.raises(ValueError):
+        translator._get_analyte_category(
+            "rna_sequencing_interleaved_data",
+            ["metatranscriptomics", "isolate transcriptome sequencing"],
+        )
+
+
+def test_get_database_translates_sequencing_for_organism_sample(test_minter):
+    data_path = Path(__file__).parent / "data"
+    with open(data_path / "isolate_only_input.yaml") as f:
+        translator_inputs = yaml.safe_load(f)
+
+    # Add a DNA Sequence Data tab to the test input data.
+    translator_inputs["sample_set"]["sample_data"]["data"][
+        "dna_sequencing_interleaved_data"
+    ] = [
+        {
+            "samp_name": "0001",
+            "analysis_type": ["isolate genome sequencing"],
+            "model": "novaseq_6000",
+            "interleaved_url": "https://example.com/read1.fastq",
+            "interleaved_md5_checksum": "0123456789abcdef0123456789abcdef",
+        }
+    ]
+    translator = SubmissionPortalTranslator(
+        **translator_inputs,
+        id_minter=test_minter,
+        illumina_instrument_mapping={"novaseq_6000": "nmdc:inst-00-00000001"},
+        study_category="research_study",
+    )
+
+    database = translator.get_database()
+
+    # Assert the right collections were populated
+    assert len(database.organism_sample_set) == 1
+    assert len(database.data_generation_set) == 1
+    assert len(database.data_object_set) == 1
+
+    # Assert the relationships between the collection items are correct
+    organism_sample = database.organism_sample_set[0]
+    nucleotide_sequencing = database.data_generation_set[0]
+    data_object = database.data_object_set[0]
+    assert nucleotide_sequencing.has_input == [organism_sample.id]
+    assert nucleotide_sequencing.has_output == [data_object.id]
+    assert data_object.was_generated_by == nucleotide_sequencing.id
 
 
 def test_existing_study_only_uses_sample_set_updates(test_minter):
@@ -680,8 +763,12 @@ def test_get_database(test_minter, monkeypatch, data_file_base):
             return "999.9.9"
         raise ValueError(f"Unexpected package name: {package_name}")
 
-    monkeypatch.setattr("nmdc_runtime.site.translation.translator.datetime", FrozenDatetime)
-    monkeypatch.setattr("nmdc_runtime.site.translation.translator.version", mock_version)
+    monkeypatch.setattr(
+        "nmdc_runtime.site.translation.translator.datetime", FrozenDatetime
+    )
+    monkeypatch.setattr(
+        "nmdc_runtime.site.translation.translator.version", mock_version
+    )
 
     mongo_db = get_mongo_test_db()
     data_path = Path(__file__).parent / "data"
@@ -696,6 +783,7 @@ def test_get_database(test_minter, monkeypatch, data_file_base):
     instrument_mapping = {
         "hiseq_1500": "nmdc:inst-00-00000001",
         "nextseq": "nmdc:inst-00-00000002",
+        "novaseq_6000": "nmdc:inst-00-00000003",
     }
 
     # Reset the random number seed here so that fake IDs generated by the `test_minter`

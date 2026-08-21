@@ -1,9 +1,11 @@
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel
 
 
-class AllowanceAction(str, Enum):
+class AllowanceAction(StrEnum):
+    """Value for the `action` field of a document in the `_runtime.api.allow` MongoDB collection."""
+
     SUBMIT_CHANGESHEETS = "/metadata/changesheets:submit"
     DELETE_DATA = "/queries:run(query_cmd:DeleteCommand)"
     AGGREGATE_DATA = "/queries:run(query_cmd:AggregateCommand)"

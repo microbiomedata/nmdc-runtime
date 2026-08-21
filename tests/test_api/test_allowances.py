@@ -19,7 +19,7 @@ def cleanup_test_allowances(api_user_client):
     # Allow the `api_user_client` to manage allowances.
     allowances_collection.insert_one({
         "username": api_user_client.username,
-        "action": AllowanceAction.MANAGE_ALLOWANCES.value,
+        "action": AllowanceAction.MANAGE_ALLOWANCES,
     })
 
     yield
@@ -36,8 +36,8 @@ def test_list_all_allowances(api_user_client):
     # Create some allowances.
     allowances_collection = mdb.get_collection("_runtime.api.allow")
     test_allowances = [
-        {"username": "user_1", "action": AllowanceAction.AGGREGATE_DATA.value},
-        {"username": "user_2", "action": AllowanceAction.DELETE_DATA.value},
+        {"username": "user_1", "action": AllowanceAction.AGGREGATE_DATA},
+        {"username": "user_2", "action": AllowanceAction.DELETE_DATA},
     ]
     allowances_collection.insert_many(test_allowances)
     
@@ -61,9 +61,9 @@ def test_list_allowances_by_username(api_user_client):
     allowances_collection = mdb.get_collection("_runtime.api.allow")
     allowances_collection.insert_many(
         [
-            {"username": "user_1", "action": AllowanceAction.AGGREGATE_DATA.value},
-            {"username": "user_1", "action": AllowanceAction.DELETE_DATA.value},
-            {"username": "user_2", "action": AllowanceAction.SUBMIT_CHANGESHEETS.value},
+            {"username": "user_1", "action": AllowanceAction.AGGREGATE_DATA},
+            {"username": "user_1", "action": AllowanceAction.DELETE_DATA},
+            {"username": "user_2", "action": AllowanceAction.SUBMIT_CHANGESHEETS},
         ]
     )
 
@@ -88,23 +88,23 @@ def test_list_allowances_by_action(api_user_client):
     allowances_collection = mdb.get_collection("_runtime.api.allow")
     allowances_collection.insert_many(
         [
-            {"username": "user_1", "action": AllowanceAction.SUBMIT_CHANGESHEETS.value},
-            {"username": "user_2", "action": AllowanceAction.SUBMIT_CHANGESHEETS.value},
-            {"username": "user_3", "action": AllowanceAction.DELETE_DATA.value},
+            {"username": "user_1", "action": AllowanceAction.SUBMIT_CHANGESHEETS},
+            {"username": "user_2", "action": AllowanceAction.SUBMIT_CHANGESHEETS},
+            {"username": "user_3", "action": AllowanceAction.DELETE_DATA},
         ]
     )
 
     # Get allowances for `AllowanceAction.SUBMIT_CHANGESHEET`.
     rv = api_user_client.request(
         "GET",
-        f"/admin/allowances?action={AllowanceAction.SUBMIT_CHANGESHEETS.value}",
+        f"/admin/allowances?action={AllowanceAction.SUBMIT_CHANGESHEETS}",
     )
 
     assert rv.status_code == status.HTTP_200_OK
     response_payload = rv.json()
     allowances_received = response_payload["resources"]
     assert len(allowances_received) == 2
-    assert all(a["action"] == AllowanceAction.SUBMIT_CHANGESHEETS.value for a in allowances_received)
+    assert all(a["action"] == AllowanceAction.SUBMIT_CHANGESHEETS for a in allowances_received)
 
 
 def test_list_allowance_by_username_and_action(api_user_client):
@@ -115,15 +115,15 @@ def test_list_allowance_by_username_and_action(api_user_client):
     allowances_collection = mdb.get_collection("_runtime.api.allow")
     allowances_collection.insert_many(
         [
-            {"username": "user_1", "action": AllowanceAction.SUBMIT_CHANGESHEETS.value},
-            {"username": "user_1", "action": AllowanceAction.DELETE_DATA.value},
+            {"username": "user_1", "action": AllowanceAction.SUBMIT_CHANGESHEETS},
+            {"username": "user_1", "action": AllowanceAction.DELETE_DATA},
         ]
     )
 
     # Get specific allowance.
     rv = api_user_client.request(
         "GET",
-        f"/admin/allowances?username=user_1&action={AllowanceAction.SUBMIT_CHANGESHEETS.value}",
+        f"/admin/allowances?username=user_1&action={AllowanceAction.SUBMIT_CHANGESHEETS}",
     )
 
     assert rv.status_code == status.HTTP_200_OK
@@ -131,7 +131,7 @@ def test_list_allowance_by_username_and_action(api_user_client):
     allowances_received = response_payload["resources"]
     assert len(allowances_received) == 1
     assert allowances_received[0]["username"] == "user_1"
-    assert allowances_received[0]["action"] == AllowanceAction.SUBMIT_CHANGESHEETS.value
+    assert allowances_received[0]["action"] == AllowanceAction.SUBMIT_CHANGESHEETS
 
 
 def test_create_allowance(api_user_client):
@@ -141,7 +141,7 @@ def test_create_allowance(api_user_client):
     # Define the allowance we will create.
     allowance_to_create = {
         "username": "user_1",
-        "action": AllowanceAction.SUBMIT_CHANGESHEETS.value,
+        "action": AllowanceAction.SUBMIT_CHANGESHEETS,
     }
 
     # Assert that no such allowance already exists.
@@ -171,7 +171,7 @@ def test_create_duplicate_allowance(api_user_client):
     # Define the allowance we will create.
     allowance_to_create = {
         "username": "user_1",
-        "action": AllowanceAction.SUBMIT_CHANGESHEETS.value,
+        "action": AllowanceAction.SUBMIT_CHANGESHEETS,
     }
 
     # Insert the allowance into the database.
@@ -202,7 +202,7 @@ def test_delete_allowance(api_user_client):
     # Define the allowance we will delete.
     allowance_to_delete = {
         "username": "user_1",
-        "action": AllowanceAction.SUBMIT_CHANGESHEETS.value,
+        "action": AllowanceAction.SUBMIT_CHANGESHEETS,
     }
 
     # Create the allowance we will delete.
@@ -231,7 +231,7 @@ def test_delete_nonexistent_allowance(api_user_client):
     # Define the allowance we will try to delete.
     allowance_to_delete = {
         "username": "user_1",
-        "action": AllowanceAction.SUBMIT_CHANGESHEETS.value,
+        "action": AllowanceAction.SUBMIT_CHANGESHEETS,
     }
 
     # Confirm no such allowance exists.

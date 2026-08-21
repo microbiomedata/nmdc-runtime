@@ -1,5 +1,5 @@
 import inspect
-from enum import Enum
+from enum import StrEnum
 from typing import List, Any, Dict, Optional
 
 from pydantic import BaseModel, Field, create_model
@@ -8,7 +8,12 @@ from refscan.lib.helpers import get_collection_names_from_schema
 from nmdc_runtime.util import nmdc_schema_view
 
 
-class FileTypeEnum(str, Enum):
+class FileTypeEnum(StrEnum):
+    """
+    TODO: Check whether this class definition can be deleted and a sufficient class can be
+          imported from the `nmdc-schema` package instead.
+    """
+
     ft_icr_ms_analysis_results = "FT ICR-MS Analysis Results"
     gc_ms_metabolomics_results = "GC-MS Metabolomics Results"
     metaproteomics_workflow_statistics = "Metaproteomics Workflow Statistics"

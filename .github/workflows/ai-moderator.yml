@@ -1,0 +1,38 @@
+# GHA workflow (provided by GitHub, itself) that detects and adds labels to Issues
+# that it determines to be "AI generated". Can also be used to minimize comments
+# that it determines to be "spam," but we do not have it configured to do that.
+# Docs: https://github.com/marketplace/actions/ai-issue-and-comment-moderator
+
+name: AI Moderator
+
+on:
+  issues:
+    types: [opened]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  moderate:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      models: read
+      contents: read
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Detect AI content
+        uses: github/ai-moderator@81159c370785e295c97461ade67d7c33576e9319 # v1.1.4
+        #
+        # Configuration parameters are documented at:
+        # https://github.com/marketplace/actions/ai-issue-and-comment-moderator#configuration
+        #
+        with:
+          enable-spam-detection: false       # disable general spam detection
+          enable-link-spam-detection: false  # disable link spam detection
+          enable-ai-detection: true          # enable AI content detection
+          minimize-detected-comments: false  # don't automatically minimize any comments
+          ai-label: "ai-generated"

@@ -2,11 +2,11 @@
 #       `dagster.Dockerfile`, or `test.Dockerfile` (indeed, most of the steps were present in all three files).
 #       Reference: https://docs.docker.com/get-started/docker-concepts/building-images/multi-stage-builds/
 #
-# Base this image upon a variant of the official Python 3.10 image that is, in turn,
-# based upon a minimal (slim) variant of the Debian 11 (bullseye) image.
-# Reference: https://hub.docker.com/_/python
+# Base this image upon a variant of the official Python 3.12 image that is, in turn, based upon a
+# minimal (slim) variant of the Debian 13 (trixie) image.
+# References: https://hub.docker.com/_/python and https://www.debian.org/releases/trixie/
 # ────────────────────────────────────────────────────────────────────────────┐
-FROM python:3.10-slim-bullseye AS base
+FROM python:3.12-slim-trixie AS base
 # ────────────────────────────────────────────────────────────────────────────┘
 
 # Install and upgrade system-level software in a non-interactive way, then delete temporary files.

@@ -11,11 +11,14 @@ Notes:
 """
 
 from typing import List, Dict
-from enum import Enum
+from enum import StrEnum
 
 
-class OpenAPITag(str, Enum):
-    r"""A tag you can use to group related API endpoints together in an OpenAPI schema."""
+class OpenAPITag(StrEnum):
+    r"""
+    A tag you can use to group related API endpoints together in an OpenAPI schema.
+    Reference: https://docs.python.org/3.12/library/enum.html#enum.StrEnum
+    """
 
     MINTER = "Persistent identifiers"
     SYSTEM_ADMINISTRATION = "System administration"
@@ -27,7 +30,7 @@ class OpenAPITag(str, Enum):
 # Mapping from tag names to their (Markdown-formatted) descriptions.
 tag_descriptions: Dict[str, str] = {}
 
-tag_descriptions[OpenAPITag.METADATA_ACCESS.value] = r"""
+tag_descriptions[OpenAPITag.METADATA_ACCESS] = r"""
 Retrieve and manage metadata.
 
 The metadata access endpoints fall into several subcategories:
@@ -40,7 +43,7 @@ The metadata access endpoints fall into several subcategories:
 - **JSON operations**: Insert or update metadata by submitting a JSON document representing a [Database](https://w3id.org/nmdc/Database/).
 """
 
-tag_descriptions[OpenAPITag.WORKFLOWS.value] = r"""
+tag_descriptions[OpenAPITag.WORKFLOWS] = r"""
 Manage workflows and their execution.
 
 The workflow management endpoints fall into several subcategories:
@@ -84,15 +87,15 @@ The workflow management endpoints fall into several subcategories:
     - For off-site job runs, keep the Runtime appraised of run events.
 """
 
-tag_descriptions[OpenAPITag.USERS.value] = r"""
+tag_descriptions[OpenAPITag.USERS] = r"""
 Create and manage user accounts.
 """
 
-tag_descriptions[OpenAPITag.MINTER.value] = r"""
+tag_descriptions[OpenAPITag.MINTER] = r"""
 Mint and manage persistent identifiers.
 """
 
-tag_descriptions[OpenAPITag.SYSTEM_ADMINISTRATION.value] = r"""
+tag_descriptions[OpenAPITag.SYSTEM_ADMINISTRATION] = r"""
 Retrieve information about the software components that make up the Runtime.
 """
 
@@ -102,24 +105,24 @@ for name, description in tag_descriptions.items():
 
 ordered_tag_descriptors: List[Dict] = [
     {
-        "name": OpenAPITag.METADATA_ACCESS.value,
-        "description": tag_descriptions[OpenAPITag.METADATA_ACCESS.value],
+        "name": OpenAPITag.METADATA_ACCESS,
+        "description": tag_descriptions[OpenAPITag.METADATA_ACCESS],
     },
     {
-        "name": OpenAPITag.WORKFLOWS.value,
-        "description": tag_descriptions[OpenAPITag.WORKFLOWS.value],
+        "name": OpenAPITag.WORKFLOWS,
+        "description": tag_descriptions[OpenAPITag.WORKFLOWS],
     },
     {
-        "name": OpenAPITag.MINTER.value,
-        "description": tag_descriptions[OpenAPITag.MINTER.value],
+        "name": OpenAPITag.MINTER,
+        "description": tag_descriptions[OpenAPITag.MINTER],
     },
     {
-        "name": OpenAPITag.USERS.value,
-        "description": tag_descriptions[OpenAPITag.USERS.value],
+        "name": OpenAPITag.USERS,
+        "description": tag_descriptions[OpenAPITag.USERS],
     },
     {
-        "name": OpenAPITag.SYSTEM_ADMINISTRATION.value,
-        "description": tag_descriptions[OpenAPITag.SYSTEM_ADMINISTRATION.value],
+        "name": OpenAPITag.SYSTEM_ADMINISTRATION,
+        "description": tag_descriptions[OpenAPITag.SYSTEM_ADMINISTRATION],
     },
 ]
 

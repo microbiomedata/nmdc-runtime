@@ -5,7 +5,7 @@ import os
 import subprocess
 from collections import defaultdict
 from datetime import datetime, timezone
-from enum import Enum
+from enum import StrEnum
 from importlib.metadata import version
 from io import BytesIO
 from pprint import pformat
@@ -118,7 +118,7 @@ from toolz import get_in, valfilter, identity
 BULK_WRITE_BATCH_SIZE = 2000
 
 
-class FinalizeSubmissionResult(str, Enum):
+class FinalizeSubmissionResult(StrEnum):
     FINALIZED = "finalized"
     ALREADY_LINKED = "already_linked"
 
