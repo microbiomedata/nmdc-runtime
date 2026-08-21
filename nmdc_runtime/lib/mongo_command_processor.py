@@ -40,6 +40,7 @@ class MongoCommandProcessor:
     """
 
     DELETION_ARCHIVE_DATABASE_NAME = "nmdc_deleted"
+    NUM_DOCUMENTS_PER_DELETION_BATCH = 10_000
 
     def __init__(self, db: Database):
         """
@@ -443,36 +444,72 @@ class MongoCommandProcessor:
             target_document_oids=target_document_oids,
         )
 
-        # Perform the deletion.
-        delete_command = DeleteCommand(
-            delete=collection_name,
-            deletes=[
-                DeleteStatement(q={"_id": {"$in": target_document_oids}}, limit=0),
-            ],
+        # Delete the documents, in batches.
+        #
+        # Note: We use batches (and issue one "delete" command per batch) instead of using a
+        #       single "delete" command for everything; because, with enough `_id` values, the size
+        #       of the latter _command_ document could approach MongoDB's 16 MiB document size limit,
+        #       which would cause the deletion to fail. We use batches to _limit_ the size of any
+        #       given _command_ document.
+        #       Docs: https://www.mongodb.com/docs/manual/core/document/#document-size-limit
+        #
+        # Example scenario to explain loop-related variables:
+        # - Given: target_document_oids = ["a", "b", "c", ..., "y"], start = 0, stop = 25, step = 5
+        # - Then : index_of_first_oid_in_batch =  0, target_document_oids_in_batch = ["a", "b", "c", "d", "e"] (i.e., elements  0- 4)
+        # - Then : index_of_first_oid_in_batch =  5, target_document_oids_in_batch = ["f", "g", "h", "i", "j"] (i.e., elements  5- 9)
+        # - Then : index_of_first_oid_in_batch = 10, target_document_oids_in_batch = ["k", "l", "m", "n", "o"] (i.e., elements 10-14)
+        # - Then : index_of_first_oid_in_batch = 15, target_document_oids_in_batch = ["p", "q", "r", "s", "t"] (i.e., elements 15-19)
+        # - Then : index_of_first_oid_in_batch = 20, target_document_oids_in_batch = ["u", "v", "w", "x", "y"] (i.e., elements 20-24)
+        #
+        num_documents_deleted_total = 0
+        range_args = dict(
+            start=0,
+            stop=len(target_document_oids),
+            step=self.NUM_DOCUMENTS_PER_DELETION_BATCH,
         )
-        mongo_command_document = self._make_mongo_command_document(delete_command)
-        raw_response = self.db.command(
-            command=mongo_command_document,
-            comment="A deletion by MongoCommandProcessor within nmdc-runtime",
-        )
-
-        # Handle `writeErrors`.
-        response = DeleteCommandResponse(**raw_response)
-        if isinstance(response.writeErrors, list) and len(response.writeErrors) > 0:
-            event_id = self._generate_user_facing_event_id()
-            logger.error(
-                f"An error(s) occurred while deleting documents. Event ID: {event_id}"
+        for index_of_first_oid_in_batch in range(range_args["start"], range_args["stop"], range_args["step"]):
+            target_document_oids_in_batch = target_document_oids[
+                index_of_first_oid_in_batch : index_of_first_oid_in_batch + self.NUM_DOCUMENTS_PER_DELETION_BATCH
+            ]
+            delete_command = DeleteCommand(
+                delete=collection_name,
+                deletes=[
+                    DeleteStatement(q={"_id": {"$in": target_document_oids_in_batch}}, limit=0),
+                ],
             )
-            logger.error(response.writeErrors)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=(
-                    "An error occurred while deleting the specified documents. Please contact "
-                    f"an administrator of this application, referencing system event '{event_id}'. "
-                ),
+            mongo_command_document = self._make_mongo_command_document(delete_command)
+            raw_response = self.db.command(
+                command=mongo_command_document,
+                comment="Deletion of document batch by MongoCommandProcessor within nmdc-runtime",
             )
 
-        return response
+            # Handle `writeErrors` from this batch.
+            response = DeleteCommandResponse(**raw_response)
+            if isinstance(response.writeErrors, list) and len(response.writeErrors) > 0:
+                event_id = self._generate_user_facing_event_id()
+                logger.error(
+                    f"An error(s) occurred while deleting a batch of documents. Event ID: {event_id}"
+                )
+                logger.error(response.writeErrors)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=(
+                        "An error occurred while deleting the specified documents. Please contact "
+                        f"an administrator of this application, referencing system event '{event_id}'. "
+                    ),
+                )
+
+            # Update the total number of documents that have been deleted.
+            num_documents_deleted_in_batch = response.n
+            num_documents_deleted_total += num_documents_deleted_in_batch
+
+            # If the deletion of this batch failed from MongoDB's perspective, stop processing the
+            # overall "delete" command and return the total number deleted so far.
+            # Docs: https://www.mongodb.com/docs/manual/tutorial/use-database-commands/#command-responses
+            if not self._is_response_ok(response):
+                return DeleteCommandResponse(ok=0, n=num_documents_deleted_total)
+
+        return DeleteCommandResponse(ok=1, n=num_documents_deleted_total)
 
     def process(
         self,
