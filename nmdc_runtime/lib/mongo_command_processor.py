@@ -467,14 +467,19 @@ class MongoCommandProcessor:
             stop=len(target_document_oids),
             step=self.NUM_DOCUMENTS_PER_DELETION_BATCH,
         )
-        for index_of_first_oid_in_batch in range(range_args["start"], range_args["stop"], range_args["step"]):
+        for index_of_first_oid_in_batch in range(
+            range_args["start"], range_args["stop"], range_args["step"]
+        ):
             target_document_oids_in_batch = target_document_oids[
-                index_of_first_oid_in_batch : index_of_first_oid_in_batch + self.NUM_DOCUMENTS_PER_DELETION_BATCH
+                index_of_first_oid_in_batch : index_of_first_oid_in_batch
+                + self.NUM_DOCUMENTS_PER_DELETION_BATCH
             ]
             delete_command = DeleteCommand(
                 delete=collection_name,
                 deletes=[
-                    DeleteStatement(q={"_id": {"$in": target_document_oids_in_batch}}, limit=0),
+                    DeleteStatement(
+                        q={"_id": {"$in": target_document_oids_in_batch}}, limit=0
+                    ),
                 ],
             )
             mongo_command_document = self._make_mongo_command_document(delete_command)
