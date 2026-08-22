@@ -78,7 +78,7 @@ on your local
 instance (at `http://localhost:3000` by default).
 
 The operations comprising `apply_changesheet` are `@op`-decorated functions in
-[`nmdc_runtime.site.ops`](https://github.com/microbiomedata/nmdc-runtime/blob/main/nmdc_runtime/site/ops.py), i.e.
+[`nmdc_runtime.site.ops.common`](https://github.com/microbiomedata/nmdc-runtime/blob/main/nmdc_runtime/site/ops/common.py), i.e.
 
 ```python
 @op(required_resource_keys={"mongo"})

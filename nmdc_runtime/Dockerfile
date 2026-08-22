@@ -128,6 +128,7 @@ FROM base AS dagster
 #
 # Note: This path (i.e. "/opt/dagster/lib/") is hard-coded in a few places in `nmdc_runtime/site/ops.py`. That's why
 #       this image does not store the repository contents in `/code`, unlike the other images in this Dockerfile.
+#       TODO: Since that path is no longer hard-coded in any Python files, consider using `/code` here instead.
 #
 COPY . /opt/dagster/lib
 

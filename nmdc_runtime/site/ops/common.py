@@ -1,3 +1,10 @@
+"""
+Dagster ops.
+
+Note: These were the ops that remained in `nmdc_runtime/site/ops.py` after other ops were extracted
+      during a refactor. That file was then moved/renamed to `nmdc_runtime/site/ops/common.py`.
+"""
+
 import csv
 import json
 import os

@@ -1,7 +1,7 @@
 from dagster import graph
 
-from nmdc_runtime.site.ops_pkg.alldocs import materialize_alldocs
-from nmdc_runtime.site.ops_pkg.gold import (
+from nmdc_runtime.site.ops.alldocs import materialize_alldocs
+from nmdc_runtime.site.ops.gold import (
     generate_biosample_set_for_nmdc_study_from_gold,
     nmdc_schema_database_from_gold_study,
     get_gold_study_pipeline_inputs,
@@ -13,8 +13,8 @@ from nmdc_runtime.site.ops_pkg.gold import (
     get_database_updater_inputs,
     generate_data_generation_set_post_biosample_ingest,
 )
-from nmdc_runtime.site.ops_pkg.workflows import construct_jobs, maybe_post_jobs
-from nmdc_runtime.site.ops_pkg.ncbi import (
+from nmdc_runtime.site.ops.workflows import construct_jobs, maybe_post_jobs
+from nmdc_runtime.site.ops.ncbi import (
     get_ncbi_export_pipeline_study,
     get_data_objects_from_biosamples,
     get_nucleotide_sequencing_from_biosamples,
@@ -24,7 +24,7 @@ from nmdc_runtime.site.ops_pkg.ncbi import (
     ncbi_submission_xml_from_nmdc_study,
     ncbi_submission_xml_asset,
 )
-from nmdc_runtime.site.ops_pkg.neon import (
+from nmdc_runtime.site.ops.neon import (
     neon_data_by_product,
     get_neon_soil_sample_filter,
     nmdc_schema_database_from_neon_soil_data,
@@ -38,8 +38,8 @@ from nmdc_runtime.site.ops_pkg.neon import (
     get_neon_pipeline_inputs,
     site_code_mapping,
 )
-from nmdc_runtime.site.ops_pkg.ontology import load_ontology
-from nmdc_runtime.site.ops_pkg.submission_portal import (
+from nmdc_runtime.site.ops.ontology import load_ontology
+from nmdc_runtime.site.ops.submission_portal import (
     fetch_nmdc_portal_submission_by_id,
     translate_portal_submission_to_nmdc_schema_database,
     get_submission_portal_pipeline_inputs,
@@ -50,14 +50,14 @@ from nmdc_runtime.site.ops_pkg.submission_portal import (
     get_all_instruments,
     get_instrument_ids_by_model,
 )
-from nmdc_runtime.site.ops_pkg.workflows import (
+from nmdc_runtime.site.ops.workflows import (
     poll_for_run_completion,
     delete_operations,
     list_operations,
     filter_ops_done_object_puts,
     filter_ops_undone_expired,
 )
-from nmdc_runtime.site.ops import (
+from nmdc_runtime.site.ops.common import (
     nmdc_schema_database_export_filename,
     nmdc_schema_object_to_dict,
     export_json_to_drs,
