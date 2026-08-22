@@ -4,7 +4,7 @@ import requests_mock
 from dagster import build_op_context
 
 from nmdc_runtime.site.resources import gold_api_client_resource
-from nmdc_runtime.site.ops import (
+from nmdc_runtime.site.ops_pkg.gold import (
     get_gold_study_pipeline_inputs,
     gold_analysis_projects_by_study,
     gold_biosamples_by_study,

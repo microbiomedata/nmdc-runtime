@@ -1,6 +1,18 @@
 from dagster import graph
 
 from nmdc_runtime.site.ops_pkg.alldocs import materialize_alldocs
+from nmdc_runtime.site.ops_pkg.gold import (
+    generate_biosample_set_for_nmdc_study_from_gold,
+    nmdc_schema_database_from_gold_study,
+    get_gold_study_pipeline_inputs,
+    gold_analysis_projects_by_study,
+    gold_projects_by_study,
+    gold_study,
+    run_script_to_update_insdc_biosample_identifiers,
+    gold_biosamples_by_study,
+    get_database_updater_inputs,
+    generate_data_generation_set_post_biosample_ingest,
+)
 from nmdc_runtime.site.ops_pkg.ontology import load_ontology
 from nmdc_runtime.site.ops_pkg.submission_portal import (
     fetch_nmdc_portal_submission_by_id,
@@ -12,15 +24,9 @@ from nmdc_runtime.site.ops_pkg.submission_portal import (
     validate_submission_sample_set_id,
 )
 from nmdc_runtime.site.ops import (
-    generate_biosample_set_for_nmdc_study_from_gold,
     nmdc_schema_database_export_filename,
-    nmdc_schema_database_from_gold_study,
     nmdc_schema_object_to_dict,
     export_json_to_drs,
-    get_gold_study_pipeline_inputs,
-    gold_analysis_projects_by_study,
-    gold_projects_by_study,
-    gold_study,
     poll_for_run_completion,
     delete_operations,
     create_objects_from_ops,
@@ -29,7 +35,6 @@ from nmdc_runtime.site.ops import (
     hello,
     show_version_info_op,
     mongo_stats,
-    run_script_to_update_insdc_biosample_identifiers,
     submit_metadata_to_db,
     filter_ops_undone_expired,
     construct_jobs,
@@ -39,7 +44,6 @@ from nmdc_runtime.site.ops import (
     get_json_in,
     perform_mongo_updates,
     add_output_run_event,
-    gold_biosamples_by_study,
     validate_metadata,
     neon_data_by_product,
     get_neon_soil_sample_filter,
@@ -65,9 +69,7 @@ from nmdc_runtime.site.ops import (
     ncbi_submission_xml_from_nmdc_study,
     ncbi_submission_xml_asset,
     render_text,
-    get_database_updater_inputs,
     post_submission_portal_biosample_ingest_record_stitching_filename,
-    generate_data_generation_set_post_biosample_ingest,
     get_instrument_ids_by_model,
     log_database_ids,
 )
