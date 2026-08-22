@@ -180,6 +180,7 @@ def get_neon_pipeline_inputs(
         neon_nmdc_instrument_mapping_file_url,
     )
 
+
 @op
 def nmdc_schema_database_export_filename_neon() -> str:
     return "database_from_neon_metadata.json"
