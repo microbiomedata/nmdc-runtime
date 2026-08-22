@@ -109,6 +109,7 @@ def nmdc_schema_database_from_gold_study(
     database = translator.get_database()
     return database
 
+
 @op(
     config_schema={
         "nmdc_study_id": str,
@@ -132,6 +133,7 @@ def get_database_updater_inputs(
         context.op_config["include_field_site_info"],
         context.op_config["enable_biosample_filtering"],
     )
+
 
 @op(
     required_resource_keys={
@@ -169,6 +171,7 @@ def generate_data_generation_set_post_biosample_ingest(
     )
 
     return database
+
 
 @op(
     required_resource_keys={
