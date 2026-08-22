@@ -543,8 +543,6 @@ def nmdc_schema_database_from_gold_study(
     return database
 
 
-
-
 @op
 def nmdc_schema_database_export_filename(study: Dict[str, Any]) -> str:
     source_id = None

@@ -36,6 +36,7 @@ class FinalizeSubmissionResult(StrEnum):
     FINALIZED = "finalized"
     ALREADY_LINKED = "already_linked"
 
+
 @op(
     out={
         "submission_id": Out(),
