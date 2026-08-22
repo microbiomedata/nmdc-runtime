@@ -1,4 +1,8 @@
-"""Dagster ops related to the MongoDB collection named "alldocs"."""
+"""
+Dagster ops related to the MongoDB collection named "alldocs".
+
+Note: These were extracted from a 1900-line file at `nmdc_runtime/site/ops.py` during a refactor.
+"""
 
 from collections import defaultdict
 from itertools import chain

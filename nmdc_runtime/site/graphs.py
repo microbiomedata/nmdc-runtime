@@ -1,6 +1,7 @@
 from dagster import graph
 
 from nmdc_runtime.site.ops_pkg.alldocs import materialize_alldocs
+from nmdc_runtime.site.ops_pkg.ontology import load_ontology
 from nmdc_runtime.site.ops import (
     generate_biosample_set_for_nmdc_study_from_gold,
     nmdc_schema_database_export_filename,
@@ -12,8 +13,6 @@ from nmdc_runtime.site.ops import (
     gold_projects_by_study,
     gold_study,
     poll_for_run_completion,
-    get_operation,
-    produce_curated_db,
     delete_operations,
     create_objects_from_ops,
     list_operations,
@@ -50,7 +49,6 @@ from nmdc_runtime.site.ops import (
     get_neon_pipeline_inputs,
     get_df_from_url,
     site_code_mapping,
-    load_ontology,
     get_ncbi_export_pipeline_study,
     get_data_objects_from_biosamples,
     get_nucleotide_sequencing_from_biosamples,
