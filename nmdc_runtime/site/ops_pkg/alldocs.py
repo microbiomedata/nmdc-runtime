@@ -17,7 +17,6 @@ from nmdc_runtime.util import (
     populated_schema_collection_names_with_id_field,
 )
 
-
 # batch size for writing documents to alldocs
 BULK_WRITE_BATCH_SIZE = 2000
 
