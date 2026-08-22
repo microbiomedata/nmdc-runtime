@@ -51,7 +51,7 @@ def op_context(client_config, tmp_path):
 
 
 # This test will always run - it doesn't require MongoDB connection
-@patch('nmdc_runtime.site.ops.OntologyLoaderController')
+@patch('nmdc_runtime.site.ops_pkg.ontology.OntologyLoaderController')
 def test_load_ontology(mock_ontology_loader, op_context):
     """Tests the load_ontology op using mocks to verify parameter passing and method calling"""
     # Setup the mock
