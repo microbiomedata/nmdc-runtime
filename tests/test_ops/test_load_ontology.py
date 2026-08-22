@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from dagster import build_op_context
 from nmdc_runtime.site.resources import mongo_resource
-from nmdc_runtime.site.ops import load_ontology
+from nmdc_runtime.site.ops_pkg.ontology import load_ontology
 import logging
 
 logging.basicConfig(
