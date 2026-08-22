@@ -9,9 +9,7 @@ from pymongo.database import Database as MongoDatabase
 from nmdc_runtime.api.endpoints.lib.linked_instances import (
     pipeline_for_instances_linked_to_ids_by_direction,
 )
-from nmdc_runtime.site.ops import (
-    materialize_alldocs,
-)
+from nmdc_runtime.site.ops_pkg.alldocs import materialize_alldocs
 from nmdc_runtime.util import (
     nmdc_schema_view,
     populated_schema_collection_names_with_id_field,

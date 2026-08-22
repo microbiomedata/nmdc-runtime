@@ -24,7 +24,7 @@ from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB, UserIn, User
 from nmdc_runtime.api.models.wfe_file_stages import WorkflowFileStagingCollectionName
-from nmdc_runtime.site.ops import materialize_alldocs
+from nmdc_runtime.site.ops_pkg.alldocs import materialize_alldocs
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import (
     get_mongo,

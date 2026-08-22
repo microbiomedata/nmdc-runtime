@@ -1,5 +1,6 @@
 from dagster import graph
 
+from nmdc_runtime.site.ops_pkg.alldocs import materialize_alldocs
 from nmdc_runtime.site.ops import (
     generate_biosample_set_for_nmdc_study_from_gold,
     nmdc_schema_database_export_filename,
@@ -49,7 +50,6 @@ from nmdc_runtime.site.ops import (
     get_neon_pipeline_inputs,
     get_df_from_url,
     site_code_mapping,
-    materialize_alldocs,
     load_ontology,
     get_ncbi_export_pipeline_study,
     get_data_objects_from_biosamples,
