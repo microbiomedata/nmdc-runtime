@@ -17,7 +17,6 @@ from toolz import dissoc
 from bson import json_util
 from dagster import (
     Any,
-    AssetKey,
     AssetMaterialization,
     Dict,
     Failure,
@@ -34,16 +33,15 @@ from gridfs import GridFS
 from linkml_runtime.utils.dictutils import as_simple_dict
 from linkml_runtime.utils.yamlutils import YAMLRoot
 from nmdc_runtime.api.db.mongo import validate_json
-from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.metadata import (
     _validate_changesheet,
     df_from_sheet_in,
     get_collection_for_id,
     map_id_to_collection,
 )
-from nmdc_runtime.api.core.util import dotted_path_for, hash_from_str, json_clean, now
+from nmdc_runtime.api.core.util import dotted_path_for, hash_from_str
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
-from nmdc_runtime.api.models.job import Job, JobOperationMetadata
+from nmdc_runtime.api.models.job import JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.operation import (
     ObjectPutMetadata,
@@ -66,10 +64,7 @@ from nmdc_runtime.site.util import (
     nmdc_study_id_to_filename,
     get_instruments_by_id,
 )
-from nmdc_runtime.util import (
-    pluralize,
-    specialize_activity_set_docs,
-)
+from nmdc_runtime.util import specialize_activity_set_docs
 from nmdc_schema import nmdc
 from pymongo.database import Database as MongoDatabase
 from toolz import get_in, valfilter, identity
@@ -225,75 +220,6 @@ def delete_operations(context, op_docs: list):
     context.log.info(f"Deleted {rv.deleted_count} of {len(op_docs)}")
     if rv.deleted_count != len(op_docs):
         context.log.error("Didn't delete all.")
-
-
-@op(required_resource_keys={"mongo"})
-def construct_jobs(context: OpExecutionContext) -> List[Job]:
-    mdb: MongoDatabase = context.resources.mongo.db
-    docs = [
-        dict(**base, id=generate_one_id(mdb, "jobs"), created_at=now())
-        for base in context.op_config["base_jobs"]
-    ]
-    return [Job(**d) for d in docs]
-
-
-@op(required_resource_keys={"mongo"})
-def maybe_post_jobs(context, jobs: List[Job]):
-    mdb: MongoDatabase = context.resources.mongo.db
-    n_posted = 0
-    for job in jobs:
-        job_docs = list(mdb.jobs.find({"workflow.id": job.workflow.id}))
-        posted_job_object_ids = [get_in(["config", "object_id"], d) for d in job_docs]
-        job_object_id = job.config.get("object_id")
-        if job_object_id in posted_job_object_ids:
-            context.log.info(
-                f"{job.workflow.id} job for object id {job_object_id} already posted"
-            )
-            continue
-
-        object_id_timestamps = {
-            d["id"]: d["created_time"]
-            for d in mdb.objects.find(
-                {"id": {"$in": posted_job_object_ids + [job_object_id]}},
-                ["id", "created_time"],
-            )
-        }
-        candidate_job_object_id_timestamp = object_id_timestamps[job_object_id]
-        for id_, ts in object_id_timestamps.items():
-            if ts > candidate_job_object_id_timestamp:
-                context.log.info(
-                    f"{job.workflow.id} job already posted for object id {id_} "
-                    f"created later than {job_object_id}"
-                )
-                break
-
-        mdb.jobs.insert_one(json_clean(job, model=Job, exclude_unset=True))
-        yield AssetMaterialization(
-            asset_key=AssetKey(["job", job.workflow.id]),
-            description="workflow job",
-            metadata={
-                "object_id": MetadataValue.text(job_object_id),
-            },
-        )
-        n_posted += 1
-    context.log.info(f'{n_posted} {pluralize("job", n_posted)}')
-    yield Output(n_posted)
-
-
-@op(required_resource_keys={"mongo"})
-def remove_unclaimed_obsolete_jobs(context, job: Job):
-    mdb: MongoDatabase = context.resources.mongo.db
-    job_object_id = job.config.get("object_id_latest")
-    other_job_docs = list(
-        mdb.jobs.find(
-            {
-                "workflow.id": job.workflow.id,
-                "config.object_id_latest": {"$ne": job_object_id},
-            }
-        )
-    )
-    print(other_job_docs)
-    # TODO which of other_job_docs are unclaimed? (no operations)? Delete them.
 
 
 @op(required_resource_keys={"mongo"})

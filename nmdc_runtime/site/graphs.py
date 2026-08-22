@@ -13,6 +13,7 @@ from nmdc_runtime.site.ops_pkg.gold import (
     get_database_updater_inputs,
     generate_data_generation_set_post_biosample_ingest,
 )
+from nmdc_runtime.site.ops_pkg.workflows import construct_jobs, maybe_post_jobs
 from nmdc_runtime.site.ops_pkg.ncbi import (
     get_ncbi_export_pipeline_study,
     get_data_objects_from_biosamples,
@@ -61,8 +62,6 @@ from nmdc_runtime.site.ops import (
     mongo_stats,
     submit_metadata_to_db,
     filter_ops_undone_expired,
-    construct_jobs,
-    maybe_post_jobs,
     get_changesheet_in,
     perform_changesheet_updates,
     get_json_in,
