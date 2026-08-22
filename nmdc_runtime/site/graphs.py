@@ -2,6 +2,15 @@ from dagster import graph
 
 from nmdc_runtime.site.ops_pkg.alldocs import materialize_alldocs
 from nmdc_runtime.site.ops_pkg.ontology import load_ontology
+from nmdc_runtime.site.ops_pkg.submission_portal import (
+    fetch_nmdc_portal_submission_by_id,
+    translate_portal_submission_to_nmdc_schema_database,
+    get_submission_portal_pipeline_inputs,
+    finalize_submission,
+    fetch_nmdc_portal_submission_sample_set_by_id,
+    finalize_sample_set,
+    validate_submission_sample_set_id,
+)
 from nmdc_runtime.site.ops import (
     generate_biosample_set_for_nmdc_study_from_gold,
     nmdc_schema_database_export_filename,
@@ -31,8 +40,6 @@ from nmdc_runtime.site.ops import (
     perform_mongo_updates,
     add_output_run_event,
     gold_biosamples_by_study,
-    fetch_nmdc_portal_submission_by_id,
-    translate_portal_submission_to_nmdc_schema_database,
     validate_metadata,
     neon_data_by_product,
     get_neon_soil_sample_filter,
@@ -43,7 +50,6 @@ from nmdc_runtime.site.ops import (
     get_neon_pipeline_mms_data_product,
     get_neon_pipeline_sls_data_product,
     get_neon_pipeline_surface_water_data_product,
-    get_submission_portal_pipeline_inputs,
     get_csv_rows_from_url,
     get_neon_pipeline_benthic_data_product,
     get_neon_pipeline_inputs,
@@ -64,10 +70,6 @@ from nmdc_runtime.site.ops import (
     generate_data_generation_set_post_biosample_ingest,
     get_instrument_ids_by_model,
     log_database_ids,
-    finalize_submission,
-    fetch_nmdc_portal_submission_sample_set_by_id,
-    finalize_sample_set,
-    validate_submission_sample_set_id,
 )
 from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
 
