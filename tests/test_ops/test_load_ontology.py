@@ -19,7 +19,7 @@ def client_config():
     mongo_dbname = os.getenv("MONGO_DBNAME")
     mongo_username = os.getenv("MONGO_USERNAME")
 
-    logging.info(f"Test MongoDB connection details:")
+    logging.info("Test MongoDB connection details:")
     logging.info(f"- MONGO_HOST: {mongo_host}")
     logging.info(f"- MONGO_DBNAME: {mongo_dbname}")
     logging.info(f"- MONGO_USERNAME: {mongo_username}")
