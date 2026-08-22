@@ -6,7 +6,6 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from importlib.metadata import version
 from io import BytesIO
-from pprint import pformat
 
 from typing import Optional
 from zipfile import ZipFile
@@ -14,7 +13,6 @@ import pandas as pd
 import requests
 from toolz import dissoc
 
-from bson import json_util
 from dagster import (
     Any,
     AssetMaterialization,
@@ -26,7 +24,6 @@ from dagster import (
     Out,
     Output,
     RetryPolicy,
-    RetryRequested,
     op,
 )
 from gridfs import GridFS
@@ -39,20 +36,15 @@ from nmdc_runtime.api.core.metadata import (
     get_collection_for_id,
     map_id_to_collection,
 )
-from nmdc_runtime.api.core.util import dotted_path_for, hash_from_str
+from nmdc_runtime.api.core.util import hash_from_str
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
 from nmdc_runtime.api.models.job import JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.operation import (
-    ObjectPutMetadata,
     Operation,
     UpdateOperationRequest,
 )
-from nmdc_runtime.api.models.run import (
-    RunEventType,
-    RunSummary,
-    _add_run_complete_event,
-)
+from nmdc_runtime.api.models.run import _add_run_complete_event
 from nmdc_runtime.api.models.util import ResultT
 from nmdc_runtime.site.resources import (
     RuntimeApiSiteClient,
@@ -62,7 +54,6 @@ from nmdc_runtime.site.resources import (
 from nmdc_runtime.site.util import (
     schema_collection_has_index_on_id,
     nmdc_study_id_to_filename,
-    get_instruments_by_id,
 )
 from nmdc_runtime.util import specialize_activity_set_docs
 from nmdc_schema import nmdc
@@ -107,17 +98,7 @@ def mongo_stats(context) -> List[str]:
     return collection_names
 
 
-@op(required_resource_keys={"mongo"})
-def get_operation(context):
-    mdb = context.resources.mongo.db
-    id_op = context.op_config.get("operation_id")
-    doc = mdb.operations.find_one({"id": id_op})
-    if doc is None:
-        raise Failure(description=f"operation {id_op} not found")
-    context.log.info(f"got operation {id_op}")
-    return Operation(**doc)
-
-
+# TODO: Delete this function's definition, which is not referenced by anything.
 @op(
     required_resource_keys={"runtime_api_site_client", "mongo"},
     retry_policy=RetryPolicy(max_retries=2),
@@ -172,54 +153,6 @@ def submit_metadata_to_db(context: OpExecutionContext, database: nmdc.Database) 
     response = client.submit_metadata(database)
     body = response.json()
     return body["detail"]["run_id"]
-
-
-@op(required_resource_keys={"runtime_api_user_client"})
-def poll_for_run_completion(context: OpExecutionContext, run_id: str) -> RunSummary:
-    client: RuntimeApiUserClient = context.resources.runtime_api_user_client
-    response = client.get_run_info(run_id)
-    body = RunSummary.parse_obj(response.json())
-    context.log.info(body.status)
-    if body.status != RunEventType.COMPLETE:
-        raise RetryRequested(max_retries=12, seconds_to_wait=10)
-    return body
-
-
-@op
-def filter_ops_done_object_puts() -> str:
-    return json_util.dumps(
-        {
-            "done": True,
-            "metadata.model": dotted_path_for(ObjectPutMetadata),
-        }
-    )
-
-
-@op
-def filter_ops_undone_expired() -> str:
-    return json_util.dumps(
-        {
-            "done": {"$ne": True},
-            "expire_time": {"$lt": datetime.now(timezone.utc)},
-        }
-    )
-
-
-@op(required_resource_keys={"runtime_api_site_client"})
-def list_operations(context, filter_: str) -> list:
-    client = context.resources.runtime_api_site_client
-    ops = [op.model_dump() for op in client.list_operations({"filter": filter_})]
-    context.log.info(str(len(ops)))
-    return ops
-
-
-@op(required_resource_keys={"mongo"})
-def delete_operations(context, op_docs: list):
-    mdb = context.resources.mongo.db
-    rv = mdb.operations.delete_many({"id": {"$in": [doc["id"] for doc in op_docs]}})
-    context.log.info(f"Deleted {rv.deleted_count} of {len(op_docs)}")
-    if rv.deleted_count != len(op_docs):
-        context.log.error("Didn't delete all.")
 
 
 @op(required_resource_keys={"mongo"})
@@ -450,29 +383,6 @@ def get_df_from_url(url: str) -> pd.DataFrame:
     df = pd.read_csv(url, delimiter="\t")
 
     return df
-
-
-@op(required_resource_keys={"mongo"})
-def get_all_instruments(context: OpExecutionContext) -> dict[str, dict]:
-    mdb = context.resources.mongo.db
-    return get_instruments_by_id(mdb)
-
-
-@op(required_resource_keys={"mongo"})
-def get_instrument_ids_by_model(context: OpExecutionContext) -> dict[str, str]:
-    mdb = context.resources.mongo.db
-    instruments_by_id = get_instruments_by_id(mdb)
-    instruments_by_model: dict[str, str] = {}
-    for inst_id, instrument in instruments_by_id.items():
-        model = instrument.get("model")
-        if model is None:
-            context.log.warning(f"Instrument {inst_id} has no model.")
-            continue
-        if model in instruments_by_model:
-            context.log.warning(f"Instrument model {model} is not unique.")
-        instruments_by_model[model] = inst_id
-    context.log.info("Instrument models: %s", pformat(instruments_by_model))
-    return instruments_by_model
 
 
 @op

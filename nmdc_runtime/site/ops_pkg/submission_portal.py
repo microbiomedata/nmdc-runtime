@@ -5,6 +5,7 @@ Note: These were extracted from a 1900-line file at `nmdc_runtime/site/ops.py` d
 """
 
 from enum import StrEnum
+from pprint import pformat
 
 from nmdc_schema.nmdc import SubmissionStatusEnum
 from typing import Tuple
@@ -18,6 +19,8 @@ from dagster import (
     Output,
     op,
 )
+from nmdc_schema import nmdc
+
 from nmdc_runtime.api.models.run import (
     RunEventType,
     RunSummary,
@@ -29,12 +32,35 @@ from nmdc_runtime.site.resources import (
 from nmdc_runtime.site.translation.submission_portal_translator import (
     SubmissionPortalTranslator,
 )
-from nmdc_schema import nmdc
+from nmdc_runtime.site.util import get_instruments_by_id
 
 
 class FinalizeSubmissionResult(StrEnum):
     FINALIZED = "finalized"
     ALREADY_LINKED = "already_linked"
+
+
+@op(required_resource_keys={"mongo"})
+def get_all_instruments(context: OpExecutionContext) -> dict[str, dict]:
+    mdb = context.resources.mongo.db
+    return get_instruments_by_id(mdb)
+
+
+@op(required_resource_keys={"mongo"})
+def get_instrument_ids_by_model(context: OpExecutionContext) -> dict[str, str]:
+    mdb = context.resources.mongo.db
+    instruments_by_id = get_instruments_by_id(mdb)
+    instruments_by_model: dict[str, str] = {}
+    for inst_id, instrument in instruments_by_id.items():
+        model = instrument.get("model")
+        if model is None:
+            context.log.warning(f"Instrument {inst_id} has no model.")
+            continue
+        if model in instruments_by_model:
+            context.log.warning(f"Instrument model {model} is not unique.")
+        instruments_by_model[model] = inst_id
+    context.log.info("Instrument models: %s", pformat(instruments_by_model))
+    return instruments_by_model
 
 
 @op(

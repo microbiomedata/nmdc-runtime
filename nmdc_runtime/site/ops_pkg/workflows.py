@@ -1,24 +1,94 @@
 """
-Dagster ops related to the management of workflows (e.g. jobs).
+Dagster ops related to the Runtime's management of workflows (e.g. jobs, runs, operations).
 
 Note: These were extracted from a 1900-line file at `nmdc_runtime/site/ops.py` during a refactor.
 """
 
+from datetime import datetime, timezone
+
+from bson import json_util
 from dagster import (
     AssetKey,
     AssetMaterialization,
+    Failure,
     MetadataValue,
     OpExecutionContext,
     Output,
+    RetryRequested,
     op,
 )
 from pymongo.database import Database as MongoDatabase
 from toolz import get_in
 
 from nmdc_runtime.api.core.idgen import generate_one_id
-from nmdc_runtime.api.core.util import json_clean, now
+from nmdc_runtime.api.core.util import dotted_path_for, json_clean, now
 from nmdc_runtime.api.models.job import Job
+from nmdc_runtime.api.models.operation import Operation, ObjectPutMetadata
+from nmdc_runtime.api.models.run import (
+    RunEventType,
+    RunSummary,
+)
+from nmdc_runtime.site.resources import RuntimeApiUserClient
 from nmdc_runtime.util import pluralize
+
+
+@op(required_resource_keys={"runtime_api_user_client"})
+def poll_for_run_completion(context: OpExecutionContext, run_id: str) -> RunSummary:
+    client: RuntimeApiUserClient = context.resources.runtime_api_user_client
+    response = client.get_run_info(run_id)
+    body = RunSummary.parse_obj(response.json())
+    context.log.info(body.status)
+    if body.status != RunEventType.COMPLETE:
+        raise RetryRequested(max_retries=12, seconds_to_wait=10)
+    return body
+
+
+@op
+def filter_ops_done_object_puts() -> str:
+    return json_util.dumps(
+        {
+            "done": True,
+            "metadata.model": dotted_path_for(ObjectPutMetadata),
+        }
+    )
+
+@op
+def filter_ops_undone_expired() -> str:
+    return json_util.dumps(
+        {
+            "done": {"$ne": True},
+            "expire_time": {"$lt": datetime.now(timezone.utc)},
+        }
+    )
+
+
+@op(required_resource_keys={"runtime_api_site_client"})
+def list_operations(context, filter_: str) -> list:
+    client = context.resources.runtime_api_site_client
+    ops = [op.model_dump() for op in client.list_operations({"filter": filter_})]
+    context.log.info(str(len(ops)))
+    return ops
+
+
+# TODO: Delete this function's definition, which is not referenced by anything.
+@op(required_resource_keys={"mongo"})
+def get_operation(context):
+    mdb = context.resources.mongo.db
+    id_op = context.op_config.get("operation_id")
+    doc = mdb.operations.find_one({"id": id_op})
+    if doc is None:
+        raise Failure(description=f"operation {id_op} not found")
+    context.log.info(f"got operation {id_op}")
+    return Operation(**doc)
+
+
+@op(required_resource_keys={"mongo"})
+def delete_operations(context, op_docs: list):
+    mdb = context.resources.mongo.db
+    rv = mdb.operations.delete_many({"id": {"$in": [doc["id"] for doc in op_docs]}})
+    context.log.info(f"Deleted {rv.deleted_count} of {len(op_docs)}")
+    if rv.deleted_count != len(op_docs):
+        context.log.error("Didn't delete all.")
 
 
 @op(required_resource_keys={"mongo"})
@@ -74,7 +144,7 @@ def maybe_post_jobs(context, jobs: list[Job]):
     yield Output(n_posted)
 
 
-# TODO: Consider deleting this function, which is not referenced anywhere in the codebase.
+# TODO: Delete this function's definition, which is not referenced by anything.
 @op(required_resource_keys={"mongo"})
 def remove_unclaimed_obsolete_jobs(context, job: Job):
     mdb: MongoDatabase = context.resources.mongo.db

@@ -47,21 +47,25 @@ from nmdc_runtime.site.ops_pkg.submission_portal import (
     fetch_nmdc_portal_submission_sample_set_by_id,
     finalize_sample_set,
     validate_submission_sample_set_id,
+    get_all_instruments,
+    get_instrument_ids_by_model,
+)
+from nmdc_runtime.site.ops_pkg.workflows import (
+    poll_for_run_completion,
+    delete_operations,
+    list_operations,
+    filter_ops_done_object_puts,
+    filter_ops_undone_expired,
 )
 from nmdc_runtime.site.ops import (
     nmdc_schema_database_export_filename,
     nmdc_schema_object_to_dict,
     export_json_to_drs,
-    poll_for_run_completion,
-    delete_operations,
     create_objects_from_ops,
-    list_operations,
-    filter_ops_done_object_puts,
     hello,
     show_version_info_op,
     mongo_stats,
     submit_metadata_to_db,
-    filter_ops_undone_expired,
     get_changesheet_in,
     perform_changesheet_updates,
     get_json_in,
@@ -70,10 +74,8 @@ from nmdc_runtime.site.ops import (
     validate_metadata,
     get_csv_rows_from_url,
     get_df_from_url,
-    get_all_instruments,
     render_text,
     post_submission_portal_biosample_ingest_record_stitching_filename,
-    get_instrument_ids_by_model,
     log_database_ids,
 )
 from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
