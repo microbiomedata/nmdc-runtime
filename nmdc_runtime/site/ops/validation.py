@@ -60,7 +60,7 @@ class CollectionValidationSummary:
 def get_document_identifier(document: dict[str, Any]) -> str:
     """
     Returns a human-readable identifier for the document.
-    
+
     If the document has an `id` field (which documents in most—but not all—NMDC Schema-described
     collections do), use the `id` value as the document's label; otherwise, use its `_id` value.
 
@@ -138,7 +138,7 @@ def _validate_collection(
             summary.num_documents_having_violations += 1
             summary.num_violations += 1
             context.log.error(
-                "Validation error: In collection '%s', document '%s' has type %r, which does not " \
+                "Validation error: In collection '%s', document '%s' has type %r, which does not "
                 "map to any schema classes compatible with that collection (those are: %s).",
                 collection_name,
                 get_document_identifier(document),
@@ -178,7 +178,11 @@ def _validate_collection(
                     validation_result.severity,
                     validation_result.type,
                     validation_result.message,
-                    f"; context={validation_result.context}" if validation_result.context else "",
+                    (
+                        f"; context={validation_result.context}"
+                        if validation_result.context
+                        else ""
+                    ),
                 )
 
     # Now that we've checked all of the documents in this collection, return a summary of the
@@ -205,17 +209,19 @@ def _make_validation_result_asset_materialization_event(
 
     return AssetMaterialization(
         # Example resulting asset_key: `validation/study_set_validation_result`
-        asset_key=AssetKey(
-            ["validation", f"{cvs.collection_name}_validation_result"]
-        ),
+        asset_key=AssetKey(["validation", f"{cvs.collection_name}_validation_result"]),
         description=(
             "NMDC Schema-based validation of the documents "
             f"in the MongoDB collection named: {cvs.collection_name}"
         ),
         metadata={
-            "eligible_class_names": MetadataValue.text(", ".join(cvs.eligible_class_names)),
+            "eligible_class_names": MetadataValue.text(
+                ", ".join(cvs.eligible_class_names)
+            ),
             "num_documents_checked": MetadataValue.int(cvs.num_documents_checked),
-            "num_documents_having_violations": MetadataValue.int(cvs.num_documents_having_violations),
+            "num_documents_having_violations": MetadataValue.int(
+                cvs.num_documents_having_violations
+            ),
             "num_violations": MetadataValue.int(cvs.num_violations),
             "collection_was_skipped": MetadataValue.bool(cvs.collection_was_skipped),
         },
@@ -312,9 +318,7 @@ def select_collection_names(
         "exclude_collections": Field(
             Array(str),
             default_value=[],
-            description=(
-                "Do not validate these collections."
-            ),
+            description=("Do not validate these collections."),
         ),
         "include_collections": Field(
             Array(str),
@@ -363,7 +367,7 @@ def validate_mongo_data_op(
         selected_collection_names
     )
     context.log.info(
-        "Validating documents in %d of %d schema-described collections: %s.\n" \
+        "Validating documents in %d of %d schema-described collections: %s.\n"
         "Skipping %d of %d schema-described collections: %s",
         len(selected_collection_names),
         len(collection_names_from_schema),
@@ -377,7 +381,9 @@ def validate_mongo_data_op(
     validation_summaries_by_collection_name: dict[str, CollectionValidationSummary] = {}
 
     # Process each of the selected collections.
-    for collection_number, collection_name in enumerate(selected_collection_names, start=1):
+    for collection_number, collection_name in enumerate(
+        selected_collection_names, start=1
+    ):
         class_names = sorted(class_names_by_collection_name[collection_name])
         context.log.info(
             "Validating collection %d of %d: %s (%d eligible %s: %s)",
@@ -413,8 +419,13 @@ def validate_mongo_data_op(
 
     # Make a report that accounts for all validation performed.
     overall_report: dict[str, dict] = {}
-    for collection_name, validation_summary in validation_summaries_by_collection_name.items():
-        overall_report[collection_name] = asdict(validation_summary)  # DataClass instance -> dict
+    for (
+        collection_name,
+        validation_summary,
+    ) in validation_summaries_by_collection_name.items():
+        overall_report[collection_name] = asdict(
+            validation_summary
+        )  # DataClass instance -> dict
 
     # Count the total number of validation errors across all documents in all selected collections.
     # If there are any, we fail the run.
