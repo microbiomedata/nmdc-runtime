@@ -6,8 +6,6 @@ import json
 from dagster import (
     repository,
     ScheduleDefinition,
-    asset_sensor,
-    AssetKey,
     SkipReason,
     RunRequest,
     sensor,
@@ -18,6 +16,7 @@ from dagster import (
     MAX_RUNTIME_SECONDS_TAG,
     RunsFilter,
     ScheduleEvaluationContext,
+    DefaultScheduleStatus,
 )
 from starlette import status
 from toolz import merge, get_in
@@ -51,6 +50,7 @@ from nmdc_runtime.site.graphs import (
     nmdc_study_to_ncbi_submission_export,
     generate_data_generation_set_for_biosamples_in_nmdc_study,
     generate_update_script_for_insdc_biosample_identifiers,
+    validate_mongo_data,
 )
 from nmdc_runtime.site.resources import (
     get_mongo,
@@ -109,6 +109,24 @@ preset_normal = {
 }
 
 run_config_frozen__normal_env = freeze(preset_normal["config"])
+
+validate_mongo_data_job = validate_mongo_data.to_job(
+    name="validate_mongo_data",
+    description=(
+        "Validates every document in each NMDC schema-described MongoDB collection. "
+        "Use the 'include_collections' or 'exclude_collections' op configuration to "
+        "select specific collections to validate or skip."
+    ),
+    **preset_normal,
+)
+
+validate_mongo_data_daily = ScheduleDefinition(
+    name="daily_validate_mongo_data",
+    cron_schedule="0 20 * * *",
+    execution_timezone="America/Los_Angeles",
+    default_status=DefaultScheduleStatus.RUNNING,
+    job=validate_mongo_data_job,
+)
 
 housekeeping_weekly = ScheduleDefinition(
     name="housekeeping_weekly",
@@ -488,6 +506,7 @@ def repo():
                 MAX_RUNTIME_SECONDS_TAG: timedelta(minutes=45).total_seconds(),
             },
         ),
+        validate_mongo_data_job,
     ]
     schedules = [
         housekeeping_weekly,
@@ -495,6 +514,7 @@ def repo():
         load_envo_ontology_weekly,
         load_uberon_ontology_weekly,
         load_po_ontology_weekly,
+        validate_mongo_data_daily,
     ]
     sensors = [
         done_object_put_ops,

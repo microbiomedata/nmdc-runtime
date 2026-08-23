@@ -39,6 +39,7 @@ from nmdc_runtime.site.ops.neon import (
     site_code_mapping,
 )
 from nmdc_runtime.site.ops.ontology import load_ontology
+from nmdc_runtime.site.ops.validation import validate_mongo_data_op
 from nmdc_runtime.site.ops.submission_portal import (
     fetch_nmdc_portal_submission_by_id,
     translate_portal_submission_to_nmdc_schema_database,
@@ -111,6 +112,14 @@ def housekeeping():
 @graph
 def ensure_alldocs():
     materialize_alldocs()
+
+
+@graph
+def validate_mongo_data():
+    """
+    Validate every document in every NMDC Schema-described MongoDB collection.
+    """
+    return validate_mongo_data_op()
 
 
 @graph
