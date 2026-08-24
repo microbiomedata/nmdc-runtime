@@ -372,7 +372,7 @@ def validate_mongo_data_op(
         selected_collection_names
     )
     context.log.info(
-        "Validating documents in %d of %d schema-described collections: %s.\n"
+        "Validating documents in %d of %d schema-described collections: %s.\n\n"
         "Skipping %d of %d schema-described collections: %s",
         len(selected_collection_names),
         len(collection_names_from_schema),
@@ -391,7 +391,7 @@ def validate_mongo_data_op(
     ):
         class_names = sorted(class_names_by_collection_name[collection_name])
         context.log.info(
-            "Validating collection %d of %d: %s (%d eligible %s: %s)",
+            "Validating collection %d of %d: '%s'\n(%d eligible %s: %s)",
             collection_number,
             len(selected_collection_names),
             collection_name,
