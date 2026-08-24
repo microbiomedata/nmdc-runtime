@@ -118,7 +118,7 @@ def _validate_collection(
     #       advantage of using fewer batches is that, for each batch, pymongo has to do a network
     #       round trip with the MongoDB server.
     #       Docs: https://www.mongodb.com/docs/v8.0/reference/method/cursor.batchSize
-    # 
+    #
     #       We can tune the batch size over time. As of today, a document in the huge
     #       `functional_annotation_agg` collection contains about 200 JSON characters.
     #       Estimating that to be 200 bytes, I initialized the batch size to be 80_000,
