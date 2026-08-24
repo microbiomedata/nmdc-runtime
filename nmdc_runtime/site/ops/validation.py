@@ -386,8 +386,9 @@ def validate_mongo_data_op(
     validation_summaries_by_collection_name: dict[str, CollectionValidationSummary] = {}
 
     # Process each of the selected collections.
+    sorted_selected_collection_names = sorted(selected_collection_names)
     for collection_number, collection_name in enumerate(
-        selected_collection_names, start=1
+        sorted_selected_collection_names, start=1
     ):
         class_names = sorted(class_names_by_collection_name[collection_name])
         context.log.info(
