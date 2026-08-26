@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from dagster import build_op_context
 from nmdc_runtime.site.resources import mongo_resource
-from nmdc_runtime.site.ops import load_ontology
+from nmdc_runtime.site.ops.ontology import load_ontology
 import logging
 
 logging.basicConfig(
@@ -19,7 +19,7 @@ def client_config():
     mongo_dbname = os.getenv("MONGO_DBNAME")
     mongo_username = os.getenv("MONGO_USERNAME")
 
-    logging.info(f"Test MongoDB connection details:")
+    logging.info("Test MongoDB connection details:")
     logging.info(f"- MONGO_HOST: {mongo_host}")
     logging.info(f"- MONGO_DBNAME: {mongo_dbname}")
     logging.info(f"- MONGO_USERNAME: {mongo_username}")
@@ -51,7 +51,7 @@ def op_context(client_config, tmp_path):
 
 
 # This test will always run - it doesn't require MongoDB connection
-@patch('nmdc_runtime.site.ops.OntologyLoaderController')
+@patch('nmdc_runtime.site.ops.ontology.OntologyLoaderController')
 def test_load_ontology(mock_ontology_loader, op_context):
     """Tests the load_ontology op using mocks to verify parameter passing and method calling"""
     # Setup the mock

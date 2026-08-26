@@ -3,7 +3,7 @@ import requests
 import requests_mock
 from dagster import build_op_context
 
-from nmdc_runtime.site.ops import get_csv_rows_from_url
+from nmdc_runtime.site.ops.common import get_csv_rows_from_url
 
 
 def test_valid_data():

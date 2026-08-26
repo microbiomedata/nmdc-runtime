@@ -16,7 +16,7 @@ from toolz import get_in
 
 from nmdc_runtime.api.core.util import hash_from_str
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
-from nmdc_runtime.site.ops import add_output_run_event
+from nmdc_runtime.site.ops.common import add_output_run_event
 from nmdc_runtime.site.resources import RuntimeApiSiteClient
 from nmdc_runtime.util import flatten
 
