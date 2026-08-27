@@ -38,7 +38,10 @@ from nmdc_runtime.site.ops.neon import (
     get_neon_pipeline_inputs,
     site_code_mapping,
 )
-from nmdc_runtime.site.ops.ontology import load_ontology, delete_ontology_terms_by_prefix
+from nmdc_runtime.site.ops.ontology import (
+    load_ontology,
+    delete_ontology_terms_by_prefix,
+)
 from nmdc_runtime.site.ops.validation import validate_mongo_data_op
 from nmdc_runtime.site.ops.submission_portal import (
     fetch_nmdc_portal_submission_by_id,
