@@ -132,12 +132,6 @@ def _fail_if_id_prefix_mismatches_load_ontology(
         # relation subject/object begins with "NCBITaxon:"; see nmdc-runtime issue 1565), not
         # assumed safe for any other ontology sharing these collections.
         "id_prefix": Field(str, is_required=True),
-        "class_collection_name": Field(
-            str, default_value="ontology_class_set", is_required=False
-        ),
-        "relation_collection_name": Field(
-            str, default_value="ontology_relation_set", is_required=False
-        ),
         # Names of Dagster jobs that must NOT have another active run while this op executes,
         # because they write to the same shared ontology collections (e.g. the regular scheduled
         # load of the same ontology, or another launch of this same reload job).
@@ -166,6 +160,13 @@ def delete_ontology_terms_by_prefix(context: OpExecutionContext):
     :return: {"class_collection_name": ..., "class_deleted_count": int,
         "relation_collection_name": ..., "relation_deleted_count": int}
     """
+    # Collection names are fixed, not configurable: load_ontology/ontology-loader has no matching
+    # override, always writing back to ontology_class_set/ontology_relation_set. An independent
+    # override here would let a valid-looking config delete from one collection pair while
+    # load_ontology reloads into a different one -- see nmdc-runtime PR 1562 review 5045965421.
+    class_collection_name = "ontology_class_set"
+    relation_collection_name = "ontology_relation_set"
+
     cfg = context.op_config
     id_prefix = cfg["id_prefix"]
     if not id_prefix:
@@ -176,10 +177,6 @@ def delete_ontology_terms_by_prefix(context: OpExecutionContext):
             "id_prefix must be a non-empty string; refusing to delete unscoped."
         )
     _fail_if_id_prefix_mismatches_load_ontology(context, id_prefix)
-    class_collection_name = cfg.get("class_collection_name", "ontology_class_set")
-    relation_collection_name = cfg.get(
-        "relation_collection_name", "ontology_relation_set"
-    )
     concurrent_job_names = cfg.get("concurrent_job_names", [])
 
     _fail_if_other_active_run(context, concurrent_job_names)

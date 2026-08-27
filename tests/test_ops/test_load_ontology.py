@@ -2,7 +2,13 @@ import os
 import pytest
 from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
-from dagster import build_op_context, DagsterRun, DagsterRunStatus, Failure
+from dagster import (
+    build_op_context,
+    DagsterInvalidConfigError,
+    DagsterRun,
+    DagsterRunStatus,
+    Failure,
+)
 from nmdc_runtime.site.resources import mongo_resource
 from nmdc_runtime.site.ops.ontology import (
     load_ontology,
@@ -329,26 +335,48 @@ def test_delete_ontology_terms_by_prefix_rejects_empty_id_prefix():
     mock_db.__getitem__.return_value.delete_many.assert_not_called()
 
 
-def test_delete_ontology_terms_by_prefix_custom_collection_names():
-    """Collection name overrides are honored, not hardcoded."""
-    context, mock_db = _mock_mongo_context(
-        op_config={
-            "id_prefix": "TEST:",
-            "class_collection_name": "custom_class_set",
-            "relation_collection_name": "custom_relation_set",
-        },
-    )
+def test_delete_ontology_terms_by_prefix_collection_names_are_fixed():
+    """
+    The op always targets ontology_class_set/ontology_relation_set, hardcoded, not read from cfg.
+
+    Copilot review 5045965421 (PR 1562): load_ontology/ontology-loader has no matching override,
+    always writing back to ontology_class_set/ontology_relation_set. An independent override on
+    this op alone would let a valid-looking config delete from one collection pair while
+    load_ontology reloads into a different one, so the override capability was removed entirely
+    rather than validated against a sibling op's config.
+    """
+    context, mock_db = _mock_mongo_context(op_config={"id_prefix": "TEST:"})
     mock_db.__getitem__.return_value.delete_many.return_value = MagicMock(
         deleted_count=0
     )
 
     result = delete_ontology_terms_by_prefix(context)
 
-    assert result["class_collection_name"] == "custom_class_set"
-    assert result["relation_collection_name"] == "custom_relation_set"
+    assert result["class_collection_name"] == "ontology_class_set"
+    assert result["relation_collection_name"] == "ontology_relation_set"
     accessed_names = [c.args[0] for c in mock_db.__getitem__.call_args_list]
-    assert "custom_class_set" in accessed_names
-    assert "custom_relation_set" in accessed_names
+    assert accessed_names == ["ontology_class_set", "ontology_relation_set"]
+
+
+def test_delete_ontology_terms_by_prefix_rejects_collection_name_config():
+    """
+    class_collection_name/relation_collection_name are no longer valid config keys at all.
+
+    Dagster's own config-schema validation now rejects an attempt to set them, before the op
+    body even runs -- a stronger guarantee than the op merely ignoring them.
+    """
+    context, _ = _mock_mongo_context(
+        op_config={
+            "id_prefix": "TEST:",
+            "class_collection_name": "custom_class_set",
+            "relation_collection_name": "custom_relation_set",
+        },
+    )
+
+    # Config validation against the op's schema is deferred until the op is actually invoked
+    # with this context, not at build_op_context() construction time.
+    with pytest.raises(DagsterInvalidConfigError, match="class_collection_name"):
+        delete_ontology_terms_by_prefix(context)
 
 
 def test_delete_ontology_terms_by_prefix_raises_on_other_active_run():
