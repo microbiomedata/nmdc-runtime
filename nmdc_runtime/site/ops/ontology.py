@@ -20,6 +20,7 @@ from dagster import (
     op,
     RunsFilter,
 )
+from dagster._core.execution.context.invocation import DirectOpExecutionContext
 
 from ontology_loader.ontology_load_controller import OntologyLoaderController
 
@@ -35,6 +36,18 @@ _ACTIVE_RUN_STATUSES = [
     DagsterRunStatus.STARTED,
     DagsterRunStatus.CANCELING,
 ]
+
+
+# Maps a load_ontology source_ontology value to the id prefix its docs use in
+# ontology_class_set/ontology_relation_set. Used only to cross-check delete_ontology_terms_by_prefix
+# and load_ontology aren't configured to target two different ontologies (see
+# _fail_if_id_prefix_mismatches_load_ontology); not a general ontology registry.
+_ONTOLOGY_ID_PREFIXES = {
+    "ncbitaxon": "NCBITaxon:",
+    "envo": "ENVO:",
+    "uberon": "UBERON:",
+    "po": "PO:",
+}
 
 
 def _fail_if_other_active_run(context: OpExecutionContext, job_names: list[str]):
@@ -56,6 +69,44 @@ def _fail_if_other_active_run(context: OpExecutionContext, job_names: list[str])
                 f"{other_run_ids}. This op and {job_name!r} write to the same shared ontology "
                 "collections and must not run concurrently."
             )
+
+
+def _fail_if_id_prefix_mismatches_load_ontology(
+    context: OpExecutionContext, id_prefix: str
+):
+    """
+    Raise Failure if this run's load_ontology step targets a different ontology than id_prefix.
+
+    id_prefix (this op's delete target) and load_ontology's source_ontology (what gets loaded
+    back afterward) are separate, independently-editable config fields with nothing in Dagster
+    tying them together. reload_ontology_by_prefix is a manual, high-blast-radius job whose
+    default config can be overridden at launch time, so a hand-edited run config could otherwise
+    delete one ontology's docs and load a different one in their place. Only checks when a
+    load_ontology step with a source_ontology in _ONTOLOGY_ID_PREFIXES is present in this run;
+    silently skips otherwise (e.g. an unmapped ontology, or a future graph reusing just the
+    delete op without a paired load_ontology step) rather than blocking on what it can't verify.
+    """
+    if isinstance(context, DirectOpExecutionContext):
+        # context.run_config raises DagsterInvalidPropertyError on a directly-invoked op (no real
+        # job run to read it from): nothing to cross-check in that case, e.g. this repo's own
+        # single-op unit tests.
+        return
+    load_ontology_config = (
+        context.run_config.get("ops", {}).get("load_ontology", {}).get("config", {})
+    )
+    source_ontology = load_ontology_config.get("source_ontology")
+    if source_ontology is None:
+        return
+    expected_id_prefix = _ONTOLOGY_ID_PREFIXES.get(source_ontology)
+    if expected_id_prefix is None:
+        return
+    if expected_id_prefix != id_prefix:
+        raise Failure(
+            f"Refusing to proceed: id_prefix {id_prefix!r} does not match the id prefix "
+            f"{expected_id_prefix!r} expected for load_ontology's source_ontology "
+            f"{source_ontology!r}. This run config would delete one ontology's docs and load a "
+            "different ontology's docs in their place."
+        )
 
 
 @op(
@@ -111,6 +162,7 @@ def delete_ontology_terms_by_prefix(context: OpExecutionContext):
         raise Failure(
             "id_prefix must be a non-empty string; refusing to delete unscoped."
         )
+    _fail_if_id_prefix_mismatches_load_ontology(context, id_prefix)
     class_collection_name = cfg.get("class_collection_name", "ontology_class_set")
     relation_collection_name = cfg.get(
         "relation_collection_name", "ontology_relation_set"

@@ -1,9 +1,14 @@
 import os
 import pytest
+from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 from dagster import build_op_context, DagsterRun, DagsterRunStatus, Failure
 from nmdc_runtime.site.resources import mongo_resource
-from nmdc_runtime.site.ops.ontology import load_ontology, delete_ontology_terms_by_prefix
+from nmdc_runtime.site.ops.ontology import (
+    load_ontology,
+    delete_ontology_terms_by_prefix,
+    _fail_if_id_prefix_mismatches_load_ontology,
+)
 import logging
 
 logging.basicConfig(
@@ -27,8 +32,10 @@ def client_config():
     # For local development outside Docker, try connecting to the Docker-exposed port
     if mongo_host == "mongodb://mongo:27017":
         alternative_host = "mongodb://localhost:27018"
-        logging.info(f"- Inside test: MongoDB host is set to container name. "
-              f"If running test locally (not in Docker), try: {alternative_host}")
+        logging.info(
+            f"- Inside test: MongoDB host is set to container name. "
+            f"If running test locally (not in Docker), try: {alternative_host}"
+        )
 
     return {
         "dbname": mongo_dbname,
@@ -47,12 +54,12 @@ def op_context(client_config, tmp_path):
             "mode": "meticulous",
             "closure": "combined",
             "report_directory": str(tmp_path),
-        }
+        },
     )
 
 
 # This test will always run - it doesn't require MongoDB connection
-@patch('nmdc_runtime.site.ops.ontology.OntologyLoaderController')
+@patch("nmdc_runtime.site.ops.ontology.OntologyLoaderController")
 def test_load_ontology(mock_ontology_loader, op_context):
     """Tests the load_ontology op using mocks to verify parameter passing and method calling"""
     # Setup the mock
@@ -69,7 +76,7 @@ def test_load_ontology(mock_ontology_loader, op_context):
         closure="combined",
         report_directory=op_context.op_config["report_directory"],
         mongo_client=op_context.resources.mongo.client,
-        db_name=op_context.resources.mongo.db.name
+        db_name=op_context.resources.mongo.db.name,
     )
 
     # Verify that run_ontology_loader was called
@@ -87,12 +94,14 @@ def op_context_invalid_mode(client_config):
             "source_ontology": "envo",
             "mode": "meticulously",  # typo: not a valid mode
             "closure": "combined",
-        }
+        },
     )
 
 
-@patch('nmdc_runtime.site.ops.ontology.OntologyLoaderController')
-def test_load_ontology_invalid_mode_raises(mock_ontology_loader, op_context_invalid_mode):
+@patch("nmdc_runtime.site.ops.ontology.OntologyLoaderController")
+def test_load_ontology_invalid_mode_raises(
+    mock_ontology_loader, op_context_invalid_mode
+):
     """An unrecognized mode value must raise, not silently fall through."""
     with pytest.raises(ValueError, match="Invalid mode"):
         load_ontology(op_context_invalid_mode)
@@ -108,12 +117,12 @@ def op_context_fast_initial(client_config):
             "source_ontology": "ncbitaxon",
             "mode": "fast-initial",
             "closure": "isa",
-        }
+        },
     )
 
 
 # Always runs - no MongoDB connection needed.
-@patch('nmdc_runtime.site.ops.ontology.OntologyLoaderController')
+@patch("nmdc_runtime.site.ops.ontology.OntologyLoaderController")
 def test_load_ontology_fast_initial(mock_ontology_loader, op_context_fast_initial):
     """fast-initial: op passes mode/closure through and leaves report_directory=None."""
     mock_instance = MagicMock()
@@ -133,7 +142,7 @@ def test_load_ontology_fast_initial(mock_ontology_loader, op_context_fast_initia
     assert result is None
 
 
-@patch('nmdc_runtime.site.ops.ontology.OntologyLoaderController')
+@patch("nmdc_runtime.site.ops.ontology.OntologyLoaderController")
 def test_load_ontology_raises_on_other_active_run(mock_ontology_loader, client_config):
     """
     load_ontology must refuse to start while a job named in concurrent_job_names is active.
@@ -175,13 +184,21 @@ def test_load_ontology_integration(op_context):
     mdb = op_context.resources.mongo.db
 
     # Print detail about the MongoDB connection
-    logging.info(f"Connected to MongoDB: {op_context.resources.mongo.db.client.address}")
+    logging.info(
+        f"Connected to MongoDB: {op_context.resources.mongo.db.client.address}"
+    )
 
     # Check if ontology collections exist before running
-    ontology_class_set_before = mdb.get_collection("ontology_class_set").count_documents({})
-    ontology_relation_set_before = mdb.get_collection("ontology_relation_set").count_documents({})
+    ontology_class_set_before = mdb.get_collection(
+        "ontology_class_set"
+    ).count_documents({})
+    ontology_relation_set_before = mdb.get_collection(
+        "ontology_relation_set"
+    ).count_documents({})
 
-    logging.info(f"Before running: {ontology_class_set_before} classes, {ontology_relation_set_before} relations")
+    logging.info(
+        f"Before running: {ontology_class_set_before} classes, {ontology_relation_set_before} relations"
+    )
 
     # Execute the op
     result = load_ontology(op_context)
@@ -192,7 +209,9 @@ def test_load_ontology_integration(op_context):
     logging.info(f"After running: {ontology_class_count} classes")
 
     # 2. Check that ontology_relation_set has entries
-    ontology_relation_count = mdb.get_collection("ontology_relation_set").count_documents({})
+    ontology_relation_count = mdb.get_collection(
+        "ontology_relation_set"
+    ).count_documents({})
     logging.info(f"After running: {ontology_relation_count} relations")
 
     # 3. Check for some known ENVO terms if we have ontology data
@@ -200,7 +219,9 @@ def test_load_ontology_integration(op_context):
     assert ontology_relation_count > 0
 
     sample_envo_id = "ENVO:00000001"  # Example ENVO ID
-    envo_term = mdb.get_collection("ontology_class_set").find_one({"id": sample_envo_id})
+    envo_term = mdb.get_collection("ontology_class_set").find_one(
+        {"id": sample_envo_id}
+    )
     assert envo_term is not None
 
     # 4. Check report files (only the "meticulous" mode writes TSV reports)
@@ -367,3 +388,56 @@ def test_delete_ontology_terms_by_prefix_guard_is_noop_when_no_job_names_configu
     delete_ontology_terms_by_prefix(context)  # must not raise
 
     context.instance.get_runs.assert_not_called()
+
+
+def test_fail_if_id_prefix_mismatches_load_ontology_raises_on_mismatch():
+    """id_prefix must match the id prefix load_ontology's source_ontology will load back."""
+    context = SimpleNamespace(
+        run_config={"ops": {"load_ontology": {"config": {"source_ontology": "envo"}}}}
+    )
+    with pytest.raises(Failure, match="does not match"):
+        _fail_if_id_prefix_mismatches_load_ontology(context, "NCBITaxon:")
+
+
+def test_fail_if_id_prefix_mismatches_load_ontology_passes_on_match():
+    context = SimpleNamespace(
+        run_config={
+            "ops": {"load_ontology": {"config": {"source_ontology": "ncbitaxon"}}}
+        }
+    )
+    _fail_if_id_prefix_mismatches_load_ontology(context, "NCBITaxon:")  # must not raise
+
+
+def test_fail_if_id_prefix_mismatches_load_ontology_skips_unmapped_ontology():
+    """An ontology outside _ONTOLOGY_ID_PREFIXES is left unchecked rather than blocked."""
+    context = SimpleNamespace(
+        run_config={
+            "ops": {
+                "load_ontology": {"config": {"source_ontology": "some_future_ontology"}}
+            }
+        }
+    )
+    _fail_if_id_prefix_mismatches_load_ontology(context, "ANYTHING:")  # must not raise
+
+
+def test_fail_if_id_prefix_mismatches_load_ontology_skips_when_load_ontology_absent():
+    """No load_ontology step in this run's config (e.g. a future graph reusing only the delete
+    op): nothing to cross-check against, so this must not raise."""
+    context = SimpleNamespace(run_config={"ops": {}})
+    _fail_if_id_prefix_mismatches_load_ontology(context, "NCBITaxon:")  # must not raise
+
+
+def test_delete_ontology_terms_by_prefix_direct_invocation_skips_mismatch_check():
+    """
+    A directly-invoked op context (this file's own unit-test style) has no real job run to read
+    run_config from, so the mismatch cross-check must skip rather than raise
+    DagsterInvalidPropertyError. Configures id_prefix to an ontology-implying value with no
+    load_ontology step anywhere in this test's context, matching how every other test in this
+    file invokes delete_ontology_terms_by_prefix directly.
+    """
+    context, mock_db = _mock_mongo_context(op_config={"id_prefix": "NCBITaxon:"})
+    mock_db.__getitem__.return_value.delete_many.return_value = MagicMock(
+        deleted_count=0
+    )
+
+    delete_ontology_terms_by_prefix(context)  # must not raise

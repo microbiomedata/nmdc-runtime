@@ -86,49 +86,56 @@ def test_reload_deletes_by_prefix_without_touching_a_sibling_ontology():
     _clear_prefix(db, "ENVO:")
     _clear_prefix(db, "SIBLING_ONTOLOGY:")
 
-    # Each execute_in_process() call gets its own explicit ephemeral instance. Relying on the
-    # implicit default across two calls in one test process hit a Dagster SQLite event-log
-    # teardown/reinit issue on the second call ("no such table: event_logs") unrelated to this
-    # graph's own logic.
-    first_load = job.execute_in_process(
-        resources=resources,
-        # id_prefix "ENVO:" here is a harmless no-op delete: the collections were just cleared.
-        run_config=_run_config(delete_id_prefix="ENVO:", load_source_ontology="envo"),
-        instance=DagsterInstance.ephemeral(),
-    )
-    assert first_load.success
-
-    db["ontology_class_set"].insert_one(
-        {
-            "id": "SIBLING_ONTOLOGY:0001",
-            "name": "fake sibling class",
-            "type": "nmdc:OntologyClass",
-        }
-    )
-    db["ontology_relation_set"].insert_one(
-        {
-            "subject": "SIBLING_ONTOLOGY:0001",
-            "predicate": "rdfs:subClassOf",
-            "object": "SIBLING_ONTOLOGY:0000",
-            "type": "nmdc:OntologyRelation",
-        }
-    )
-    envo_class_count_before = db["ontology_class_set"].count_documents(
-        {"id": {"$regex": "^ENVO:"}}
-    )
-    assert (
-        envo_class_count_before > 0
-    ), "envo should already be loaded from the first job run"
-
-    # Now reload envo again: delete its docs, then load them back. The sibling docs must survive.
-    reload_result = job.execute_in_process(
-        resources=resources,
-        run_config=_run_config(delete_id_prefix="ENVO:", load_source_ontology="envo"),
-        instance=DagsterInstance.ephemeral(),
-    )
-    assert reload_result.success
-
+    # Everything from here on writes to the shared live collections, so it's wrapped in try/
+    # finally: a failure partway through (a job run, an insert, an assertion) must still leave
+    # these two prefixes cleared, or a later test run fails on stale data or duplicate IDs.
     try:
+        # Each execute_in_process() call gets its own explicit ephemeral instance. Relying on the
+        # implicit default across two calls in one test process hit a Dagster SQLite event-log
+        # teardown/reinit issue on the second call ("no such table: event_logs") unrelated to this
+        # graph's own logic.
+        first_load = job.execute_in_process(
+            resources=resources,
+            # id_prefix "ENVO:" here is a harmless no-op delete: the collections were just cleared.
+            run_config=_run_config(
+                delete_id_prefix="ENVO:", load_source_ontology="envo"
+            ),
+            instance=DagsterInstance.ephemeral(),
+        )
+        assert first_load.success
+
+        db["ontology_class_set"].insert_one(
+            {
+                "id": "SIBLING_ONTOLOGY:0001",
+                "name": "fake sibling class",
+                "type": "nmdc:OntologyClass",
+            }
+        )
+        db["ontology_relation_set"].insert_one(
+            {
+                "subject": "SIBLING_ONTOLOGY:0001",
+                "predicate": "rdfs:subClassOf",
+                "object": "SIBLING_ONTOLOGY:0000",
+                "type": "nmdc:OntologyRelation",
+            }
+        )
+        envo_class_count_before = db["ontology_class_set"].count_documents(
+            {"id": {"$regex": "^ENVO:"}}
+        )
+        assert (
+            envo_class_count_before > 0
+        ), "envo should already be loaded from the first job run"
+
+        # Now reload envo again: delete its docs, then load them back. The sibling docs must survive.
+        reload_result = job.execute_in_process(
+            resources=resources,
+            run_config=_run_config(
+                delete_id_prefix="ENVO:", load_source_ontology="envo"
+            ),
+            instance=DagsterInstance.ephemeral(),
+        )
+        assert reload_result.success
+
         sibling_class = db["ontology_class_set"].find_one(
             {"id": "SIBLING_ONTOLOGY:0001"}
         )
