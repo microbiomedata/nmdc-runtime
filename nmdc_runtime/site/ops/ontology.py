@@ -90,15 +90,26 @@ def delete_ontology_terms_by_prefix(context: OpExecutionContext):
     only performs the delete; pair it with load_ontology (mode=fast-initial) in a graph to do the
     reload, e.g. via the `waits_for` Nothing-dependency load_ontology accepts.
 
-    The prefix match is a case-sensitive, anchored ("^prefix") regex on an indexed field
-    (`id` for classes, `subject` for relations), so MongoDB can use the existing index as a range
-    scan rather than a full collection scan -- essential at NCBITaxon's ~54.7M relation scale.
+    The prefix match is a case-sensitive, anchored ("^prefix") regex, which MongoDB can use as an
+    index range scan rather than a full collection scan when a covering index exists. `id` is
+    always indexed (nmdc_runtime.util.ensure_unique_id_indexes). `subject` is NOT indexed by
+    anything in this repo, and the currently-pinned ontology-loader==0.2.3 does not create one
+    either -- that lands in ontology-loader#60 (a unique (subject, predicate, object) index, whose
+    subject-prefix MongoDB can use), unreleased as of this writing. Until a release containing that
+    fix is pinned, the relation delete_many here is a full collection scan at whatever scale
+    ontology_relation_set holds -- unacceptable at NCBITaxon's ~54.7M-relation scale. Confirm the
+    index actually exists (or the pin has moved past 0.2.3) before running this against NCBITaxon.
 
     :return: {"class_collection_name": ..., "class_deleted_count": int,
         "relation_collection_name": ..., "relation_deleted_count": int}
     """
     cfg = context.op_config
     id_prefix = cfg["id_prefix"]
+    if not id_prefix:
+        # An empty prefix compiles to the regex "^", which matches every document. Refusing this
+        # is the difference between a scoped delete and wiping every ontology in these shared
+        # collections.
+        raise Failure("id_prefix must be a non-empty string; refusing to delete unscoped.")
     class_collection_name = cfg.get("class_collection_name", "ontology_class_set")
     relation_collection_name = cfg.get(
         "relation_collection_name", "ontology_relation_set"
@@ -148,6 +159,13 @@ def delete_ontology_terms_by_prefix(context: OpExecutionContext):
         # report_directory: only used when mode="meticulous" (TSV reports). When None it
         #   defaults to <cwd>/ontology_reports for meticulous; fast-initial writes no reports.
         "report_directory": Field(Noneable(str), default_value=None, is_required=False),
+        # Names of Dagster jobs that must NOT have another active run while this op executes.
+        # The reciprocal of delete_ontology_terms_by_prefix's own guard: that op already refuses
+        # to start while a job named here is active, but without this, nothing stopped one of
+        # those jobs from starting immediately afterward and inserting into a collection a
+        # concurrent scoped reload is mid-delete on. Defaults to empty (no-op) so envo/uberon/po
+        # schedules, which have no reload job to race against, are unaffected.
+        "concurrent_job_names": Field(Array(str), default_value=[], is_required=False),
     },
 )
 def load_ontology(context: OpExecutionContext):
@@ -159,6 +177,7 @@ def load_ontology(context: OpExecutionContext):
             f"Invalid mode {mode!r} for load_ontology (source_ontology={source_ontology!r}): "
             f"must be one of {sorted(LOAD_ONTOLOGY_MODES)}."
         )
+    _fail_if_other_active_run(context, cfg.get("concurrent_job_names", []))
     closure = cfg.get("closure", "combined")
     report_directory = cfg.get("report_directory")
     # Preserve the pre-0.2.3 report location for meticulous runs (unchanged behavior

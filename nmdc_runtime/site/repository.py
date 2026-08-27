@@ -273,11 +273,14 @@ load_po_ontology_weekly = ScheduleDefinition(
 # closure, and it stores the ancestry under the accurate `entailed_isa_closure` predicate.
 # See the ontology-loader README.
 # Caveat: fast-initial is an initial-install path and does not upsert. A naive rerun (this
-# schedule enabled on a cadence, or a duplicate manual launch) previously silently duplicated
-# every class and relation; ontology-loader#60 fixed that specific risk (a rerun is now a no-op,
-# not a duplication), but this schedule still ships stopped because there's no INTENTIONAL
-# refresh mechanism here -- for that, use the reload_ncbitaxon_ontology job below (scoped
-# drop-then-load, per nmdc-runtime issue 1565), launched manually.
+# schedule enabled on a cadence, or a duplicate manual launch) silently duplicates every class
+# and relation on the currently-pinned ontology-loader==0.2.3. ontology-loader#60 fixes that
+# specific risk (a rerun becomes a no-op instead of a duplication), but that fix is UNRELEASED
+# as of this writing -- do not treat reruns as safe until a release containing it is pinned here.
+# This schedule ships stopped both for that reason and because there's no INTENTIONAL refresh
+# mechanism here -- for that, use the reload_ncbitaxon_ontology job below (scoped drop-then-load,
+# per nmdc-runtime issue 1565), launched manually, and not safe to run until the same release
+# lands (see delete_ontology_terms_by_prefix's docstring for the index half of that dependency).
 load_ncbitaxon_ontology_weekly = ScheduleDefinition(
     name="weekly_load_ncbitaxon_ontology",
     cron_schedule="0 10 * * 1",
@@ -294,6 +297,7 @@ load_ncbitaxon_ontology_weekly = ScheduleDefinition(
                                 "source_ontology": "ncbitaxon",
                                 "mode": "fast-initial",
                                 "closure": "isa",
+                                "concurrent_job_names": ["reload_ncbitaxon_ontology"],
                             }
                         }
                     }
@@ -333,6 +337,9 @@ reload_ncbitaxon_ontology_job = reload_ontology_by_prefix.to_job(
                             "source_ontology": "ncbitaxon",
                             "mode": "fast-initial",
                             "closure": "isa",
+                            # Same reciprocal guard as the delete step above: the check at graph
+                            # start doesn't cover the whole run, so the insert step re-checks too.
+                            "concurrent_job_names": ["scheduled_ncbitaxon_ontology_load"],
                         }
                     },
                 }

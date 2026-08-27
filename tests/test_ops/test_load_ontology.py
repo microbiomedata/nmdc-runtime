@@ -133,6 +133,37 @@ def test_load_ontology_fast_initial(mock_ontology_loader, op_context_fast_initia
     assert result is None
 
 
+@patch('nmdc_runtime.site.ops.ontology.OntologyLoaderController')
+def test_load_ontology_raises_on_other_active_run(mock_ontology_loader, client_config):
+    """
+    load_ontology must refuse to start while a job named in concurrent_job_names is active.
+
+    The reciprocal of delete_ontology_terms_by_prefix's own guard: without this, the scheduled
+    weekly load could start immediately after a scoped reload's delete-step check passed, and
+    insert into a collection the reload is concurrently deleting from.
+    """
+    context = build_op_context(
+        resources={"mongo": mongo_resource.configured(client_config)},
+        op_config={
+            "source_ontology": "ncbitaxon",
+            "mode": "fast-initial",
+            "closure": "isa",
+            "concurrent_job_names": ["reload_ncbitaxon_ontology"],
+        },
+    )
+    other_run = DagsterRun(
+        job_name="reload_ncbitaxon_ontology",
+        run_id="other-run-id",
+        status=DagsterRunStatus.STARTED,
+    )
+    context.instance.get_runs = MagicMock(return_value=[other_run])
+
+    with pytest.raises(Failure, match="reload_ncbitaxon_ontology"):
+        load_ontology(context)
+
+    mock_ontology_loader.assert_not_called()
+
+
 @pytest.mark.skipif(
     os.getenv("MONGO_PASSWORD") is None or os.getenv("ENABLE_DB_TESTS") != "true",
     reason="Skipping test: Requires MONGO_PASSWORD and ENABLE_DB_TESTS=true",
@@ -233,6 +264,21 @@ def test_delete_ontology_terms_by_prefix_happy_path():
     calls = mock_db.__getitem__.return_value.delete_many.call_args_list
     assert "id" in calls[0].args[0]
     assert "subject" in calls[1].args[0]
+
+
+def test_delete_ontology_terms_by_prefix_rejects_empty_id_prefix():
+    """
+    An empty id_prefix compiles to the regex "^", matching every document.
+
+    Without this guard, a config typo (empty string) against this destructive op would delete
+    every ontology in these shared collections, not just the one intended.
+    """
+    context, mock_db = _mock_mongo_context(op_config={"id_prefix": ""})
+
+    with pytest.raises(Failure, match="non-empty"):
+        delete_ontology_terms_by_prefix(context)
+
+    mock_db.__getitem__.return_value.delete_many.assert_not_called()
 
 
 def test_delete_ontology_terms_by_prefix_custom_collection_names():
