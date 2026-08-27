@@ -26,6 +26,11 @@ from ontology_loader.ontology_load_controller import OntologyLoaderController
 
 LOAD_ONTOLOGY_MODES = {"meticulous", "fast-initial"}
 
+# Mirrors ontology_loader.ontology_processor.VALID_CLOSURES. Kept as a local copy (matching
+# LOAD_ONTOLOGY_MODES's own style) rather than imported, since the point is to validate before
+# ontology-loader does any work at all -- see load_ontology's closure check below.
+LOAD_ONTOLOGY_CLOSURES = {"combined", "isa", "partof", "all", "none"}
+
 # Statuses that mean a Dagster run is active or about to be: mirrors should_execute_ensure_alldocs
 # in repository.py. Deliberately excludes SUCCESS/FAILURE/CANCELED/MANAGED (finished, not a
 # concurrency risk).
@@ -240,6 +245,15 @@ def load_ontology(context: OpExecutionContext):
         )
     _fail_if_other_active_run(context, cfg.get("concurrent_job_names", []))
     closure = cfg.get("closure", "combined")
+    if closure not in LOAD_ONTOLOGY_CLOSURES:
+        # ontology-loader 0.2.3 doesn't reject an invalid closure until after
+        # OntologyProcessor.get_terms_and_metadata() has already extracted every class -- for
+        # NCBITaxon (~2.7M classes) a launch typo would otherwise burn substantial time and
+        # memory before failing. Catch it here instead, before any of that work starts.
+        raise ValueError(
+            f"Invalid closure {closure!r} for load_ontology (source_ontology={source_ontology!r}): "
+            f"must be one of {sorted(LOAD_ONTOLOGY_CLOSURES)}."
+        )
     report_directory = cfg.get("report_directory")
     # Preserve the pre-0.2.3 report location for meticulous runs (unchanged behavior
     # for envo/uberon/po). fast-initial writes no reports, so leave it None there.

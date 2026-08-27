@@ -109,6 +109,33 @@ def test_load_ontology_invalid_mode_raises(
 
 
 @pytest.fixture
+def op_context_invalid_closure(client_config):
+    return build_op_context(
+        resources={"mongo": mongo_resource.configured(client_config)},
+        op_config={
+            "source_ontology": "envo",
+            "mode": "meticulous",
+            "closure": "issa",  # typo: not a valid closure
+        },
+    )
+
+
+@patch("nmdc_runtime.site.ops.ontology.OntologyLoaderController")
+def test_load_ontology_invalid_closure_raises(
+    mock_ontology_loader, op_context_invalid_closure
+):
+    """
+    An unrecognized closure value must raise before OntologyLoaderController is even
+    constructed. Copilot review 5045824839: ontology-loader 0.2.3 doesn't reject an invalid
+    closure until after extracting every class, which for NCBITaxon (~2.7M classes) means a
+    launch typo burns substantial time and memory before failing.
+    """
+    with pytest.raises(ValueError, match="Invalid closure"):
+        load_ontology(op_context_invalid_closure)
+    mock_ontology_loader.assert_not_called()
+
+
+@pytest.fixture
 def op_context_fast_initial(client_config):
     # No report_directory: fast-initial writes no reports, so the op should leave it None.
     return build_op_context(
