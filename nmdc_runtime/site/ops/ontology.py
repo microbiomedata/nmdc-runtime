@@ -81,10 +81,12 @@ def _fail_if_id_prefix_mismatches_load_ontology(
     back afterward) are separate, independently-editable config fields with nothing in Dagster
     tying them together. reload_ontology_by_prefix is a manual, high-blast-radius job whose
     default config can be overridden at launch time, so a hand-edited run config could otherwise
-    delete one ontology's docs and load a different one in their place. Only checks when a
-    load_ontology step with a source_ontology in _ONTOLOGY_ID_PREFIXES is present in this run;
-    silently skips otherwise (e.g. an unmapped ontology, or a future graph reusing just the
-    delete op without a paired load_ontology step) rather than blocking on what it can't verify.
+    delete one ontology's docs and load a different one in their place -- including via a plain
+    typo in source_ontology, which is exactly the case this must not wave through. Only skips
+    when there is no load_ontology step in this run at all (e.g. a future graph reusing just the
+    delete op without a paired load_ontology step); an unrecognized source_ontology value fails
+    closed rather than silently passing, since this destructive job cannot verify what a run
+    config it doesn't recognize is actually about to do.
     """
     if isinstance(context, DirectOpExecutionContext):
         # context.run_config raises DagsterInvalidPropertyError on a directly-invoked op (no real
@@ -99,7 +101,13 @@ def _fail_if_id_prefix_mismatches_load_ontology(
         return
     expected_id_prefix = _ONTOLOGY_ID_PREFIXES.get(source_ontology)
     if expected_id_prefix is None:
-        return
+        raise Failure(
+            f"Refusing to proceed: load_ontology's source_ontology {source_ontology!r} is not a "
+            f"recognized ontology (known: {sorted(_ONTOLOGY_ID_PREFIXES)}). This safety check "
+            "cannot confirm id_prefix matches what will be loaded back, so it refuses rather than "
+            "assuming an unrecognized value is safe. Register its id prefix in "
+            "_ONTOLOGY_ID_PREFIXES if this is a genuinely new supported ontology."
+        )
     if expected_id_prefix != id_prefix:
         raise Failure(
             f"Refusing to proceed: id_prefix {id_prefix!r} does not match the id prefix "

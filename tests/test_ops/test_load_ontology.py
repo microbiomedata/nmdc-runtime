@@ -408,8 +408,12 @@ def test_fail_if_id_prefix_mismatches_load_ontology_passes_on_match():
     _fail_if_id_prefix_mismatches_load_ontology(context, "NCBITaxon:")  # must not raise
 
 
-def test_fail_if_id_prefix_mismatches_load_ontology_skips_unmapped_ontology():
-    """An ontology outside _ONTOLOGY_ID_PREFIXES is left unchecked rather than blocked."""
+def test_fail_if_id_prefix_mismatches_load_ontology_raises_on_unmapped_ontology():
+    """
+    An unrecognized source_ontology must fail closed, not skip. Copilot review 5045225079 caught
+    this: silently skipping meant a typo (or any value outside _ONTOLOGY_ID_PREFIXES) sailed
+    through the check this function exists to enforce, on a destructive, high-blast-radius job.
+    """
     context = SimpleNamespace(
         run_config={
             "ops": {
@@ -417,7 +421,8 @@ def test_fail_if_id_prefix_mismatches_load_ontology_skips_unmapped_ontology():
             }
         }
     )
-    _fail_if_id_prefix_mismatches_load_ontology(context, "ANYTHING:")  # must not raise
+    with pytest.raises(Failure, match="not a recognized ontology"):
+        _fail_if_id_prefix_mismatches_load_ontology(context, "ANYTHING:")
 
 
 def test_fail_if_id_prefix_mismatches_load_ontology_skips_when_load_ontology_absent():
