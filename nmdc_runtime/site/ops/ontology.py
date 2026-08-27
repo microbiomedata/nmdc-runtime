@@ -23,7 +23,6 @@ from dagster import (
 
 from ontology_loader.ontology_load_controller import OntologyLoaderController
 
-
 LOAD_ONTOLOGY_MODES = {"meticulous", "fast-initial"}
 
 # Statuses that mean a Dagster run is active or about to be: mirrors should_execute_ensure_alldocs
