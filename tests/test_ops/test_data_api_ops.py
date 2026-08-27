@@ -4,7 +4,7 @@ import requests_mock
 from dagster import build_op_context
 
 from nmdc_runtime.site.resources import nmdc_portal_api_client_resource
-from nmdc_runtime.site.ops import fetch_nmdc_portal_submission_by_id
+from nmdc_runtime.site.ops.submission_portal import fetch_nmdc_portal_submission_by_id
 
 
 MOCK_BASE_URL = "http://example.com/nmdc_portal"

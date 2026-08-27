@@ -14,7 +14,7 @@ from pydantic import (
     WrapSerializer,
 )
 from toolz import assoc, assoc_in
-from typing_extensions import Annotated
+from typing_extensions import Annotated, NotRequired
 
 from nmdc_runtime.api.core.util import pick
 
@@ -168,7 +168,14 @@ class DeleteCommandResponse(CommandResponse):
 
 
 # Custom types for the `delete_specs` derived from `DeleteStatement`s.
-DeleteSpec = TypedDict("DeleteSpec", {"filter": Document, "limit": OneOrZero})
+
+
+class DeleteSpec(TypedDict):
+    filter: Document
+    limit: OneOrZero
+    hint: NotRequired[Dict[str, OneOrMinusOne]]
+
+
 DeleteSpecs = List[DeleteSpec]
 
 

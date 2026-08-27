@@ -28,7 +28,7 @@ from nmdc_runtime.minter.config import (
     schema_classes,
 )
 from nmdc_runtime.minter.domain.model import MintingRequest, Identifier
-from nmdc_runtime.site.ops import materialize_alldocs
+from nmdc_runtime.site.ops.alldocs import materialize_alldocs
 from nmdc_runtime.site.resources import (
     mongo_resource,
     MongoDB,

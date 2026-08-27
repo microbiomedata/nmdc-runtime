@@ -1,5 +1,6 @@
 from nmdc_runtime.api.models.query import (
     DeleteCommand,
+    DeleteSpec,
     DeleteSpecs,
     UpdateCommand,
     UpdateSpecs,
@@ -31,15 +32,22 @@ def derive_delete_specs(delete_command: DeleteCommand) -> DeleteSpecs:
     ... })
     >>> delete_specs = derive_delete_specs(delete_command)
     >>> delete_specs[0]
-    {'filter': {'color': 'blue'}, 'limit': 0}
+    {'filter': {'color': 'blue'}, 'limit': 0, 'hint': {'potato': 1}}
     >>> delete_specs[1]
     {'filter': {'color': 'green'}, 'limit': 1}
     """
 
-    return [
-        {"filter": delete_statement.q, "limit": delete_statement.limit}
-        for delete_statement in delete_command.deletes
-    ]
+    delete_specs: DeleteSpecs = []
+    for delete_statement in delete_command.deletes:
+        delete_spec: DeleteSpec = {
+            "filter": delete_statement.q,
+            "limit": delete_statement.limit,
+        }
+        if delete_statement.hint is not None:
+            delete_spec["hint"] = delete_statement.hint
+        delete_specs.append(delete_spec)
+
+    return delete_specs
 
 
 def derive_update_specs(update_command: UpdateCommand) -> UpdateSpecs:

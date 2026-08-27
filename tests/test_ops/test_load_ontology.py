@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from dagster import build_op_context, DagsterRun, DagsterRunStatus, Failure
 from nmdc_runtime.site.resources import mongo_resource
-from nmdc_runtime.site.ops import load_ontology, delete_ontology_terms_by_prefix
+from nmdc_runtime.site.ops.ontology import load_ontology, delete_ontology_terms_by_prefix
 import logging
 
 logging.basicConfig(
@@ -19,7 +19,7 @@ def client_config():
     mongo_dbname = os.getenv("MONGO_DBNAME")
     mongo_username = os.getenv("MONGO_USERNAME")
 
-    logging.info(f"Test MongoDB connection details:")
+    logging.info("Test MongoDB connection details:")
     logging.info(f"- MONGO_HOST: {mongo_host}")
     logging.info(f"- MONGO_DBNAME: {mongo_dbname}")
     logging.info(f"- MONGO_USERNAME: {mongo_username}")
@@ -52,7 +52,7 @@ def op_context(client_config, tmp_path):
 
 
 # This test will always run - it doesn't require MongoDB connection
-@patch('nmdc_runtime.site.ops.OntologyLoaderController')
+@patch('nmdc_runtime.site.ops.ontology.OntologyLoaderController')
 def test_load_ontology(mock_ontology_loader, op_context):
     """Tests the load_ontology op using mocks to verify parameter passing and method calling"""
     # Setup the mock
@@ -91,7 +91,7 @@ def op_context_invalid_mode(client_config):
     )
 
 
-@patch('nmdc_runtime.site.ops.OntologyLoaderController')
+@patch('nmdc_runtime.site.ops.ontology.OntologyLoaderController')
 def test_load_ontology_invalid_mode_raises(mock_ontology_loader, op_context_invalid_mode):
     """An unrecognized mode value must raise, not silently fall through."""
     with pytest.raises(ValueError, match="Invalid mode"):
@@ -113,7 +113,7 @@ def op_context_fast_initial(client_config):
 
 
 # Always runs - no MongoDB connection needed.
-@patch('nmdc_runtime.site.ops.OntologyLoaderController')
+@patch('nmdc_runtime.site.ops.ontology.OntologyLoaderController')
 def test_load_ontology_fast_initial(mock_ontology_loader, op_context_fast_initial):
     """fast-initial: op passes mode/closure through and leaves report_directory=None."""
     mock_instance = MagicMock()
