@@ -108,7 +108,9 @@ def delete_ontology_terms_by_prefix(context: OpExecutionContext):
         # An empty prefix compiles to the regex "^", which matches every document. Refusing this
         # is the difference between a scoped delete and wiping every ontology in these shared
         # collections.
-        raise Failure("id_prefix must be a non-empty string; refusing to delete unscoped.")
+        raise Failure(
+            "id_prefix must be a non-empty string; refusing to delete unscoped."
+        )
     class_collection_name = cfg.get("class_collection_name", "ontology_class_set")
     relation_collection_name = cfg.get(
         "relation_collection_name", "ontology_relation_set"

@@ -339,7 +339,9 @@ reload_ncbitaxon_ontology_job = reload_ontology_by_prefix.to_job(
                             "closure": "isa",
                             # Same reciprocal guard as the delete step above: the check at graph
                             # start doesn't cover the whole run, so the insert step re-checks too.
-                            "concurrent_job_names": ["scheduled_ncbitaxon_ontology_load"],
+                            "concurrent_job_names": [
+                                "scheduled_ncbitaxon_ontology_load"
+                            ],
                         }
                     },
                 }
