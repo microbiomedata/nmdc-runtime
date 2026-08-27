@@ -446,3 +446,19 @@ def test_delete_ontology_terms_by_prefix_direct_invocation_skips_mismatch_check(
     )
 
     delete_ontology_terms_by_prefix(context)  # must not raise
+
+
+def test_scheduled_ncbitaxon_ontology_load_guards_against_its_own_concurrent_runs():
+    """
+    Copilot review 5045560752 caught it: weekly_load_ncbitaxon_ontology's concurrent_job_names
+    only listed reload_ncbitaxon_ontology, not its own job name. _fail_if_other_active_run
+    already excludes context.run_id (the current run), so including a job's own name only
+    catches a genuinely separate concurrent launch -- without it, two manual triggers of this
+    fast-initial (no upsert) job could overlap and each bulk-insert the same ~2.7M classes.
+    """
+    from nmdc_runtime.site.repository import load_ncbitaxon_ontology_weekly
+
+    concurrent_job_names = load_ncbitaxon_ontology_weekly.job.run_config["ops"][
+        "load_ontology"
+    ]["config"]["concurrent_job_names"]
+    assert "scheduled_ncbitaxon_ontology_load" in concurrent_job_names

@@ -297,7 +297,15 @@ load_ncbitaxon_ontology_weekly = ScheduleDefinition(
                                 "source_ontology": "ncbitaxon",
                                 "mode": "fast-initial",
                                 "closure": "isa",
-                                "concurrent_job_names": ["reload_ncbitaxon_ontology"],
+                                # Includes its own job name: _fail_if_other_active_run already
+                                # excludes context.run_id (the current run), so this only catches
+                                # a genuinely separate concurrent launch of this same job -- e.g.
+                                # two manual triggers overlapping. Without it, fast-initial's lack
+                                # of upsert means both runs bulk-insert the same ~2.7M classes.
+                                "concurrent_job_names": [
+                                    "reload_ncbitaxon_ontology",
+                                    "scheduled_ncbitaxon_ontology_load",
+                                ],
                             }
                         }
                     }
