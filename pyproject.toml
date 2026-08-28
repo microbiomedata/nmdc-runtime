@@ -100,6 +100,11 @@ dev = [
     # Docs: https://coverage.readthedocs.io
     "coverage",
     "flake8",
+    # Used directly by a doctest in nmdc_runtime/lib/mongo_command_processor.py. Previously
+    # reached transitively via ontology-loader<0.3.0's own (accidental) runtime dependency on it;
+    # ontology-loader 0.3.0 moved mongomock to its own dev-only group, so this repo now needs its
+    # own direct declaration for that doctest to keep working.
+    "mongomock",
     # We use pytest as our automated test framework.
     # Docs: https://docs.pytest.org/
     "pytest",
