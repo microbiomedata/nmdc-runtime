@@ -153,15 +153,15 @@ def delete_ontology_terms_by_prefix(context: OpExecutionContext):
     reload, e.g. via the `waits_for` Nothing-dependency load_ontology accepts.
 
     The prefix match is a case-sensitive, anchored ("^prefix") regex, which MongoDB can use as an
-    index range scan rather than a full collection scan when a covering index exists. `id` is
-    always indexed (nmdc_runtime.util.ensure_unique_id_indexes). `subject` is covered by the
-    unique (subject, predicate, object) index ontology-loader>=0.3.0's fast-initial insert path
-    creates (ontology-loader#60), whose leading field is `subject`, so MongoDB can use it the same
-    way. That index is created lazily, the first time a fast-initial insert runs against these
-    collections, not by this delete op itself -- for NCBITaxon specifically, its initial load
-    already creates it, so by the time a *reload* runs (implying NCBITaxon is already present),
-    the index should already exist. Confirm it actually exists before running this at
-    NCBITaxon's ~54.7M-relation scale; without it, this delete_many is a full collection scan.
+    index range scan rather than a full collection scan when a leading-field index exists. `id` is
+    always indexed (nmdc_runtime.util.ensure_unique_id_indexes). `subject` is covered by the plain
+    `subject_1` single-field index already present on NMDC prod's ontology_relation_set today
+    (predates this op; not something fast-initial or this op creates), whose leading field is
+    `subject`, so MongoDB can use it the same way. Confirmed against prod with `explain()`
+    2026-08-28: both the class and relation deletes plan as IXSCAN with bounded ranges, not
+    COLLSCAN. If a future environment's ontology_relation_set lacks any subject-leading index,
+    this delete_many degrades to a full collection scan -- confirm one exists before running this
+    at NCBITaxon's ~54.7M-relation scale.
 
     :return: {"class_collection_name": ..., "class_deleted_count": int,
         "relation_collection_name": ..., "relation_deleted_count": int}
