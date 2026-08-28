@@ -517,3 +517,33 @@ def test_scheduled_ncbitaxon_ontology_load_guards_against_its_own_concurrent_run
         "load_ontology"
     ]["config"]["concurrent_job_names"]
     assert "scheduled_ncbitaxon_ontology_load" in concurrent_job_names
+
+
+@pytest.mark.parametrize(
+    "ontology,id_prefix",
+    [("envo", "ENVO:"), ("uberon", "UBERON:"), ("po", "PO:")],
+)
+def test_reload_ontology_jobs_target_the_right_ontology(ontology, id_prefix):
+    """
+    reload_ontology_by_prefix generalized to envo/uberon/po (previously NCBITaxon-only): each
+    reload job's delete step and load step must target the same ontology, and each weekly
+    schedule must guard against its own reload job the same way NCBITaxon's does.
+    """
+    from nmdc_runtime.site import repository
+
+    reload_job = getattr(repository, f"reload_{ontology}_ontology_job")
+    weekly_schedule = getattr(repository, f"load_{ontology}_ontology_weekly")
+
+    reload_cfg = reload_job.run_config["ops"]
+    assert (
+        reload_cfg["delete_ontology_terms_by_prefix"]["config"]["id_prefix"]
+        == id_prefix
+    )
+    assert reload_cfg["load_ontology"]["config"]["source_ontology"] == ontology
+    assert reload_cfg["load_ontology"]["config"]["mode"] == "fast-initial"
+
+    weekly_concurrent = weekly_schedule.job.run_config["ops"]["load_ontology"][
+        "config"
+    ]["concurrent_job_names"]
+    assert f"reload_{ontology}_ontology" in weekly_concurrent
+    assert f"scheduled_{ontology}_ontology_load" in weekly_concurrent
