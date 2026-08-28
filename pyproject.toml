@@ -89,6 +89,10 @@ dependencies = [
     "unidecode",
     "uvicorn[standard]",
     "requests-cache",
+    # Note: We use `dagster-slack` to make it easy for authors of Dagster graphs/ops
+    #       to have those graphs/ops send Slack messages.
+    #       Docs: https://docs.dagster.io/integrations/libraries/slack/dagster-slack
+    "dagster-slack>=0.29.1",
 ]
 
 [dependency-groups]

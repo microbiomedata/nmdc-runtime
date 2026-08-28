@@ -781,6 +781,19 @@ wheels = [
 ]
 
 [[package]]
+name = "dagster-slack"
+version = "0.29.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "dagster" },
+    { name = "slack-sdk" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/36/a3/e164148398aa229e99c68b2f361a4e5486b32fe9963cd5eba943cfbd8314/dagster_slack-0.29.1.tar.gz", hash = "sha256:9eda9d2a346da2600e092f999ec4551298e188932967179d883366d3b78b983a", size = 11186, upload-time = "2026-04-17T19:00:02.219Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e7/92/2cdcff90ef664734f3c54f834fbaa00fdd5a730bd5daee54572ca1e8a693/dagster_slack-0.29.1-py3-none-any.whl", hash = "sha256:0b7bac1653a0841db6ddeb0f58da2289f404f1c4a5a10a133b589a4da9833bde", size = 10889, upload-time = "2026-04-17T19:00:00.424Z" },
+]
+
+[[package]]
 name = "dagster-webserver"
 version = "1.13.1"
 source = { registry = "https://pypi.org/simple" }
@@ -2602,6 +2615,7 @@ dependencies = [
     { name = "dagster" },
     { name = "dagster-graphql" },
     { name = "dagster-postgres" },
+    { name = "dagster-slack" },
     { name = "fastapi" },
     { name = "frozendict" },
     { name = "git-root" },
@@ -2661,6 +2675,7 @@ requires-dist = [
     { name = "dagster" },
     { name = "dagster-graphql" },
     { name = "dagster-postgres" },
+    { name = "dagster-slack", specifier = ">=0.29.1" },
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "frozendict" },
     { name = "git-root" },
@@ -4252,6 +4267,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
+]
+
+[[package]]
+name = "slack-sdk"
+version = "3.44.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9e/37/348cf58274caaa15f6fbe9c727977af6fda76b8e194105b41200f1d0c35f/slack_sdk-3.44.0.tar.gz", hash = "sha256:e872acaf4e76ef22e9544af390b6e3896ce7198ad6bb26b3ce2630f3422f2ca3", size = 256646, upload-time = "2026-08-27T07:08:50.227Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a7/45/b21535155335b2112e24887b81b8d0124abf1ac1b362d70db6ec906cdfb6/slack_sdk-3.44.0-py2.py3-none-any.whl", hash = "sha256:3d0b5997acafacece907299fb387852233c3c0635762de1c2343ad6ebff2f911", size = 319883, upload-time = "2026-08-27T07:08:48.511Z" },
 ]
 
 [[package]]
