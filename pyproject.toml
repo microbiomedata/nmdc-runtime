@@ -53,7 +53,7 @@ dependencies = [
     "linkml",
     "linkml-runtime",
     "lxml",
-    "ontology-loader == 0.2.3",
+    "ontology-loader == 0.3.0",
     # We use `nmdc-schema` to interpret data residing in—and validate data
     # destined for—the NMDC database (i.e. the MongoDB database named `nmdc`).
     # Docs: https://microbiomedata.github.io/nmdc-schema/

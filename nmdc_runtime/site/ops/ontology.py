@@ -149,13 +149,14 @@ def delete_ontology_terms_by_prefix(context: OpExecutionContext):
 
     The prefix match is a case-sensitive, anchored ("^prefix") regex, which MongoDB can use as an
     index range scan rather than a full collection scan when a covering index exists. `id` is
-    always indexed (nmdc_runtime.util.ensure_unique_id_indexes). `subject` is NOT indexed by
-    anything in this repo, and the currently-pinned ontology-loader==0.2.3 does not create one
-    either -- that lands in ontology-loader#60 (a unique (subject, predicate, object) index, whose
-    subject-prefix MongoDB can use), unreleased as of this writing. Until a release containing that
-    fix is pinned, the relation delete_many here is a full collection scan at whatever scale
-    ontology_relation_set holds -- unacceptable at NCBITaxon's ~54.7M-relation scale. Confirm the
-    index actually exists (or the pin has moved past 0.2.3) before running this against NCBITaxon.
+    always indexed (nmdc_runtime.util.ensure_unique_id_indexes). `subject` is covered by the
+    unique (subject, predicate, object) index ontology-loader>=0.3.0's fast-initial insert path
+    creates (ontology-loader#60), whose leading field is `subject`, so MongoDB can use it the same
+    way. That index is created lazily, the first time a fast-initial insert runs against these
+    collections, not by this delete op itself -- for NCBITaxon specifically, its initial load
+    already creates it, so by the time a *reload* runs (implying NCBITaxon is already present),
+    the index should already exist. Confirm it actually exists before running this at
+    NCBITaxon's ~54.7M-relation scale; without it, this delete_many is a full collection scan.
 
     :return: {"class_collection_name": ..., "class_deleted_count": int,
         "relation_collection_name": ..., "relation_deleted_count": int}
@@ -243,7 +244,7 @@ def load_ontology(context: OpExecutionContext):
     _fail_if_other_active_run(context, cfg.get("concurrent_job_names", []))
     closure = cfg.get("closure", "combined")
     if closure not in LOAD_ONTOLOGY_CLOSURES:
-        # ontology-loader 0.2.3 doesn't reject an invalid closure until after
+        # ontology-loader doesn't reject an invalid closure until after
         # OntologyProcessor.get_terms_and_metadata() has already extracted every class -- for
         # NCBITaxon (~2.7M classes) a launch typo would otherwise burn substantial time and
         # memory before failing. Catch it here instead, before any of that work starts.

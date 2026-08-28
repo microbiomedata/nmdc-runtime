@@ -363,15 +363,6 @@ wheels = [
 ]
 
 [[package]]
-name = "cachetools"
-version = "6.0.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/c0/b0/f539a1ddff36644c28a61490056e5bae43bd7386d9f9c69beae2d7e7d6d1/cachetools-6.0.0.tar.gz", hash = "sha256:f225782b84438f828328fc2ad74346522f27e5b1440f4e9fd18b20ebfd1aa2cf", size = 30160, upload-time = "2025-05-23T20:01:13.076Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6a/c3/8bb087c903c95a570015ce84e0c23ae1d79f528c349cbc141b5c4e250293/cachetools-6.0.0-py3-none-any.whl", hash = "sha256:82e73ba88f7b30228b5507dce1a1f878498fc669d972aef2dde4f3a3c24f103e", size = 10964, upload-time = "2025-05-23T20:01:11.323Z" },
-]
-
-[[package]]
 name = "cattrs"
 version = "24.1.3"
 source = { registry = "https://pypi.org/simple" }
@@ -913,15 +904,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/5a/d3/8ae2869247df154b64c1884d7346d412fed0c49df84db635aab2d1c40e62/deprecation-2.1.0.tar.gz", hash = "sha256:72b3bde64e5d778694b0cf68178aed03d15e15477116add3fb773e581f9518ff", size = 173788, upload-time = "2020-04-20T14:23:38.738Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/02/c3/253a89ee03fc9b9682f1541728eb66db7db22148cd94f89ab22528cd1e1b/deprecation-2.1.0-py2.py3-none-any.whl", hash = "sha256:a10811591210e1fb0e768a8c25517cabeabcba6f0bf96564f8ff45189f90b14a", size = 11178, upload-time = "2020-04-20T14:23:36.581Z" },
-]
-
-[[package]]
-name = "distlib"
-version = "0.3.9"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/0d/dd/1bec4c5ddb504ca60fc29472f3d27e8d4da1257a854e1d96742f15c1d02d/distlib-0.3.9.tar.gz", hash = "sha256:a60f20dea646b8a33f3e7772f74dc0b2d0772d2837ee1342a00645c81edf9403", size = 613923, upload-time = "2024-10-09T18:35:47.551Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/91/a1/cf2472db20f7ce4a6be1253a81cfdf85ad9c7885ffbed7047fb72c24cf87/distlib-0.3.9-py2.py3-none-any.whl", hash = "sha256:47f8c22fd27c27e25a65601af709b38e4f0a45ea4fc2e710f65755fa8caaaf87", size = 468973, upload-time = "2024-10-09T18:35:44.272Z" },
 ]
 
 [[package]]
@@ -2432,20 +2414,6 @@ wheels = [
 ]
 
 [[package]]
-name = "mongomock"
-version = "4.3.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "packaging" },
-    { name = "pytz" },
-    { name = "sentinels" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/4d/a4/4a560a9f2a0bec43d5f63104f55bc48666d619ca74825c8ae156b08547cf/mongomock-4.3.0.tar.gz", hash = "sha256:32667b79066fabc12d4f17f16a8fd7361b5f4435208b3ba32c226e52212a8c30", size = 135862, upload-time = "2024-11-16T11:23:25.957Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/94/4d/8bea712978e3aff017a2ab50f262c620e9239cc36f348aae45e48d6a4786/mongomock-4.3.0-py2.py3-none-any.whl", hash = "sha256:5ef86bd12fc8806c6e7af32f21266c61b6c4ba96096f85129852d1c4fec1327e", size = 64891, upload-time = "2024-11-16T11:23:24.748Z" },
-]
-
-[[package]]
 name = "more-click"
 version = "0.1.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2730,7 +2698,7 @@ requires-dist = [
     { name = "linkml-runtime" },
     { name = "lxml" },
     { name = "nmdc-schema", specifier = "==11.23.0" },
-    { name = "ontology-loader", specifier = "==0.2.3" },
+    { name = "ontology-loader", specifier = "==0.3.0" },
     { name = "pandas" },
     { name = "passlib", extras = ["bcrypt"] },
     { name = "pydantic", extras = ["email"], specifier = ">=1.10.0" },
@@ -2920,30 +2888,26 @@ wheels = [
 
 [[package]]
 name = "ontology-loader"
-version = "0.2.3"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
     { name = "curies" },
     { name = "linkml-store" },
-    { name = "mongomock" },
     { name = "motor" },
     { name = "neo4j" },
     { name = "nmdc-schema" },
     { name = "oaklib" },
     { name = "pymongo" },
     { name = "pystow" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
     { name = "setuptools" },
     { name = "tabulate" },
     { name = "tiktoken" },
-    { name = "tox" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/28/c9/3bb12b6841165b2624cc93136f948be61d8a2cece9047fe70cb622d3b363/ontology_loader-0.2.3.tar.gz", hash = "sha256:664391dc89797ed0b4ce497d844f91784d90d19c8c6f0ffb646ac4a550232a0b", size = 23493, upload-time = "2026-06-03T22:06:37.208Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/68/8e/6badc1b44c7a498852b1d6d907e6fe33918de3baa11245af841daa6f49a8/ontology_loader-0.3.0.tar.gz", hash = "sha256:fb14b13d5a4acca665c2e25fef9e193feb219942b81b2e4d293fc106cb5973d4", size = 26449, upload-time = "2026-08-28T14:07:01.915Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/77/20/8df759ed687efc30006d8edc2f65cb8308ca384a0755de90b66910649f85/ontology_loader-0.2.3-py3-none-any.whl", hash = "sha256:ee2cc3a158c1729894dd4fe6b09bc016c35dfcc02a8f70a2983b2932321737ae", size = 22782, upload-time = "2026-06-03T22:06:36.257Z" },
+    { url = "https://files.pythonhosted.org/packages/70/50/fdcb8e037faf9d79801147f77e807a3c7d092d1debdfbfa0f0c7cd182f90/ontology_loader-0.3.0-py3-none-any.whl", hash = "sha256:afff7e348392c7001b457f4e041ba1264db49fee7a91a31cca884a97c77d668b", size = 25331, upload-time = "2026-08-28T14:07:00.858Z" },
 ]
 
 [[package]]
@@ -3534,18 +3498,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/bb/22/f1129e69d94ffff626bdb5c835506b3a5b4f3d070f17ea295e12c2c6f60f/pyparsing-3.2.3.tar.gz", hash = "sha256:b9c13f1ab8b3b542f72e28f634bad4de758ab3ce4546e4301970ad6fa77c38be", size = 1088608, upload-time = "2025-03-25T05:01:28.114Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/05/e7/df2285f3d08fee213f2d041540fa4fc9ca6c2d44cf36d3a035bf2a8d2bcc/pyparsing-3.2.3-py3-none-any.whl", hash = "sha256:a749938e02d6fd0b59b356ca504a24982314bb090c383e3cf201c95ef7e2bfcf", size = 111120, upload-time = "2025-03-25T05:01:24.908Z" },
-]
-
-[[package]]
-name = "pyproject-api"
-version = "1.9.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "packaging" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/19/fd/437901c891f58a7b9096511750247535e891d2d5a5a6eefbc9386a2b41d5/pyproject_api-1.9.1.tar.gz", hash = "sha256:43c9918f49daab37e302038fc1aed54a8c7a91a9fa935d00b9a485f37e0f5335", size = 22710, upload-time = "2025-05-12T14:41:58.025Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ef/e6/c293c06695d4a3ab0260ef124a74ebadba5f4c511ce3a4259e976902c00b/pyproject_api-1.9.1-py3-none-any.whl", hash = "sha256:7d6238d92f8962773dd75b5f0c4a6a27cce092a14b623b811dba656f3b628948", size = 13158, upload-time = "2025-05-12T14:41:56.217Z" },
 ]
 
 [[package]]
@@ -4256,12 +4208,6 @@ wheels = [
 ]
 
 [[package]]
-name = "sentinels"
-version = "1.0.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ac/b7/1af07a98390aba07da31807f3723e7bbd003d6441b4b3d67b20d97702b23/sentinels-1.0.0.tar.gz", hash = "sha256:7be0704d7fe1925e397e92d18669ace2f619c92b5d4eb21a89f31e026f9ff4b1", size = 4074, upload-time = "2016-08-30T07:19:19.963Z" }
-
-[[package]]
 name = "sentry-sdk"
 version = "2.43.0"
 source = { registry = "https://pypi.org/simple" }
@@ -4733,26 +4679,6 @@ wheels = [
 ]
 
 [[package]]
-name = "tox"
-version = "4.26.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "cachetools" },
-    { name = "chardet" },
-    { name = "colorama" },
-    { name = "filelock" },
-    { name = "packaging" },
-    { name = "platformdirs" },
-    { name = "pluggy" },
-    { name = "pyproject-api" },
-    { name = "virtualenv" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/fd/3c/dcec0c00321a107f7f697fd00754c5112572ea6dcacb40b16d8c3eea7c37/tox-4.26.0.tar.gz", hash = "sha256:a83b3b67b0159fa58e44e646505079e35a43317a62d2ae94725e0586266faeca", size = 197260, upload-time = "2025-05-13T15:04:28.481Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/de/14/f58b4087cf248b18c795b5c838c7a8d1428dfb07cb468dad3ec7f54041ab/tox-4.26.0-py3-none-any.whl", hash = "sha256:75f17aaf09face9b97bd41645028d9f722301e912be8b4c65a3f938024560224", size = 172761, upload-time = "2025-05-13T15:04:26.207Z" },
-]
-
-[[package]]
 name = "tqdm"
 version = "4.70.0"
 source = { registry = "https://pypi.org/simple" }
@@ -4929,20 +4855,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/53/66/a435d9ae49850b2f071f7ebd8119dd4e84872b01630d6736761e6e7fd847/validators-0.35.0.tar.gz", hash = "sha256:992d6c48a4e77c81f1b4daba10d16c3a9bb0dbb79b3a19ea847ff0928e70497a", size = 73399, upload-time = "2025-05-01T05:42:06.7Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fa/6e/3e955517e22cbdd565f2f8b2e73d52528b14b8bcfdb04f62466b071de847/validators-0.35.0-py3-none-any.whl", hash = "sha256:e8c947097eae7892cb3d26868d637f79f47b4a0554bc6b80065dfe5aac3705dd", size = 44712, upload-time = "2025-05-01T05:42:04.203Z" },
-]
-
-[[package]]
-name = "virtualenv"
-version = "20.36.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "distlib" },
-    { name = "filelock" },
-    { name = "platformdirs" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/aa/a3/4d310fa5f00863544e1d0f4de93bddec248499ccf97d4791bc3122c9d4f3/virtualenv-20.36.1.tar.gz", hash = "sha256:8befb5c81842c641f8ee658481e42641c68b5eab3521d8e092d18320902466ba", size = 6032239, upload-time = "2026-01-09T18:21:01.296Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6a/2a/dc2228b2888f51192c7dc766106cd475f1b768c10caaf9727659726f7391/virtualenv-20.36.1-py3-none-any.whl", hash = "sha256:575a8d6b124ef88f6f51d56d656132389f961062a9177016a50e4f507bbcc19f", size = 6008258, upload-time = "2026-01-09T18:20:59.425Z" },
 ]
 
 [[package]]
