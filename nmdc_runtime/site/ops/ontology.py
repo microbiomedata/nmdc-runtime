@@ -24,6 +24,11 @@ from dagster._core.execution.context.invocation import DirectOpExecutionContext
 
 from ontology_loader.ontology_load_controller import OntologyLoaderController
 
+# Mirrors ontology_loader.ontology_load_controller.VALID_MODES. Kept as a local copy rather than
+# imported, since the point is to validate mode before ontology-loader does any work at all -- see
+# load_ontology's mode check below. If ontology-loader ever adds a mode, this set (and
+# LOAD_ONTOLOGY_CLOSURES below, which follows the same reasoning) must be updated to match, or a
+# valid mode/closure would be rejected here before ever reaching ontology-loader.
 LOAD_ONTOLOGY_MODES = {"meticulous", "fast-initial"}
 
 # Mirrors ontology_loader.ontology_processor.VALID_CLOSURES. Kept as a local copy (matching
