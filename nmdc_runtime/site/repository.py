@@ -4,6 +4,7 @@ import json
 
 
 from dagster import (
+    EnvVar,
     repository,
     ScheduleDefinition,
     SkipReason,
@@ -71,7 +72,14 @@ from nmdc_runtime.util import freeze
 from nmdc_runtime.util import unfreeze
 
 slack_resource = SlackResource(
-    token=config.DAGSTER_SLACK_BOT_TOKEN,
+    # Note: By using `EnvVar` (instead of `config.DAGSTER_SLACK_BOT_TOKEN`) here, we prevent Dagster
+    #       from showing the secret value on the Dagster web UI, where it is visible to Dagster users.
+    #
+    #       Docs: 
+    #       - https://docs.dagster.io/api/dagster/resources#dagster.EnvVar
+    #       - https://docs.dagster.io/guides/operate/configuration/using-environment-variables-and-secrets#handling-secrets
+    #
+    token=EnvVar("DAGSTER_SLACK_BOT_TOKEN"),
 )
 
 resource_defs = {
