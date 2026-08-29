@@ -75,7 +75,7 @@ slack_resource = SlackResource(
     # Note: By using `EnvVar` (instead of `config.DAGSTER_SLACK_BOT_TOKEN`) here, we prevent Dagster
     #       from showing the secret value on the Dagster web UI, where it is visible to Dagster users.
     #
-    #       Docs: 
+    #       Docs:
     #       - https://docs.dagster.io/api/dagster/resources#dagster.EnvVar
     #       - https://docs.dagster.io/guides/operate/configuration/using-environment-variables-and-secrets#handling-secrets
     #
