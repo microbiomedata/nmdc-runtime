@@ -139,8 +139,8 @@ validate_mongo_data_job = validate_mongo_data.to_job(
 test_slack_integration_job = test_slack_integration.to_job(
     name="test_slack_integration",
     description=(
-        "Sends a Slack message, for the purposes of confirming that the underlying op "
-        "is sufficiently configured to post the message in the correct Slack channel."
+        "Sends a Slack message, for the purpose of confirming that the underlying op "
+        "is sufficiently configured to send the message to the correct Slack channel."
     ),
     resource_defs={
         "slack_resource": slack_resource,
