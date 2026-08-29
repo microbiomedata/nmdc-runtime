@@ -5,6 +5,8 @@ Note: These were the ops that remained in `nmdc_runtime/site/ops.py` after other
       during a refactor. That file was then moved/renamed to `nmdc_runtime/site/ops/common.py`.
 """
 
+# TODO: Organize these imports, per PEP 8 (https://peps.python.org/pep-0008/#imports).
+
 import csv
 import json
 import os
@@ -19,6 +21,7 @@ from zipfile import ZipFile
 import pandas as pd
 import requests
 from toolz import dissoc
+from dagster_slack import SlackResource
 
 from dagster import (
     Any,
@@ -36,6 +39,8 @@ from dagster import (
 from gridfs import GridFS
 from linkml_runtime.utils.dictutils import as_simple_dict
 from linkml_runtime.utils.yamlutils import YAMLRoot
+
+from nmdc_runtime import config
 from nmdc_runtime.api.db.mongo import validate_json
 from nmdc_runtime.api.core.metadata import (
     _validate_changesheet,
@@ -473,3 +478,43 @@ def render_text(context: OpExecutionContext, text: Any):
     )
 
     return Output(text)
+
+
+def send_slack_message(
+    context: OpExecutionContext,
+    *,
+    text: str,
+    channel_name_or_id: str = config.DAGSTER_SLACK_CHANNEL,
+    raise_on_error: bool = False,
+) -> bool:
+    """
+    Sends a message to a Slack channel and returns a boolean indicating whether it was sent.
+    
+    By default, if we fail to send the message, we just log an error and return `False`.
+    However, if the caller has set `raise_on_error=True` and we fail to send the message,
+    we raise an exception.
+    """
+    try:
+        formatted_text = f"{text} _(Environment: `{config.DAGSTER_ENVIRONMENT}`)_"
+        slack_web_client = context.resources.slack_resource.get_client()
+        slack_web_client.chat_postMessage(
+            channel=channel_name_or_id,
+            text=formatted_text,
+        )
+    except Exception as error:
+        if raise_on_error:
+            raise
+        else:
+            context.log.exception("Failed to send Slack message.", exc_info=error)
+            return False
+    return True
+
+
+@op(required_resource_keys={"slack_resource"})
+def send_example_slack_message_op(context: OpExecutionContext):
+    """Sends an example Slack message, to confirm the Slack integration works."""
+    send_slack_message(
+        context=context,
+        text=r":robot_face: Hello from Dagster. This is a test.",
+        raise_on_error=True,
+    )

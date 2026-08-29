@@ -18,9 +18,11 @@ from dagster import (
     ScheduleEvaluationContext,
     DefaultScheduleStatus,
 )
+from dagster_slack import SlackResource
 from starlette import status
 from toolz import merge, get_in
 
+from nmdc_runtime import config
 from nmdc_runtime.api.core.util import dotted_path_for
 from nmdc_runtime.api.models.job import Job
 from nmdc_runtime.api.models.operation import ObjectPutMetadata
@@ -51,6 +53,7 @@ from nmdc_runtime.site.graphs import (
     generate_data_generation_set_for_biosamples_in_nmdc_study,
     generate_update_script_for_insdc_biosample_identifiers,
     validate_mongo_data,
+    test_slack_integration,
 )
 from nmdc_runtime.site.resources import (
     get_mongo,
@@ -67,6 +70,10 @@ from nmdc_runtime.site.resources import (
 from nmdc_runtime.util import freeze
 from nmdc_runtime.util import unfreeze
 
+slack_resource = SlackResource(
+    token=config.DAGSTER_SLACK_BOT_TOKEN,
+)
+
 resource_defs = {
     "runtime_api_site_client": runtime_api_site_client_resource,
     "runtime_api_user_client": runtime_api_user_client_resource,
@@ -74,6 +81,7 @@ resource_defs = {
     "gold_api_client": gold_api_client_resource,
     "neon_api_client": neon_api_client_resource,
     "mongo": mongo_resource,
+    "slack_resource": slack_resource,
 }
 
 preset_normal = {
@@ -118,6 +126,17 @@ validate_mongo_data_job = validate_mongo_data.to_job(
         "select specific collections to validate or skip."
     ),
     **preset_normal,
+)
+
+test_slack_integration_job = test_slack_integration.to_job(
+    name="test_slack_integration",
+    description=(
+        "Sends a Slack message, for the purposes of confirming that the underlying op "
+        "is sufficiently configured to post the message in the correct Slack channel."
+    ),
+    resource_defs={
+        "slack_resource": slack_resource,
+    }
 )
 
 validate_mongo_data_daily = ScheduleDefinition(
@@ -507,6 +526,7 @@ def repo():
             },
         ),
         validate_mongo_data_job,
+        test_slack_integration_job,
     ]
     schedules = [
         housekeeping_weekly,

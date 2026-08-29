@@ -78,6 +78,7 @@ from nmdc_runtime.site.ops.common import (
     render_text,
     post_submission_portal_biosample_ingest_record_stitching_filename,
     log_database_ids,
+    send_example_slack_message_op,
 )
 from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
 
@@ -631,3 +632,9 @@ def generate_update_script_for_insdc_biosample_identifiers():
         enable_biosample_filtering,
     )
     render_text(update_script)
+
+
+@graph
+def test_slack_integration():
+    """Sends a predefined Slack message."""
+    send_example_slack_message_op()

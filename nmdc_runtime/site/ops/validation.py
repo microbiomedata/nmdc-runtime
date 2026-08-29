@@ -31,6 +31,7 @@ from refscan.lib.helpers import (
 )
 
 from nmdc_runtime.api.endpoints.util import strip_oid
+from nmdc_runtime.site.ops.common import send_slack_message
 from nmdc_runtime.util import get_nmdc_schema_validator, nmdc_schema_view
 
 
@@ -316,7 +317,7 @@ def select_collection_names(
 
 
 @op(
-    required_resource_keys={"mongo"},
+    required_resource_keys={"mongo", "slack_resource"},
     # Note: Users can specify `exclude_collections` and `include_collections` via the "Launchpad"
     #       tab on the Dagster web UI.
     config_schema={
@@ -452,6 +453,12 @@ def validate_mongo_data_op(
                 "collection_results": MetadataValue.json(overall_report),
             },
         )
+
+    send_slack_message(
+        context=context,
+        text=r"Finished validating data in MongoDB database.",
+        raise_on_error=False,
+    )
 
     # Finally, we yield the overall report.
     #
