@@ -136,7 +136,7 @@ test_slack_integration_job = test_slack_integration.to_job(
     ),
     resource_defs={
         "slack_resource": slack_resource,
-    }
+    },
 )
 
 validate_mongo_data_daily = ScheduleDefinition(

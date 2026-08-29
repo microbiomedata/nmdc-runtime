@@ -489,7 +489,7 @@ def send_slack_message(
 ) -> bool:
     """
     Sends a message to a Slack channel and returns a boolean indicating whether it was sent.
-    
+
     By default, if we fail to send the message, we just log an error and return `False`.
     However, if the caller has set `raise_on_error=True` and we fail to send the message,
     we raise an exception.
