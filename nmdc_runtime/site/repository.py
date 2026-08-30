@@ -72,6 +72,7 @@ from nmdc_runtime.site.resources import (
 from nmdc_runtime.util import freeze
 from nmdc_runtime.util import unfreeze
 
+
 @resource
 def optional_slack_resource(_: InitResourceContext) -> SlackResource | None:
     """
@@ -89,7 +90,10 @@ def optional_slack_resource(_: InitResourceContext) -> SlackResource | None:
     """
     resource = None
     optional_slack_bot_token: str | None = EnvVar("DAGSTER_SLACK_BOT_TOKEN").get_value()
-    if isinstance(optional_slack_bot_token, str) and optional_slack_bot_token.strip() != "":
+    if (
+        isinstance(optional_slack_bot_token, str)
+        and optional_slack_bot_token.strip() != ""
+    ):
         resource = SlackResource(token=optional_slack_bot_token)
     return resource
 

@@ -494,7 +494,9 @@ def send_slack_message(
     raise an exception. Otherwise, we log an error and return `False`. If we successfully send the
     message, we return `True`.
     """
-    optional_slack_resource: SlackResource | None = context.resources.optional_slack_resource
+    optional_slack_resource: SlackResource | None = (
+        context.resources.optional_slack_resource
+    )
     if isinstance(optional_slack_resource, SlackResource):
         try:
             decorated_text = f"{text} _(Environment: `{config.DAGSTER_ENVIRONMENT}`)_"
@@ -512,9 +514,13 @@ def send_slack_message(
         return True
     else:
         if raise_if_not_sent:
-            raise ValueError("Slack message was not sent because token was unavailable.")
+            raise ValueError(
+                "Slack message was not sent because token was unavailable."
+            )
         else:
-            context.log.warning("Slack message was not sent because token was unavailable.")
+            context.log.warning(
+                "Slack message was not sent because token was unavailable."
+            )
             return False
 
 
