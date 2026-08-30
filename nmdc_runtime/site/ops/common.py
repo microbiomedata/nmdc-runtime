@@ -18,10 +18,10 @@ from io import BytesIO
 
 from typing import Optional
 from zipfile import ZipFile
+from dagster_slack import SlackResource
 import pandas as pd
 import requests
 from toolz import dissoc
-from dagster_slack import SlackResource
 
 from dagster import (
     Any,
@@ -485,36 +485,44 @@ def send_slack_message(
     *,
     text: str,
     channel_name_or_id: str = config.DAGSTER_SLACK_CHANNEL,
-    raise_on_error: bool = False,
+    raise_if_not_sent: bool = False,
 ) -> bool:
     """
-    Sends a message to a Slack channel and returns a boolean indicating whether it was sent.
+    Sends a message to a Slack channel, if the optional Slack resource is sufficiently configured.
 
-    By default, if we fail to send the message, we just log an error and return `False`.
-    However, if the caller has set `raise_on_error=True` and we fail to send the message,
-    we raise an exception.
+    If we fail to send the message, we check the `raise_if_not_sent` flag. If it is `True`, then we
+    raise an exception. Otherwise, we log an error and return `False`. If we successfully send the
+    message, we return `True`.
     """
-    try:
-        formatted_text = f"{text} _(Environment: `{config.DAGSTER_ENVIRONMENT}`)_"
-        slack_web_client = context.resources.slack_resource.get_client()
-        slack_web_client.chat_postMessage(
-            channel=channel_name_or_id,
-            text=formatted_text,
-        )
-    except Exception as error:
-        if raise_on_error:
-            raise
+    optional_slack_resource: SlackResource | None = context.resources.optional_slack_resource
+    if isinstance(optional_slack_resource, SlackResource):
+        try:
+            decorated_text = f"{text} _(Environment: `{config.DAGSTER_ENVIRONMENT}`)_"
+            slack_web_client = optional_slack_resource.get_client()
+            slack_web_client.chat_postMessage(
+                channel=channel_name_or_id,
+                text=decorated_text,
+            )
+        except Exception as error:
+            if raise_if_not_sent:
+                raise
+            else:
+                context.log.exception("Failed to send Slack message.", exc_info=error)
+                return False
+        return True
+    else:
+        if raise_if_not_sent:
+            raise ValueError("Slack message was not sent because token was unavailable.")
         else:
-            context.log.exception("Failed to send Slack message.", exc_info=error)
+            context.log.warning("Slack message was not sent because token was unavailable.")
             return False
-    return True
 
 
-@op(required_resource_keys={"slack_resource"})
+@op(required_resource_keys={"optional_slack_resource"})
 def send_example_slack_message_op(context: OpExecutionContext):
     """Sends an example Slack message, to confirm the Slack integration works."""
     send_slack_message(
         context=context,
         text=r":robot_face: Hello from Dagster. This is a test.",
-        raise_on_error=True,
+        raise_if_not_sent=True,
     )

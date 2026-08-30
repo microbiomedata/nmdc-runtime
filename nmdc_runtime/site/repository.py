@@ -5,6 +5,8 @@ import json
 
 from dagster import (
     EnvVar,
+    InitResourceContext,
+    resource,
     repository,
     ScheduleDefinition,
     SkipReason,
@@ -23,7 +25,6 @@ from dagster_slack import SlackResource
 from starlette import status
 from toolz import merge, get_in
 
-from nmdc_runtime import config
 from nmdc_runtime.api.core.util import dotted_path_for
 from nmdc_runtime.api.models.job import Job
 from nmdc_runtime.api.models.operation import ObjectPutMetadata
@@ -71,16 +72,27 @@ from nmdc_runtime.site.resources import (
 from nmdc_runtime.util import freeze
 from nmdc_runtime.util import unfreeze
 
-slack_resource = SlackResource(
-    # Note: By using `EnvVar` (instead of `config.DAGSTER_SLACK_BOT_TOKEN`) here, we prevent Dagster
-    #       from showing the secret value on the Dagster web UI, where it is visible to Dagster users.
-    #
-    #       Docs:
-    #       - https://docs.dagster.io/api/dagster/resources#dagster.EnvVar
-    #       - https://docs.dagster.io/guides/operate/configuration/using-environment-variables-and-secrets#handling-secrets
-    #
-    token=EnvVar("DAGSTER_SLACK_BOT_TOKEN"),
-)
+@resource
+def optional_slack_resource(_: InitResourceContext) -> SlackResource | None:
+    """
+    Reads the optional `DAGSTER_SLACK_BOT_TOKEN` environment variable and, if defined, uses it to
+    initialize a `SlackResource`, which any Dagster op, asset, schedule, or sensor can use to send
+    Slack messages to the Slack workspace associated with the token. Returns the `SlackResource`
+    if a token was available; otherwise, returns `None`.
+
+    Note: By using `EnvVar` (instead of `config.DAGSTER_SLACK_BOT_TOKEN`) here, we prevent Dagster
+          from showing the secret value on the Dagster web UI, where it is visible to Dagster users.
+
+    References:
+    - https://docs.dagster.io/api/dagster/resources#dagster.EnvVar
+    - https://docs.dagster.io/guides/operate/configuration/using-environment-variables-and-secrets#handling-secrets
+    """
+    resource = None
+    optional_slack_bot_token: str | None = EnvVar("DAGSTER_SLACK_BOT_TOKEN").get_value()
+    if isinstance(optional_slack_bot_token, str) and optional_slack_bot_token.strip() != "":
+        resource = SlackResource(token=optional_slack_bot_token)
+    return resource
+
 
 resource_defs = {
     "runtime_api_site_client": runtime_api_site_client_resource,
@@ -89,7 +101,7 @@ resource_defs = {
     "gold_api_client": gold_api_client_resource,
     "neon_api_client": neon_api_client_resource,
     "mongo": mongo_resource,
-    "slack_resource": slack_resource,
+    "optional_slack_resource": optional_slack_resource,
 }
 
 preset_normal = {
@@ -143,7 +155,7 @@ test_slack_integration_job = test_slack_integration.to_job(
         "is sufficiently configured to send the message to the correct Slack channel."
     ),
     resource_defs={
-        "slack_resource": slack_resource,
+        "optional_slack_resource": optional_slack_resource,
     },
 )
 

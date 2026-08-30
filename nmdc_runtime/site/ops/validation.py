@@ -317,7 +317,7 @@ def select_collection_names(
 
 
 @op(
-    required_resource_keys={"mongo", "slack_resource"},
+    required_resource_keys={"mongo", "optional_slack_resource"},
     # Note: Users can specify `exclude_collections` and `include_collections` via the "Launchpad"
     #       tab on the Dagster web UI.
     config_schema={
@@ -457,7 +457,6 @@ def validate_mongo_data_op(
     send_slack_message(
         context=context,
         text=r"Finished validating data in MongoDB database.",
-        raise_on_error=False,
     )
 
     # Finally, we yield the overall report.
