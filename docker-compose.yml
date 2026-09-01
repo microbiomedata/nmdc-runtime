@@ -58,6 +58,12 @@ services:
       target: dagster
     entrypoint: ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-daemon.sh"]
     restart: on-failure
+    # Mirrors prod's Dagster Daemon memory limit (nmdc-cloud-deployment's dagster-prod-values.yaml),
+    # so a local run surfaces the same OOM behavior prod would see instead of running unconstrained.
+    deploy:
+      resources:
+        limits:
+          memory: 12g
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
