@@ -65,7 +65,6 @@ from nmdc_runtime.site.resources import (
 )
 from nmdc_runtime.util import freeze, unfreeze
 
-
 resource_defs = {
     "runtime_api_site_client": runtime_api_site_client_resource,
     "runtime_api_user_client": runtime_api_user_client_resource,
