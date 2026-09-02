@@ -12,14 +12,12 @@ import json
 import os
 import subprocess
 from collections import defaultdict
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from importlib.metadata import version
 from io import BytesIO
 
 from typing import Optional
 from zipfile import ZipFile
-from dagster_slack import SlackResource
 import pandas as pd
 import requests
 from toolz import dissoc
@@ -478,50 +476,6 @@ def render_text(context: OpExecutionContext, text: Any):
     )
 
     return Output(text)
-
-
-@dataclass(frozen=True)
-class SlackMessageSender:
-    """
-    Class that facilitates sending Slack messages.
-
-    Note: We make it a `dataclass` so we don't have to manually define an `__init__` method,
-          given that we already specify the instance attributes and their types below. We make
-          it `frozen=True` so we can take for granted that nobody will update its attributes.
-
-    Docs: https://docs.python.org/3/library/dataclasses.html
-    """
-
-    slack_resource: SlackResource | None
-    """A `SlackResource` provided by the `dagster-slack` package; or None. Docs: https://dagster.io/integrations/dagster-slack"""
-
-    channel_name_or_id: str | None
-    """Name or ID of Slack channel to which you want this instance to send messages."""
-
-    environment_name: str | None
-    """Environment name that may be included in messages sent by this instance."""
-
-    def send_message(self, context: OpExecutionContext, *, text: str) -> bool:
-        """Send a Slack message and return whether it was sent successfully."""
-        if not (
-            isinstance(self.slack_resource, SlackResource)
-            and isinstance(self.channel_name_or_id, str)
-            and isinstance(self.environment_name, str)
-        ):
-            context.log.warning("No Slack message sent. Slack client not configured.")
-            return False
-
-        try:
-            slack_web_client = self.slack_resource.get_client()
-            slack_web_client.chat_postMessage(
-                channel=self.channel_name_or_id,
-                text=f"{text} _(Environment: `{self.environment_name}`)_",
-            )
-            return True
-
-        except Exception as error:
-            context.log.exception("Failed to send Slack message.", exc_info=error)
-            return False
 
 
 @op(required_resource_keys={"slack_message_sender"})

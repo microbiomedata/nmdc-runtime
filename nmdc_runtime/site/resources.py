@@ -1,25 +1,28 @@
-from dataclasses import dataclass
 import json
 import os
+from dataclasses import dataclass
 from datetime import timedelta, datetime, timezone
 from functools import lru_cache
 from typing import Any, Dict, List, Optional, Union
 
 import requests
 import requests_cache
-from requests.auth import HTTPBasicAuth
 from dagster import (
     build_init_resource_context,
     resource,
     StringSource,
     InitResourceContext,
+    OpExecutionContext,
+    EnvVar,
 )
+from dagster_slack import SlackResource
 from frozendict import frozendict
 from linkml_runtime.dumpers import json_dumper
+from nmdc_schema import nmdc
 from pydantic import BaseModel, AnyUrl
 from pymongo import MongoClient, ReplaceOne, InsertOne
-from toolz import get_in
-from toolz import merge
+from requests.auth import HTTPBasicAuth
+from toolz import get_in, merge
 
 from nmdc_runtime.api.core.provenance import (
     NAMES_OF_COLLECTIONS_ALLOWING_DOCUMENTS_HAVING_PROVENANCE_METADATA_FIELD,
@@ -32,7 +35,6 @@ from nmdc_runtime.api.models.operation import ListOperationsResponse
 from nmdc_runtime.api.models.util import ListRequest
 from nmdc_runtime.site.normalization.gold import normalize_gold_id
 from nmdc_runtime.util import unfreeze, get_nmdc_schema_validator
-from nmdc_schema import nmdc
 
 
 class RuntimeApiClient:
@@ -771,3 +773,99 @@ def get_mongo(run_config: frozendict):
         )
     )
     return mongo_resource(resource_context)
+
+
+@dataclass(frozen=True)
+class SlackMessageSender:
+    """
+    Class that facilitates sending Slack messages.
+
+    Note: We make it a `dataclass` so we don't have to manually define an `__init__` method,
+          given that we already specify the instance attributes and their types below. We make
+          it `frozen=True` so we can take for granted that nobody will update its attributes.
+
+    Docs: https://docs.python.org/3/library/dataclasses.html
+    """
+
+    slack_resource: SlackResource | None
+    """A `SlackResource` provided by the `dagster-slack` package; or None. Docs: https://dagster.io/integrations/dagster-slack"""
+
+    channel_name_or_id: str | None
+    """Name or ID of Slack channel to which you want this instance to send messages."""
+
+    environment_name: str | None
+    """Environment name that may be included in messages sent by this instance."""
+
+    def send_message(self, context: OpExecutionContext, *, text: str) -> bool:
+        """Send a Slack message and return whether it was sent successfully."""
+        if not (
+            isinstance(self.slack_resource, SlackResource)
+            and isinstance(self.channel_name_or_id, str)
+            and isinstance(self.environment_name, str)
+        ):
+            context.log.warning("No Slack message sent. Slack client not configured.")
+            return False
+
+        try:
+            slack_web_client = self.slack_resource.get_client()
+            slack_web_client.chat_postMessage(
+                channel=self.channel_name_or_id,
+                text=f"{text} _(Environment: `{self.environment_name}`)_",
+            )
+            return True
+
+        except Exception as error:
+            context.log.exception("Failed to send Slack message.", exc_info=error)
+            return False
+
+
+@resource
+def slack_message_sender_resource(_: InitResourceContext) -> SlackMessageSender:
+    """
+    Returns a `SlackMessageSender` instance.
+
+    If `IS_DAGSTER_SLACK_ENABLED` is "true" and `DAGSTER_SLACK_BOT_TOKEN` is a non-empty string,
+    the `send_message` method of the returned `SlackMessageSender` instance will be configured to
+    send messages to the Slack channel specified via `DAGSTER_SLACK_CHANNEL`, and those messages
+    will incorporate the environment name specified via `DAGSTER_ENVIRONMENT`.
+
+    Otherwise, returns a `SlackMessageSender` whose `send_message` method is a "no op".
+
+    References:
+    - https://docs.dagster.io/api/dagster/resources#dagster.EnvVar
+    - https://docs.dagster.io/guides/operate/configuration/using-environment-variables-and-secrets#handling-secrets
+    """
+
+    # Initialize a "no op" `SlackMessageSender` in case Slack message sending is disabled
+    # or the environment variables are inadequate as interpreted below.
+    slack_message_sender = SlackMessageSender(
+        slack_resource=None, channel_name_or_id=None, environment_name=None
+    )
+
+    # Determine whether the user has enabled/disabled Slack message sending.
+    is_enabled = False
+    is_enabled_ = EnvVar("IS_DAGSTER_SLACK_ENABLED").get_value()
+    if isinstance(is_enabled_, str) and is_enabled_.lower() == "true":
+        is_enabled = True
+
+    # If the user has enabled Slack message sending, validate the other environment
+    # variables and, if adequate, instantiate a real SlackResource with the supplied token.
+    if is_enabled:
+        slack_bot_token = EnvVar("DAGSTER_SLACK_BOT_TOKEN").get_value()
+        channel_name_or_id = EnvVar("DAGSTER_SLACK_CHANNEL").get_value()
+        environment_name = EnvVar("DAGSTER_ENVIRONMENT").get_value()
+        if (
+            isinstance(slack_bot_token, str)
+            and isinstance(channel_name_or_id, str)
+            and isinstance(environment_name, str)
+            and slack_bot_token.strip() != ""
+            and channel_name_or_id.strip() != ""
+            and environment_name.strip() != ""
+        ):
+            slack_message_sender = SlackMessageSender(
+                slack_resource=SlackResource(token=slack_bot_token.strip()),
+                channel_name_or_id=channel_name_or_id.strip(),
+                environment_name=environment_name.strip(),
+            )
+
+    return slack_message_sender
