@@ -169,6 +169,16 @@ validate_mongo_data_daily = ScheduleDefinition(
     execution_timezone="America/Los_Angeles",
     default_status=DefaultScheduleStatus.RUNNING,
     job=validate_mongo_data_job,
+    # Skip validating the documents in the "functional_annotation_agg" collection, which is large.
+    run_config={
+        "ops": {
+            "validate_mongo_data_op": {
+                "config": {
+                    "exclude_collections": ["functional_annotation_agg"],
+                },
+            },
+        },
+    },
 )
 
 housekeeping_weekly = ScheduleDefinition(
