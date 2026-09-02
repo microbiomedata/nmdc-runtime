@@ -262,3 +262,72 @@ def test_update_biosample_ph():
     assert isinstance(
         update_cmd["nmdc:bsm-11-5nhz3402"]["updates"][0]["u"]["$set"]["ph"], float
     )
+
+
+def test_update_mongo_db_returns_error_for_missing_document():
+    """
+    Regression test for the bug where update_mongo_db raised
+    "TypeError: object of type 'NoneType' has no len()" when the changesheet
+    referenced a document ID that did not exist in the target database.
+
+    Root cause: pymongo's find_one() returns None (not a dict) when no matching
+    document is found. The code was passing that None directly to toolz's dissoc(),
+    which calls len() on its first argument and therefore crashes on None.
+
+    This test constructs an update_cmd that references a document ID that is
+    deliberately absent from the database, then asserts that update_mongo_db
+    does NOT raise an exception and instead returns a result entry that contains
+    a descriptive validation error message explaining the document is missing.
+    """
+    mdb = get_mongo_db()
+
+    # Choose a document ID that is guaranteed not to be in the database for this test.
+    # We use a synthetic ID that would never be minted in production.
+    nonexistent_id = "nmdc:bsm-00-doesnotexist"
+
+    # Ensure the document truly does not exist before we start (clean up any
+    # leftover state from a previously interrupted test run).
+    mdb.biosample_set.delete_one({"id": nonexistent_id})
+
+    # Build an update_cmd that mimics what mongo_update_command_for() would produce
+    # for a changesheet row targeting the nonexistent document. The structure must
+    # match what update_mongo_db() expects: a dict keyed by document ID, with each
+    # value being a dict containing at least "update" (collection name) and "updates"
+    # (list of MongoDB update sub-commands).
+    update_cmd = {
+        nonexistent_id: {
+            "update": "biosample_set",
+            "updates": [
+                {
+                    "q": {"id": nonexistent_id},
+                    "u": {"$set": {"name": "should not matter"}},
+                    "multi": False,
+                    "upsert": False,
+                }
+            ],
+        }
+    }
+
+    # Before the fix this call would raise:
+    #   TypeError: object of type 'NoneType' has no len()
+    # because find_one() returned None for the missing document and that None was
+    # passed directly to toolz.dissoc().
+    results = update_mongo_db(mdb, update_cmd)
+
+    # The function should return one result entry per document ID in update_cmd.
+    assert len(results) == 1
+
+    result = results[0]
+
+    # The result should record the ID that was processed.
+    assert result["id"] == nonexistent_id
+
+    # Because the document did not exist, doc_before and doc_after should be None
+    # (the function had no document to read or update).
+    assert result["doc_before"] is None
+    assert result["doc_after"] is None
+
+    # The result should include a validation error describing the missing document,
+    # so callers can surface a useful message to the user instead of a 500 error.
+    assert len(result["validation_errors"]) > 0
+    assert nonexistent_id in result["validation_errors"][0]
