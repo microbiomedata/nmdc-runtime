@@ -484,7 +484,7 @@ def render_text(context: OpExecutionContext, text: Any):
 class SlackMessageSender:
     """
     Class that facilitates sending Slack messages.
-    
+
     Note: We make it a `dataclass` so we don't have to manually define an `__init__` method,
           given that we already specify the instance attributes and their types below. We make
           it `frozen=True` so we can take for granted that nobody will update its attributes.

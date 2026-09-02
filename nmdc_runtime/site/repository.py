@@ -94,9 +94,7 @@ def slack_message_sender_resource(_: InitResourceContext) -> SlackMessageSender:
     # Initialize a "no op" `SlackMessageSender` in case Slack message sending is disabled
     # or the environment variables are inadequate as interpreted below.
     slack_message_sender = SlackMessageSender(
-        slack_resource=None,
-        channel_name_or_id=None,
-        environment_name=None
+        slack_resource=None, channel_name_or_id=None, environment_name=None
     )
 
     # Determine whether the user has enabled/disabled Slack message sending.
