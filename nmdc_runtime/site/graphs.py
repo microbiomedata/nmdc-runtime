@@ -38,7 +38,10 @@ from nmdc_runtime.site.ops.neon import (
     get_neon_pipeline_inputs,
     site_code_mapping,
 )
-from nmdc_runtime.site.ops.ontology import load_ontology
+from nmdc_runtime.site.ops.ontology import (
+    load_ontology,
+    delete_ontology_terms_by_prefix,
+)
 from nmdc_runtime.site.ops.validation import validate_mongo_data_op
 from nmdc_runtime.site.ops.submission_portal import (
     fetch_nmdc_portal_submission_by_id,
@@ -131,6 +134,20 @@ def run_ontology_load():
     and passed to the load_ontology op.
     """
     load_ontology()
+
+
+@graph
+def reload_ontology_by_prefix():
+    """
+    Delete an ontology's existing docs by id prefix, then load it fresh.
+
+    The scoped drop-then-load reload strategy from nmdc-runtime issue 1565, for ontologies
+    loaded via mode=fast-initial (which has no upsert, so a refresh needs a delete first).
+    `waits_for` is a Nothing-dependency (see the note on materialize_alldocs's `waits_for` input)
+    that only sequences the two ops; load_ontology does not use delete's return value.
+    """
+    _ = delete_ontology_terms_by_prefix()
+    load_ontology(waits_for=_)
 
 
 @graph

@@ -51,6 +51,7 @@ from nmdc_runtime.site.graphs import (
     ingest_neon_surface_water_metadata,
     ensure_alldocs,
     run_ontology_load,
+    reload_ontology_by_prefix,
     nmdc_study_to_ncbi_submission_export,
     generate_data_generation_set_for_biosamples_in_nmdc_study,
     generate_update_script_for_insdc_biosample_identifiers,
@@ -253,6 +254,11 @@ ensure_alldocs_hourly = ScheduleDefinition(
 )
 
 
+# envo/uberon/po all use mode="meticulous" (per-item upsert, safe to re-run weekly) and
+# closure="combined" (rdfs:subClassOf + BFO:0000050): unlike NCBITaxon, these ontologies
+# carry real part_of relations, so "combined" is required to capture partonomy ancestry,
+# not just is_a. An isa-only closure would silently drop those part_of ancestors, so this
+# is a deliberate choice, not an oversight left over from the pre-0.2.3 defaults.
 load_envo_ontology_weekly = ScheduleDefinition(
     name="weekly_load_envo_ontology",
     cron_schedule="0 7 * * 1",
@@ -262,7 +268,24 @@ load_envo_ontology_weekly = ScheduleDefinition(
         config=unfreeze(
             merge(
                 run_config_frozen__normal_env,
-                {"ops": {"load_ontology": {"config": {"source_ontology": "envo"}}}},
+                {
+                    "ops": {
+                        "load_ontology": {
+                            "config": {
+                                "source_ontology": "envo",
+                                "mode": "meticulous",
+                                "closure": "combined",
+                                # Reciprocal guard against reload_envo_ontology (see that job's
+                                # own comment) -- includes its own job name too, matching the
+                                # NCBITaxon schedule's pattern.
+                                "concurrent_job_names": [
+                                    "reload_envo_ontology",
+                                    "scheduled_envo_ontology_load",
+                                ],
+                            }
+                        }
+                    }
+                },
             )
         ),
         resource_defs=resource_defs,
@@ -278,7 +301,21 @@ load_uberon_ontology_weekly = ScheduleDefinition(
         config=unfreeze(
             merge(
                 run_config_frozen__normal_env,
-                {"ops": {"load_ontology": {"config": {"source_ontology": "uberon"}}}},
+                {
+                    "ops": {
+                        "load_ontology": {
+                            "config": {
+                                "source_ontology": "uberon",
+                                "mode": "meticulous",
+                                "closure": "combined",
+                                "concurrent_job_names": [
+                                    "reload_uberon_ontology",
+                                    "scheduled_uberon_ontology_load",
+                                ],
+                            }
+                        }
+                    }
+                },
             )
         ),
         resource_defs=resource_defs,
@@ -294,11 +331,220 @@ load_po_ontology_weekly = ScheduleDefinition(
         config=unfreeze(
             merge(
                 run_config_frozen__normal_env,
-                {"ops": {"load_ontology": {"config": {"source_ontology": "po"}}}},
+                {
+                    "ops": {
+                        "load_ontology": {
+                            "config": {
+                                "source_ontology": "po",
+                                "mode": "meticulous",
+                                "closure": "combined",
+                                "concurrent_job_names": [
+                                    "reload_po_ontology",
+                                    "scheduled_po_ontology_load",
+                                ],
+                            }
+                        }
+                    }
+                },
             )
         ),
         resource_defs=resource_defs,
     ),
+)
+
+# NCBITaxon is far larger than envo/uberon/po (~2.7M classes), so it uses mode="fast-initial"
+# (raw pymongo insert_many) rather than the meticulous per-item upsert the others use.
+# It uses closure="isa" (not "combined", unlike envo/uberon/po above): NCBITaxon is a pure
+# is_a taxonomy with no part_of, so isa is the correct and ontology-loader-recommended
+# closure, and it stores the ancestry under the accurate `entailed_isa_closure` predicate.
+# See the ontology-loader README.
+# Caveat: fast-initial is an initial-install path and does not upsert. A naive rerun (this
+# schedule enabled on a cadence, or a duplicate manual launch) used to silently duplicate every
+# class and relation; ontology-loader#60 fixed that (a rerun is now a no-op instead of a
+# duplication), and the fix is live as of the ontology-loader==0.3.0 pin above.
+# This schedule still ships stopped (no default_status=RUNNING, unlike load_envo_ontology_weekly
+# above): the rerun-duplication risk is resolved, but there is still no INTENTIONAL refresh
+# mechanism here -- an unattended weekly cron re-running the same fast-initial load is a no-op at
+# best, not a real update path. For an intentional refresh, use the reload_ncbitaxon_ontology job
+# below (scoped drop-then-load, per nmdc-runtime issue 1565), launched manually. Turning this
+# schedule on is a separate, deliberate operational decision, not implied by the release existing.
+load_ncbitaxon_ontology_weekly = ScheduleDefinition(
+    name="weekly_load_ncbitaxon_ontology",
+    cron_schedule="0 10 * * 1",
+    execution_timezone="America/New_York",
+    job=run_ontology_load.to_job(
+        name="scheduled_ncbitaxon_ontology_load",
+        config=unfreeze(
+            merge(
+                run_config_frozen__normal_env,
+                {
+                    "ops": {
+                        "load_ontology": {
+                            "config": {
+                                "source_ontology": "ncbitaxon",
+                                "mode": "fast-initial",
+                                "closure": "isa",
+                                # Includes its own job name: _fail_if_other_active_run already
+                                # excludes context.run_id (the current run), so this only catches
+                                # a genuinely separate concurrent launch of this same job -- e.g.
+                                # two manual triggers overlapping. Without it, fast-initial's lack
+                                # of upsert means both runs bulk-insert the same ~2.7M classes.
+                                "concurrent_job_names": [
+                                    "reload_ncbitaxon_ontology",
+                                    "scheduled_ncbitaxon_ontology_load",
+                                ],
+                            }
+                        }
+                    }
+                },
+            )
+        ),
+        resource_defs=resource_defs,
+    ),
+)
+
+# She blinded me with schema-compliance! (She blinded me with schema-compliance!)
+# -- for the reviewer who asked, per https://github.com/microbiomedata/nmdc-runtime/pull/1562
+#
+# Manual-only (no ScheduleDefinition): a full NCBITaxon reload is a heavy, high-blast-radius
+# operation (a scoped delete across ~54.7M relations, then a ~93-minute fast-initial reload) that
+# an operator should launch deliberately, not something a cron schedule should trigger unattended.
+# concurrent_job_names guards against this job's own delete step running while either another
+# instance of itself or the regular weekly NCBITaxon load is active against the same collections.
+reload_ncbitaxon_ontology_job = reload_ontology_by_prefix.to_job(
+    name="reload_ncbitaxon_ontology",
+    config=unfreeze(
+        merge(
+            run_config_frozen__normal_env,
+            {
+                "ops": {
+                    "delete_ontology_terms_by_prefix": {
+                        "config": {
+                            "id_prefix": "NCBITaxon:",
+                            "concurrent_job_names": [
+                                "reload_ncbitaxon_ontology",
+                                "scheduled_ncbitaxon_ontology_load",
+                            ],
+                        }
+                    },
+                    "load_ontology": {
+                        "config": {
+                            "source_ontology": "ncbitaxon",
+                            "mode": "fast-initial",
+                            "closure": "isa",
+                            # Same reciprocal guard as the delete step above: the check at graph
+                            # start doesn't cover the whole run, so the insert step re-checks too.
+                            "concurrent_job_names": [
+                                "scheduled_ncbitaxon_ontology_load"
+                            ],
+                        }
+                    },
+                }
+            },
+        )
+    ),
+    resource_defs=resource_defs,
+)
+
+# Same scoped drop-then-load pattern as reload_ncbitaxon_ontology_job above, generalized to
+# envo/uberon/po. These three are small enough (thousands, not millions, of docs) that neither
+# the delete nor the fast-initial reload is a performance concern the way NCBITaxon's is -- the
+# point of these jobs isn't speed, it's giving an operator a clean-slate reload for any one
+# ontology without touching the other three's records, which meticulous mode's per-item upsert
+# can't do on its own (it marks removed/renamed terms obsolete, it doesn't delete them).
+# closure="combined" here matches each ontology's own regular weekly schedule above, not
+# NCBITaxon's "isa" choice -- see the comment above load_envo_ontology_weekly for why.
+reload_envo_ontology_job = reload_ontology_by_prefix.to_job(
+    name="reload_envo_ontology",
+    config=unfreeze(
+        merge(
+            run_config_frozen__normal_env,
+            {
+                "ops": {
+                    "delete_ontology_terms_by_prefix": {
+                        "config": {
+                            "id_prefix": "ENVO:",
+                            "concurrent_job_names": [
+                                "reload_envo_ontology",
+                                "scheduled_envo_ontology_load",
+                            ],
+                        }
+                    },
+                    "load_ontology": {
+                        "config": {
+                            "source_ontology": "envo",
+                            "mode": "fast-initial",
+                            "closure": "combined",
+                            "concurrent_job_names": ["scheduled_envo_ontology_load"],
+                        }
+                    },
+                }
+            },
+        )
+    ),
+    resource_defs=resource_defs,
+)
+
+reload_uberon_ontology_job = reload_ontology_by_prefix.to_job(
+    name="reload_uberon_ontology",
+    config=unfreeze(
+        merge(
+            run_config_frozen__normal_env,
+            {
+                "ops": {
+                    "delete_ontology_terms_by_prefix": {
+                        "config": {
+                            "id_prefix": "UBERON:",
+                            "concurrent_job_names": [
+                                "reload_uberon_ontology",
+                                "scheduled_uberon_ontology_load",
+                            ],
+                        }
+                    },
+                    "load_ontology": {
+                        "config": {
+                            "source_ontology": "uberon",
+                            "mode": "fast-initial",
+                            "closure": "combined",
+                            "concurrent_job_names": ["scheduled_uberon_ontology_load"],
+                        }
+                    },
+                }
+            },
+        )
+    ),
+    resource_defs=resource_defs,
+)
+
+reload_po_ontology_job = reload_ontology_by_prefix.to_job(
+    name="reload_po_ontology",
+    config=unfreeze(
+        merge(
+            run_config_frozen__normal_env,
+            {
+                "ops": {
+                    "delete_ontology_terms_by_prefix": {
+                        "config": {
+                            "id_prefix": "PO:",
+                            "concurrent_job_names": [
+                                "reload_po_ontology",
+                                "scheduled_po_ontology_load",
+                            ],
+                        }
+                    },
+                    "load_ontology": {
+                        "config": {
+                            "source_ontology": "po",
+                            "mode": "fast-initial",
+                            "closure": "combined",
+                            "concurrent_job_names": ["scheduled_po_ontology_load"],
+                        }
+                    },
+                }
+            },
+        )
+    ),
+    resource_defs=resource_defs,
 )
 
 
@@ -577,6 +823,10 @@ def repo():
                 MAX_RUNTIME_SECONDS_TAG: timedelta(minutes=45).total_seconds(),
             },
         ),
+        reload_ncbitaxon_ontology_job,
+        reload_envo_ontology_job,
+        reload_uberon_ontology_job,
+        reload_po_ontology_job,
         validate_mongo_data_job,
         test_slack_integration_job,
     ]
@@ -586,6 +836,7 @@ def repo():
         load_envo_ontology_weekly,
         load_uberon_ontology_weekly,
         load_po_ontology_weekly,
+        load_ncbitaxon_ontology_weekly,
         validate_mongo_data_daily,
     ]
     sensors = [
