@@ -86,18 +86,3 @@ SENTRY_TRACES_SAMPLE_RATE: float = float(
 SENTRY_PROFILES_SAMPLE_RATE: float = float(
     os.environ.get("SENTRY_PROFILES_SAMPLE_RATE", "0.0")
 )
-
-# ────────────────────────────────────────────────────────────────────────────┐
-# Dagster
-# ────────────────────────────────────────────────────────────────────────────┘
-
-# OAuth token for a Slack bot that has the "chat:write" scope, and is
-# in the Slack channel to which you want Dagster to send messages.
-DAGSTER_SLACK_BOT_TOKEN: str = os.environ.get("DAGSTER_SLACK_BOT_TOKEN", "")
-
-# Name or ID of the Slack channel to which you want Dagster to send messages.
-DAGSTER_SLACK_CHANNEL: str = os.environ.get("DAGSTER_SLACK_CHANNEL", "")
-
-# An environment name (e.g., "production", "development", "local", "unknown")
-# that can be included in Slack messages sent by this Dagster instance.
-DAGSTER_ENVIRONMENT: str = os.environ.get("DAGSTER_ENVIRONMENT", "unknown")
