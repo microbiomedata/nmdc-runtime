@@ -1,12 +1,8 @@
+import json
 from datetime import timedelta
 from importlib.metadata import version
-import json
-
 
 from dagster import (
-    EnvVar,
-    InitResourceContext,
-    resource,
     repository,
     ScheduleDefinition,
     SkipReason,
@@ -21,7 +17,6 @@ from dagster import (
     ScheduleEvaluationContext,
     DefaultScheduleStatus,
 )
-from dagster_slack import SlackResource
 from starlette import status
 from toolz import merge, get_in
 
@@ -57,7 +52,6 @@ from nmdc_runtime.site.graphs import (
     validate_mongo_data,
     test_slack_integration,
 )
-from nmdc_runtime.site.ops.common import SlackMessageSender
 from nmdc_runtime.site.resources import (
     get_mongo,
     runtime_api_site_client_resource,
@@ -66,65 +60,10 @@ from nmdc_runtime.site.resources import (
     gold_api_client_resource,
     neon_api_client_resource,
     mongo_resource,
-)
-from nmdc_runtime.site.resources import (
     get_runtime_api_site_client,
+    slack_message_sender_resource,
 )
-from nmdc_runtime.util import freeze
-from nmdc_runtime.util import unfreeze
-
-
-@resource
-def slack_message_sender_resource(_: InitResourceContext) -> SlackMessageSender:
-    """
-    Returns a `SlackMessageSender` instance.
-
-    If `IS_DAGSTER_SLACK_ENABLED` is "true" and `DAGSTER_SLACK_BOT_TOKEN` is a non-empty string,
-    the `send_message` method of the returned `SlackMessageSender` instance will be configured to
-    send messages to the Slack channel specified via `DAGSTER_SLACK_CHANNEL`, and those messages
-    will incorporate the environment name specified via `DAGSTER_ENVIRONMENT`.
-
-    Otherwise, returns a `SlackMessageSender` whose `send_message` method is a "no op".
-
-    References:
-    - https://docs.dagster.io/api/dagster/resources#dagster.EnvVar
-    - https://docs.dagster.io/guides/operate/configuration/using-environment-variables-and-secrets#handling-secrets
-    """
-
-    # Initialize a "no op" `SlackMessageSender` in case Slack message sending is disabled
-    # or the environment variables are inadequate as interpreted below.
-    slack_message_sender = SlackMessageSender(
-        slack_resource=None, channel_name_or_id=None, environment_name=None
-    )
-
-    # Determine whether the user has enabled/disabled Slack message sending.
-    is_enabled = False
-    is_enabled_ = EnvVar("IS_DAGSTER_SLACK_ENABLED").get_value()
-    if isinstance(is_enabled_, str) and is_enabled_.lower() == "true":
-        is_enabled = True
-
-    # If the user has enabled Slack message sending, validate the other environment
-    # variables and, if adequate, instantiate a real SlackResource with the supplied token.
-    if is_enabled:
-        slack_bot_token = EnvVar("DAGSTER_SLACK_BOT_TOKEN").get_value()
-        channel_name_or_id = EnvVar("DAGSTER_SLACK_CHANNEL").get_value()
-        environment_name = EnvVar("DAGSTER_ENVIRONMENT").get_value()
-        if (
-            isinstance(slack_bot_token, str)
-            and isinstance(channel_name_or_id, str)
-            and isinstance(environment_name, str)
-            and slack_bot_token.strip() != ""
-            and channel_name_or_id.strip() != ""
-            and environment_name.strip() != ""
-        ):
-            slack_message_sender = SlackMessageSender(
-                slack_resource=SlackResource(token=slack_bot_token.strip()),
-                channel_name_or_id=channel_name_or_id.strip(),
-                environment_name=environment_name.strip(),
-            )
-
-    return slack_message_sender
-
+from nmdc_runtime.util import freeze, unfreeze
 
 resource_defs = {
     "runtime_api_site_client": runtime_api_site_client_resource,
@@ -197,6 +136,16 @@ validate_mongo_data_daily = ScheduleDefinition(
     execution_timezone="America/Los_Angeles",
     default_status=DefaultScheduleStatus.RUNNING,
     job=validate_mongo_data_job,
+    # Skip validating the documents in the "functional_annotation_agg" collection, which is large.
+    run_config={
+        "ops": {
+            "validate_mongo_data_op": {
+                "config": {
+                    "exclude_collections": ["functional_annotation_agg"],
+                },
+            },
+        },
+    },
 )
 
 housekeeping_weekly = ScheduleDefinition(
