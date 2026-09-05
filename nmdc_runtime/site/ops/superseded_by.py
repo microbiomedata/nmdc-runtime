@@ -79,11 +79,8 @@ def synchronize_superseded_by_field_op(
     for doc in cursor:
         doc_id = doc["id"]
         base_id, run_number = parse_workflow_execution_id(doc_id)
-        has_output: list[str] = doc["has_output"] if "has_output" in doc else list()
-        # Note: Here (in the descriptor), we use `False` to represent the absence of the field (in the document).
-        superseded_by: str | bool | None = doc["superseded_by"] if "superseded_by" in doc else False
         if base_id not in wfe_descriptors.keys():
-            wfe_descriptors[base_id] = list()
+            wfe_descriptors[base_id] = list()  # initialize the list of descriptors for this base ID
         if run_number is None:
             raise ValueError(f"`WorkflowExecution` {doc_id!r} has no run number.")
         if any(run_number == wfe_desc.run_number for wfe_desc in wfe_descriptors[base_id]):
@@ -91,6 +88,16 @@ def synchronize_superseded_by_field_op(
                 f"Multiple `WorkflowExecutions` have both base ID {base_id!r} "
                 f"and run number {run_number!r}."
             )
+        has_output: list[str] = doc["has_output"] if "has_output" in doc else list()
+        superseded_by = False  # fallback value that indicates that the field is missing
+        if "superseded_by" in doc:
+            if isinstance(doc["superseded_by"], str) or doc["superseded_by"] is None:
+                superseded_by = doc["superseded_by"]
+            else:
+                raise ValueError(
+                    f"`WorkflowExecution` {doc_id!r} has a schema-noncompliant "
+                    f"`superseded_by` value: {doc['superseded_by']!r}"
+                )
         wfe_descriptor = WorkflowExecutionDescriptor(
             id=doc_id,
             run_number=run_number,
@@ -146,6 +153,11 @@ def synchronize_superseded_by_field_op(
     for sorted_descriptors in wfe_descriptors.values():
         for wfe_descriptor in sorted_descriptors:
             for data_object_id in wfe_descriptor.has_output:
+                if data_object_id in wfe_expected_superseded_by_value_by_own_output_id.keys():
+                    raise ValueError(
+                        f"`DataObject` {data_object_id!r} is identified as an output of "
+                        "multiple `WorkflowExecution`s."
+                    )
                 wfe_expected_superseded_by_value_by_own_output_id[data_object_id] = wfe_descriptor.superseded_by_expected
 
     log.info(
@@ -157,8 +169,15 @@ def synchronize_superseded_by_field_op(
     cursor = data_object_set.find(filter={}, projection=projection, batch_size=2_000)
     for doc in cursor:
         doc_id = doc["id"]
-        # Note: Here (in the map), we use `False` to represent the absence of the field (in the document).
-        superseded_by: str | bool | None = doc["superseded_by"] if "superseded_by" in doc else False
+        superseded_by = False  # fallback value that indicates that the field is missing
+        if "superseded_by" in doc:
+            if isinstance(doc["superseded_by"], str) or doc["superseded_by"] is None:
+                superseded_by = doc["superseded_by"]
+            else:
+                raise ValueError(
+                    f"`DataObject` {doc_id!r} has a schema-noncompliant "
+                    f"`superseded_by` value: {doc['superseded_by']!r}"
+                )
         dobj_superseded_by_map[doc_id] = superseded_by
 
     log.info(
