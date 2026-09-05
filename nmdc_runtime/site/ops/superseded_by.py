@@ -256,7 +256,7 @@ def synchronize_superseded_by_field_op(
                 for update_statement in mongo_command.updates
             ],
             ordered=False,
-            comment="Dagster synchronizing superseded_by fields"
+            comment="Dagster synchronizing superseded_by fields",
         )
         log.info(
             f"Number of documents matched: {bulk_write_result.matched_count}\n"
