@@ -115,8 +115,7 @@ def synchronize_superseded_by_field_op(
         num_descriptors = len(sorted_descriptors)
         for idx, wfe_descriptor in enumerate(sorted_descriptors):
             # If this is the largest-run-numbered descriptor in the group, ensure its "superseded_by"
-            # value is `None` (reminder: this is the descriptor, not the Mongo document). If it isn't
-            # `None`, generate an update statement that would unset the field on the document.
+            # value is `False` (reminder: this is the descriptor, not the Mongo document).
             if idx + 1 == num_descriptors:
                 wfe_descriptor.superseded_by_expected = False
                 if wfe_descriptor.superseded_by is not False:
@@ -126,26 +125,16 @@ def synchronize_superseded_by_field_op(
                     )
                     log.debug(f"Generated `UpdateStatement`: {update_statement!r}")
                     workflow_execution_set_command.updates.append(update_statement)
-            # Otherwise, this descriptor represents a `WorkflowExecution` document that is superseded
+            # Otherwise, this descriptor represents a `WorkflowExecution` that is superseded
             # by the next `WorkflowExecution` in the sequence. Ensure its "superseded_by" value
             # reflects that.
             else:
-                superseding_wfe_id = sorted_descriptors[idx + 1].id
-                wfe_descriptor.superseded_by_expected = superseding_wfe_id
-                if wfe_descriptor.superseded_by != superseding_wfe_id:
-                    # Note: Even if the expected value is `None`, we go ahead and remove the field,
-                    #       since NMDC team members have established a convention of omitting
-                    #       "null"-valued fields from documents in schema-described collections.
-                    if wfe_descriptor.superseded_by_expected in [False, None]:
-                        update_statement = UpdateStatement(
-                            q={"id": wfe_descriptor.id},
-                            u={"$unset": {"superseded_by": True}},
-                        )
-                    else:
-                        update_statement = UpdateStatement(
-                            q={"id": wfe_descriptor.id},
-                            u={"$set": {"superseded_by": wfe_descriptor.superseded_by_expected}},
-                        )
+                wfe_descriptor.superseded_by_expected = sorted_descriptors[idx + 1].id
+                if wfe_descriptor.superseded_by != wfe_descriptor.superseded_by_expected:
+                    update_statement = UpdateStatement(
+                        q={"id": wfe_descriptor.id},
+                        u={"$set": {"superseded_by": wfe_descriptor.superseded_by_expected}},
+                    )
                     log.debug(f"Generated `UpdateStatement`: {update_statement!r}")
                     workflow_execution_set_command.updates.append(update_statement)
 
