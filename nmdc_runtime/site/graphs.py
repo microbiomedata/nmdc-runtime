@@ -13,6 +13,7 @@ from nmdc_runtime.site.ops.gold import (
     get_database_updater_inputs,
     generate_data_generation_set_post_biosample_ingest,
 )
+from nmdc_runtime.site.ops.superseded_by import synchronize_superseded_by_field_op
 from nmdc_runtime.site.ops.workflows import construct_jobs, maybe_post_jobs
 from nmdc_runtime.site.ops.ncbi import (
     get_ncbi_export_pipeline_study,
@@ -81,6 +82,11 @@ from nmdc_runtime.site.ops.common import (
     send_example_slack_message_op,
 )
 from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
+
+
+@graph()
+def synchronize_superseded_by_field_graph():
+    return synchronize_superseded_by_field_op()
 
 
 @graph()
