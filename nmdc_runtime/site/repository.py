@@ -51,6 +51,7 @@ from nmdc_runtime.site.graphs import (
     generate_update_script_for_insdc_biosample_identifiers,
     validate_mongo_data,
     test_slack_integration,
+    synchronize_superseded_by_field_graph,
 )
 from nmdc_runtime.site.resources import (
     get_mongo,
@@ -528,6 +529,10 @@ def repo():
         ),
         validate_mongo_data_job,
         test_slack_integration_job,
+        synchronize_superseded_by_field_graph.to_job(
+            name="synchronize_superseded_by_field",
+            **preset_normal,
+        ),
     ]
     schedules = [
         housekeeping_weekly,
