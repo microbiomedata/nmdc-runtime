@@ -8,12 +8,14 @@ from dataclasses import dataclass
 from dagster import DagsterLogManager, OpExecutionContext, op
 from pymongo.database import Database
 
-from nmdc_runtime.api.endpoints.lib.workflow_executions import parse_workflow_execution_id
+from nmdc_runtime.api.endpoints.lib.workflow_executions import (
+    parse_workflow_execution_id,
+)
 from nmdc_runtime.api.models.query import UpdateCommand, UpdateStatement
 
 
 @dataclass
-class WorkflowExecutionDescriptor():
+class WorkflowExecutionDescriptor:
     """Encapsulates aspects of a `WorkflowExecution` that are related to the task at hand."""
 
     id: str
@@ -40,7 +42,7 @@ def synchronize_superseded_by_field_op(
     Synchronize the "superseded_by" field of documents in the "workflow_execution_set" collection,
     so they reflect the sequences represented by "base ID" and "run  number" parts of those documents'
     "id" values, based on the "id" conventions established by the NMDC workflow management team members.
-    
+
     Also, synchronize the "superseded_by" field of documents in the "data_object_set" collection so
     they match the "superseded_by" field of the "workflow_execution_set" document that identifies
     those "data_object_set" documents as outputs (via the "has_output" field).
@@ -70,20 +72,25 @@ def synchronize_superseded_by_field_op(
     )
 
     log.info(
-        "Building LUT of all `WorkflowExecution` descriptors, "
-        "grouped by base ID."
+        "Building LUT of all `WorkflowExecution` descriptors, " "grouped by base ID."
     )
     wfe_descriptors: dict[str, list[WorkflowExecutionDescriptor]] = dict()
     projection = dict(_id=False, id=True, has_output=True, superseded_by=True)
-    cursor = workflow_execution_set.find(filter={}, projection=projection, batch_size=2_000)
+    cursor = workflow_execution_set.find(
+        filter={}, projection=projection, batch_size=2_000
+    )
     for doc in cursor:
         doc_id = doc["id"]
         base_id, run_number = parse_workflow_execution_id(doc_id)
         if base_id not in wfe_descriptors.keys():
-            wfe_descriptors[base_id] = list()  # initialize the list of descriptors for this base ID
+            wfe_descriptors[base_id] = (
+                list()
+            )  # initialize the list of descriptors for this base ID
         if run_number is None:
             raise ValueError(f"`WorkflowExecution` {doc_id!r} has no run number.")
-        if any(run_number == wfe_desc.run_number for wfe_desc in wfe_descriptors[base_id]):
+        if any(
+            run_number == wfe_desc.run_number for wfe_desc in wfe_descriptors[base_id]
+        ):
             raise ValueError(
                 f"Multiple `WorkflowExecutions` have both base ID {base_id!r} "
                 f"and run number {run_number!r}."
@@ -108,8 +115,7 @@ def synchronize_superseded_by_field_op(
         wfe_descriptors[base_id].append(wfe_descriptor)
 
     log.info(
-        "Sorting `WorkflowExecution` descriptors within each group, "
-        "by run number."
+        "Sorting `WorkflowExecution` descriptors within each group, " "by run number."
     )
     for wfe_descriptors_for_base_id in wfe_descriptors.values():
         wfe_descriptors_for_base_id.sort(key=lambda d: d.run_number)
@@ -137,10 +143,17 @@ def synchronize_superseded_by_field_op(
             # reflects that.
             else:
                 wfe_descriptor.superseded_by_expected = sorted_descriptors[idx + 1].id
-                if wfe_descriptor.superseded_by != wfe_descriptor.superseded_by_expected:
+                if (
+                    wfe_descriptor.superseded_by
+                    != wfe_descriptor.superseded_by_expected
+                ):
                     update_statement = UpdateStatement(
                         q={"id": wfe_descriptor.id},
-                        u={"$set": {"superseded_by": wfe_descriptor.superseded_by_expected}},
+                        u={
+                            "$set": {
+                                "superseded_by": wfe_descriptor.superseded_by_expected
+                            }
+                        },
                     )
                     log.debug(f"Generated `UpdateStatement`: {update_statement!r}")
                     workflow_execution_set_command.updates.append(update_statement)
@@ -149,16 +162,23 @@ def synchronize_superseded_by_field_op(
         "Building LUT of the expected `superseded_by` value of each all `WorkflowExecution`, "
         "by distinct `has_output` value (i.e. `DataObject` `id`)."
     )
-    wfe_expected_superseded_by_value_by_own_output_id: dict[str, str | None | bool] = dict()
+    wfe_expected_superseded_by_value_by_own_output_id: dict[str, str | None | bool] = (
+        dict()
+    )
     for sorted_descriptors in wfe_descriptors.values():
         for wfe_descriptor in sorted_descriptors:
             for data_object_id in wfe_descriptor.has_output:
-                if data_object_id in wfe_expected_superseded_by_value_by_own_output_id.keys():
+                if (
+                    data_object_id
+                    in wfe_expected_superseded_by_value_by_own_output_id.keys()
+                ):
                     raise ValueError(
                         f"`DataObject` {data_object_id!r} is identified as an output of "
                         "multiple `WorkflowExecution`s."
                     )
-                wfe_expected_superseded_by_value_by_own_output_id[data_object_id] = wfe_descriptor.superseded_by_expected
+                wfe_expected_superseded_by_value_by_own_output_id[data_object_id] = (
+                    wfe_descriptor.superseded_by_expected
+                )
 
     log.info(
         "Building LUT mapping all `DataObject` `id` values to "
@@ -187,7 +207,9 @@ def synchronize_superseded_by_field_op(
     for data_object_id, superseded_by in dobj_superseded_by_map.items():
         superseded_by_expected = False
         if data_object_id in wfe_expected_superseded_by_value_by_own_output_id:
-            superseded_by_expected = wfe_expected_superseded_by_value_by_own_output_id[data_object_id]
+            superseded_by_expected = wfe_expected_superseded_by_value_by_own_output_id[
+                data_object_id
+            ]
         if superseded_by != superseded_by_expected:
             # Note: Even if the expected value is `None`, we go ahead and remove the field,
             #       since NMDC team members have established a convention of omitting
