@@ -237,28 +237,35 @@ def synchronize_superseded_by_field_op(
         f"{len(data_object_set_command.updates)}"
     )
 
-    # Apply the updates to the documents in the MongoDB collections.
-    for mongo_command in [
-        workflow_execution_set_command,
-        data_object_set_command,
-    ]:
-        log.info(f"Applying updates to collection: {mongo_command.update}")
-        if len(mongo_command.updates) == 0:
-            log.info("No updates to apply.")
-            continue  # stop here, since calling `bulk_write` with no operations raises an exception
-        collection = db.get_collection(mongo_command.update)
-        # Note: We use `collection.bulk_write` instead of `db.command` because the former
-        #       raises `BulkWriteError` for failed writes, whereas the latter requires manual
-        #       inspection of the result. The former also provides simpler results.
-        bulk_write_result = collection.bulk_write(
-            requests=[
-                UpdateOne(update_statement.q, update_statement.u)
-                for update_statement in mongo_command.updates
-            ],
-            ordered=False,
-            comment="Dagster synchronizing superseded_by fields",
-        )
-        log.info(
-            f"Number of documents matched: {bulk_write_result.matched_count}\n"
-            f"Number of documents modified: {bulk_write_result.modified_count}"
-        )
+    # Apply the updates to the documents in the MongoDB collections, atomically via a transaction.
+    log.info("Starting MongoDB transaction to ensure all updates are performed atomically.")
+    with db.client.start_session() as session:
+        with session.start_transaction():
+            for mongo_command in [
+                workflow_execution_set_command,
+                data_object_set_command,
+            ]:
+                log.info(f"Applying updates to collection: {mongo_command.update}")
+                if len(mongo_command.updates) == 0:
+                    log.info("No updates to apply.")
+                    continue  # stop here, since calling `bulk_write` with no operations raises an exception
+                collection = db.get_collection(mongo_command.update)
+                # Note: We use `collection.bulk_write` instead of `db.command` because the former
+                #       raises `BulkWriteError` for failed writes, whereas the latter requires manual
+                #       inspection of the result. The former also provides simpler results.
+                bulk_write_result = collection.bulk_write(
+                    requests=[
+                        UpdateOne(
+                            filter=update_statement.q,
+                            update=update_statement.u,
+                        )
+                        for update_statement in mongo_command.updates
+                    ],
+                    ordered=False,
+                    comment="Dagster synchronizing superseded_by fields",
+                    session=session,
+                )
+                log.info(
+                    f"Number of documents matched: {bulk_write_result.matched_count}\n"
+                    f"Number of documents modified: {bulk_write_result.modified_count}"
+                )
