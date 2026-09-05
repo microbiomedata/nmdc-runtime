@@ -238,7 +238,9 @@ def synchronize_superseded_by_field_op(
     )
 
     # Apply the updates to the documents in the MongoDB collections, atomically via a transaction.
-    log.info("Starting MongoDB transaction to ensure all updates are performed atomically.")
+    log.info(
+        "Starting MongoDB transaction to ensure all updates are performed atomically."
+    )
     with db.client.start_session() as session:
         with session.start_transaction():
             for mongo_command in [
