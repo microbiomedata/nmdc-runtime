@@ -89,11 +89,14 @@ def synchronize_superseded_by_field_op(
         doc_id = doc["id"]
         base_id, run_number = parse_workflow_execution_id(doc_id)
         if base_id not in wfe_descriptors_by_base_id.keys():
-            wfe_descriptors_by_base_id[base_id] = []  # initialize list of descriptors for base ID
+            wfe_descriptors_by_base_id[base_id] = (
+                []
+            )  # initialize list of descriptors for base ID
         if run_number is None:
             raise ValueError(f"`WorkflowExecution` {doc_id!r} has no run number.")
         if any(
-            run_number == wfe_desc.run_number for wfe_desc in wfe_descriptors_by_base_id[base_id]
+            run_number == wfe_desc.run_number
+            for wfe_desc in wfe_descriptors_by_base_id[base_id]
         ):
             raise ValueError(
                 f"Multiple `WorkflowExecutions` have both base ID {base_id!r} "
@@ -146,7 +149,9 @@ def synchronize_superseded_by_field_op(
             # after this one in the group, then that one supersedes this one. Otherwise, nothing
             # supersedes this one (i.e. this is the "terminal" one).
             if idx + 1 < num_descriptors:
-                wfe_descriptor.superseded_by_expected = sorted_wfe_descriptors[idx + 1].id
+                wfe_descriptor.superseded_by_expected = sorted_wfe_descriptors[
+                    idx + 1
+                ].id
             else:
                 wfe_descriptor.superseded_by_expected = SentinelValue.FIELD_ABSENT
 
@@ -168,7 +173,9 @@ def synchronize_superseded_by_field_op(
         "Building LUT from each `WorkflowExecution`-outputted `DataObject.id` to "
         "the expected `superseded_by` value of the outputting `WorkflowExecution`."
     )
-    wfe_expected_superseded_by_value_by_own_output_id: dict[str, str | SentinelValue] = {}
+    wfe_expected_superseded_by_value_by_own_output_id: dict[
+        str, str | SentinelValue
+    ] = {}
     for sorted_wfe_descriptors in wfe_descriptors_by_base_id.values():
         for wfe_descriptor in sorted_wfe_descriptors:
             for data_object_id in wfe_descriptor.has_output:
