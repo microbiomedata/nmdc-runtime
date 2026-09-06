@@ -985,7 +985,7 @@ class TestFindDataObjectsForStudy:
         "nmdc:dobj-00-000002",
         "nmdc:dobj-00-000003",
     ]
-    workflow_execution_ids = ["nmdc:wfmgan-00-000001.1", "nmdc:wfmgan-00-000001.2"]
+    workflow_execution_ids = ["nmdc:wfmgan-00-000001.1", "nmdc:wfmgan-00-000002.1"]
 
     @pytest.fixture()
     def seeded_db(self):
