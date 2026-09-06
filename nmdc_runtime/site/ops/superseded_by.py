@@ -39,8 +39,8 @@ class WorkflowExecutionDescriptor:
     run_number: int
     """The 'run number' derived from the `id` of the `WorkflowExecution` document."""
 
-    has_output: list[str]
-    """The `has_output` value of the `WorkflowExecution` document."""
+    has_output: set[str]
+    """The set of distinct items in the `has_output` list of the `WorkflowExecution` document."""
 
     superseded_by: str | None | SentinelValue
     """The initial `superseded_by` value of the `WorkflowExecution` document."""
@@ -104,12 +104,11 @@ def synchronize_superseded_by_field_op(
                 f"Multiple `WorkflowExecutions` have both base ID {base_id!r} "
                 f"and run number {run_number!r}."
             )
-        has_output: list[str] = []
+        has_output: set[str] = set()
         if "has_output" in workflow_execution:
             if isinstance(workflow_execution["has_output"], list):
-                has_output = workflow_execution["has_output"]
+                has_output = set(workflow_execution["has_output"])  # eliminates duplicate elements
             elif workflow_execution["has_output"] is None:
-                has_output = []
                 log.warning(
                     f"`WorkflowExecution` {workflow_execution_id!r} has a `has_output` value "
                     "of `None`, which violates NMDC conventions."
@@ -200,9 +199,8 @@ def synchronize_superseded_by_field_op(
                     in wfe_expected_superseded_by_value_by_own_output_id.keys()
                 ):
                     raise ValueError(
-                        f"`DataObject` {data_object_id!r} is identified either as "
-                        "an output of multiple `WorkflowExecution`s, or as "
-                        "multiple outputs of one `WorkflowExecution`."
+                        f"`DataObject` {data_object_id!r} is identified as "
+                        "an output of multiple `WorkflowExecution`s."
                     )
                 wfe_expected_superseded_by_value_by_own_output_id[data_object_id] = (
                     wfe_descriptor.superseded_by_expected
