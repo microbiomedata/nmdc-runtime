@@ -5,6 +5,7 @@ named "workflow_execution_set" and "data_object_set".
 
 from dataclasses import dataclass
 from enum import Enum, auto
+from typing import Callable
 
 from dagster import DagsterLogManager, OpExecutionContext, op
 from pymongo import UpdateOne
@@ -47,6 +48,43 @@ class WorkflowExecutionDescriptor:
 
     superseded_by_expected: str | SentinelValue
     """The `superseded_by` value that correctly reflects the `WorkflowExecution` document's place in its supersession chain."""
+
+
+def normalize_has_output_value(
+    has_output_value_raw: list[str] | None,
+    logging_fn: Callable[[str], None] | None = None,
+) -> set[str]:
+    """Normalizes a `has_output` value belonging to a `WorkflowExecution` instance, into a Set,
+    thereby filtering out duplicate values from it.
+
+    >>> normalize_has_output_value(None) == set()
+    True
+    >>> normalize_has_output_value([]) == set()
+    True
+    >>> normalize_has_output_value(["a", "b"]) == {"a", "b"}
+    True
+    >>> normalize_has_output_value(["a", "b", "a"]) == {"a", "b"}
+    True
+    >>> normalize_has_output_value("a")
+    Traceback (most recent call last):
+        ...
+    ValueError: `WorkflowExecution` has a `has_output` value of 'a', which violates the NMDC schema.
+    """
+    if has_output_value_raw is None:
+        if isinstance(logging_fn, Callable):
+            logging_fn(
+                "`WorkflowExecution` has a `has_output` value "
+                "of `None`, which violates NMDC conventions."
+            )
+        return set()
+
+    if not isinstance(has_output_value_raw, list):
+        raise ValueError(
+            f"`WorkflowExecution` has a `has_output` value of {has_output_value_raw!r}, "
+            "which violates the NMDC schema."
+        )
+
+    return set(has_output_value_raw)
 
 
 def make_update_statement_if_necessary(
@@ -150,22 +188,10 @@ def synchronize_superseded_by_field_op(
                 f"Multiple `WorkflowExecutions` have both base ID {base_id!r} "
                 f"and run number {run_number!r}."
             )
-        has_output: set[str] = set()
-        if "has_output" in workflow_execution:
-            if isinstance(workflow_execution["has_output"], list):
-                has_output = set(
-                    workflow_execution["has_output"]
-                )  # eliminates duplicate elements
-            elif workflow_execution["has_output"] is None:
-                log.warning(
-                    f"`WorkflowExecution` {workflow_execution_id!r} has a `has_output` value "
-                    "of `None`, which violates NMDC conventions."
-                )
-            else:
-                raise ValueError(
-                    f"`WorkflowExecution` {workflow_execution_id!r} has a `has_output` value "
-                    f"of {workflow_execution['has_output']!r}, which violates the NMDC schema."
-                )
+        has_output = normalize_has_output_value(
+            has_output_value_raw=workflow_execution.get("has_output"),
+            logging_fn=log.warning,
+        )
         superseded_by = SentinelValue.FIELD_ABSENT
         if "superseded_by" in workflow_execution:
             if isinstance(workflow_execution["superseded_by"], str):
