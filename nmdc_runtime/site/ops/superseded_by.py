@@ -49,6 +49,48 @@ class WorkflowExecutionDescriptor:
     """The `superseded_by` value that correctly reflects the `WorkflowExecution` document's place in its supersession chain."""
 
 
+def make_update_statement_if_necessary(
+    document_id: str,
+    superseded_by_observed: str | None | SentinelValue,
+    superseded_by_expected: str | SentinelValue,
+) -> UpdateOne | None:
+    """
+    Returns an `UpdateOne` statement that would make the `superseded_by` value of the specified
+    MongoDB document meet the expectation of it; or returns `None` if it already meets the expectation.
+
+    1. No changes necessary, since expectation matches observation:
+    >>> make_update_statement_if_necessary("nmdc:wfe-00-01.1", SentinelValue.FIELD_ABSENT, SentinelValue.FIELD_ABSENT) is None
+    True
+    >>> make_update_statement_if_necessary("nmdc:wfe-00-01.1", "nmdc:wfe-00-01.2", "nmdc:wfe-00-01.2") is None
+    True
+
+    2. Drops the field, to conform to NMDC convention of omitting "null" fields.
+    >>> make_update_statement_if_necessary("nmdc:wfe-00-01.1", None, SentinelValue.FIELD_ABSENT) == UpdateOne({'id': 'nmdc:wfe-00-01.1'}, {'$unset': {'superseded_by': 1}})
+    True
+
+    3. Sets the field's value to match the expectation.
+    >>> make_update_statement_if_necessary("nmdc:wfe-00-01.1", None, "nmdc:wfe-00-01.2") == UpdateOne({'id': 'nmdc:wfe-00-01.1'}, {'$set': {'superseded_by': 'nmdc:wfe-00-01.2'}})
+    True
+    """
+
+    if superseded_by_expected is SentinelValue.NO_EXPECTATION:
+        raise ValueError(f"Missing expectation for document: {document_id!r}")
+
+    if superseded_by_expected == superseded_by_observed:
+        return None
+
+    if superseded_by_expected is SentinelValue.FIELD_ABSENT:
+        return UpdateOne(
+            filter={"id": document_id},
+            update={"$unset": {"superseded_by": 1}},
+        )
+
+    return UpdateOne(
+        filter={"id": document_id},
+        update={"$set": {"superseded_by": superseded_by_expected}},
+    )
+
+
 @op(required_resource_keys={"mongo"})
 def synchronize_superseded_by_field_op(
     context: OpExecutionContext,
@@ -176,19 +218,15 @@ def synchronize_superseded_by_field_op(
             else:
                 wfe_descriptor.superseded_by_expected = SentinelValue.FIELD_ABSENT
 
-            # If the document's `superseded_by` field already matches our expectation, proceed to
-            # the next descriptor.
-            if wfe_descriptor.superseded_by == wfe_descriptor.superseded_by_expected:
-                continue
-
-            # Generate an `UpdateOne` statement that would make the `superseded_by` field
-            # fulfill our expectation of it (by either setting or unsetting the field).
-            update = {"$set": {"superseded_by": wfe_descriptor.superseded_by_expected}}
-            if wfe_descriptor.superseded_by_expected == SentinelValue.FIELD_ABSENT:
-                update = {"$unset": {"superseded_by": 1}}
-            workflow_update = UpdateOne(filter={"id": wfe_descriptor.id}, update=update)
-            log.debug(f"Generated `UpdateOne` statement: {workflow_update!r}")
-            workflow_execution_set_update_statements.append(workflow_update)
+            # Generate and store an `UpdateOne` statement, if necessary.
+            update_statement = make_update_statement_if_necessary(
+                document_id=wfe_descriptor.id,
+                superseded_by_observed=wfe_descriptor.superseded_by,
+                superseded_by_expected=wfe_descriptor.superseded_by_expected,
+            )
+            if isinstance(update_statement, UpdateOne):
+                log.debug(f"Generated `UpdateOne` statement: {update_statement!r}")
+                workflow_execution_set_update_statements.append(update_statement)
 
     log.info(
         "Building LUT from each `WorkflowExecution`-outputted `DataObject.id` to "
@@ -246,19 +284,15 @@ def synchronize_superseded_by_field_op(
                 data_object_id
             ]
 
-        # If the document's `superseded_by` field already matches our expectation, proceed to
-        # the next descriptor.
-        if superseded_by == superseded_by_expected:
-            continue
-
-        # Generate an `UpdateOne` statement that would make the `superseded_by` field
-        # fulfill our expectation of it (by either setting or unsetting the field).
-        update = {"$set": {"superseded_by": superseded_by_expected}}
-        if superseded_by_expected == SentinelValue.FIELD_ABSENT:
-            update = {"$unset": {"superseded_by": True}}
-        data_object_update = UpdateOne(filter={"id": data_object_id}, update=update)
-        log.debug(f"Generated `UpdateOne`: {data_object_update!r}")
-        data_object_set_update_statements.append(data_object_update)
+        # Generate and `UpdateOne` statement, if necessary.
+        update_statement = make_update_statement_if_necessary(
+            document_id=data_object_id,
+            superseded_by_observed=superseded_by,
+            superseded_by_expected=superseded_by_expected,
+        )
+        if update_statement is not None:
+            log.debug(f"Generated `UpdateOne`: {update_statement!r}")
+            data_object_set_update_statements.append(update_statement)
 
     log.info(
         "Number of `UpdateOne` statements generated for `workflow_execution_set` collection: "
