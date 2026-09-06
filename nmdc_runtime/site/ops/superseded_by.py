@@ -86,14 +86,16 @@ def synchronize_superseded_by_field_op(
         projection=dict(_id=False, id=True, has_output=True, superseded_by=True),
         batch_size=2_000,
     ):
-        doc_id = doc["id"]
-        base_id, run_number = parse_workflow_execution_id(doc_id)
+        workflow_execution_id = doc["id"]
+        base_id, run_number = parse_workflow_execution_id(workflow_execution_id)
         if base_id not in wfe_descriptors_by_base_id.keys():
             wfe_descriptors_by_base_id[base_id] = (
                 []
             )  # initialize list of descriptors for base ID
         if run_number is None:
-            raise ValueError(f"`WorkflowExecution` {doc_id!r} has no run number.")
+            raise ValueError(
+                f"`WorkflowExecution` {workflow_execution_id!r} has no run number."
+            )
         if any(
             run_number == wfe_desc.run_number
             for wfe_desc in wfe_descriptors_by_base_id[base_id]
@@ -109,17 +111,17 @@ def synchronize_superseded_by_field_op(
                 superseded_by = doc["superseded_by"]
             elif doc["superseded_by"] is None:
                 log.warning(
-                    f"`WorkflowExecution` {doc_id!r} has a `superseded_by` value "
+                    f"`WorkflowExecution` {workflow_execution_id!r} has a `superseded_by` value "
                     "of `None`, which violates NMDC conventions."
                 )
                 superseded_by = None
             else:
                 raise ValueError(
-                    f"`WorkflowExecution` {doc_id!r} has a `superseded_by` value "
+                    f"`WorkflowExecution` {workflow_execution_id!r} has a `superseded_by` value "
                     f"of {doc['superseded_by']!r}, which violates the NMDC schema."
                 )
         wfe_descriptor = WorkflowExecutionDescriptor(
-            id=doc_id,
+            id=workflow_execution_id,
             run_number=run_number,
             has_output=has_output,
             superseded_by=superseded_by,
@@ -140,7 +142,7 @@ def synchronize_superseded_by_field_op(
     #       them to the Mongo database, since they will occupy Memory while they exist.
     log.info(
         "Determining expectations for `superseded_by` fields of `WorkflowExecution`s, "
-        "and generating `UpdateOne` statements that would achieve them."
+        "and generating `UpdateOne` statements that would fulfill them."
     )
     for base_id, sorted_wfe_descriptors in wfe_descriptors_by_base_id.items():
         num_descriptors = len(sorted_wfe_descriptors)
@@ -156,12 +158,12 @@ def synchronize_superseded_by_field_op(
                 wfe_descriptor.superseded_by_expected = SentinelValue.FIELD_ABSENT
 
             # If the document's `superseded_by` field already matches our expectation, proceed to
-            # the next descriptor (rather than generating any "no op" `UpdateOne` statements).
+            # the next descriptor.
             if wfe_descriptor.superseded_by == wfe_descriptor.superseded_by_expected:
                 continue
 
             # Generate an `UpdateOne` statement that would make the `superseded_by` field
-            # achieve our expectation of it (by either setting or unsetting the field).
+            # fulfill our expectation of it (by either setting or unsetting the field).
             update = {"$set": {"superseded_by": wfe_descriptor.superseded_by_expected}}
             if wfe_descriptor.superseded_by_expected == SentinelValue.FIELD_ABSENT:
                 update = {"$unset": {"superseded_by": 1}}
@@ -184,16 +186,17 @@ def synchronize_superseded_by_field_op(
                     in wfe_expected_superseded_by_value_by_own_output_id.keys()
                 ):
                     raise ValueError(
-                        f"`DataObject` {data_object_id!r} is identified as an output of "
-                        "multiple `WorkflowExecution`s."
+                        f"`DataObject` {data_object_id!r} is identified either as "
+                        "an output of multiple `WorkflowExecution`s, or "
+                        "multiple outputs of one `WorkflowExecution`."
                     )
                 wfe_expected_superseded_by_value_by_own_output_id[data_object_id] = (
                     wfe_descriptor.superseded_by_expected
                 )
 
     log.info(
-        "Building LUT mapping all `DataObject` `id` values to "
-        "those `DataObject`s' current `superseded_by` values."
+        "Determining expectations for `superseded_by` fields of all `DataObject`s, "
+        "and generating `UpdateOne` statements necessary to fulfill them."
     )
     dobj_superseded_by_map: dict[str, str | SentinelValue | None] = {}
     for doc in data_object_set.find(
@@ -201,29 +204,30 @@ def synchronize_superseded_by_field_op(
         projection=dict(_id=False, id=True, superseded_by=True),
         batch_size=2_000,
     ):
-        doc_id = doc["id"]
+        data_object_id = doc["id"]
         superseded_by = SentinelValue.FIELD_ABSENT
         if "superseded_by" in doc:
             if isinstance(doc["superseded_by"], str):
                 superseded_by = doc["superseded_by"]
             elif doc["superseded_by"] is None:
                 log.warning(
-                    f"`DataObject` {doc_id!r} has a `superseded_by` value "
+                    f"`DataObject` {data_object_id!r} has a `superseded_by` value "
                     "of `None`, which violates NMDC conventions."
                 )
                 superseded_by = None
             else:
                 raise ValueError(
-                    f"`DataObject` {doc_id!r} has a `superseded_by` value "
+                    f"`DataObject` {data_object_id!r} has a `superseded_by` value "
                     f"of {doc['superseded_by']!r}, which violates the NMDC schema."
                 )
-        dobj_superseded_by_map[doc_id] = superseded_by
+        dobj_superseded_by_map[data_object_id] = superseded_by
 
-    log.info(
-        "Determining expectations for `superseded_by` fields of `DataObject`s, "
-        "and generating `UpdateOne` statements that would achieve them."
-    )
-    for data_object_id, superseded_by in dobj_superseded_by_map.items():
+        log.info(
+            "Determining expectations for `superseded_by` fields of `DataObject`s, "
+            "and generating `UpdateOne` statements that would fulfill them."
+        )
+        # Form our expectation for the `superseded_by` field, based on our expectation for the
+        # `superseded_by` field of the outputting `WorkflowExecution`, if any.
         superseded_by_expected = SentinelValue.FIELD_ABSENT
         if data_object_id in wfe_expected_superseded_by_value_by_own_output_id.keys():
             superseded_by_expected = wfe_expected_superseded_by_value_by_own_output_id[
@@ -231,17 +235,17 @@ def synchronize_superseded_by_field_op(
             ]
 
         # If the document's `superseded_by` field already matches our expectation, proceed to
-        # the next descriptor (rather than generating any "no op" `UpdateOne` statements).
+        # the next descriptor.
         if superseded_by == superseded_by_expected:
             continue
 
         # Generate an `UpdateOne` statement that would make the `superseded_by` field
-        # achieve our expectation of it (by either setting or unsetting the field).
+        # fulfill our expectation of it (by either setting or unsetting the field).
         update = {"$set": {"superseded_by": superseded_by_expected}}
         if superseded_by_expected == SentinelValue.FIELD_ABSENT:
             update = {"$unset": {"superseded_by": True}}
         data_object_update = UpdateOne(filter={"id": data_object_id}, update=update)
-        log.warning(f"Generated `UpdateOne`: {data_object_update!r}")
+        log.debug(f"Generated `UpdateOne`: {data_object_update!r}")
         data_object_set_update_statements.append(data_object_update)
 
     log.info(
