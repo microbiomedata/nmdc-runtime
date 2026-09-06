@@ -283,7 +283,9 @@ def synchronize_superseded_by_field_op(
             ):
                 log.info(f"Applying updates to collection: {collection_name}")
                 collection = db.get_collection(collection_name)
-                if len(update_statements) == 0:
+
+                num_update_statements = len(update_statements)
+                if num_update_statements == 0:
                     log.info("No updates to apply.")
                     continue  # note: calling `bulk_write` with no requests would raise an exception
 
@@ -300,3 +302,10 @@ def synchronize_superseded_by_field_op(
                     f"Number of documents matched: {bulk_write_result.matched_count}\n"
                     f"Number of documents modified: {bulk_write_result.modified_count}"
                 )
+                if bulk_write_result.matched_count < num_update_statements:
+                    raise RuntimeError(
+                        f"Aborting MongoDB transaction. Failed to find as many {collection_name!r} "
+                        f"documents as we expected (expected {num_update_statements}, found "
+                        f"{bulk_write_result.matched_count}), which implies that some target "
+                        "documents have been deleted since we began making the update plan."
+                    )
