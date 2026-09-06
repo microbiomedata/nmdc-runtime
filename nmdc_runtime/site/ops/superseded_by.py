@@ -107,7 +107,9 @@ def synchronize_superseded_by_field_op(
         has_output: set[str] = set()
         if "has_output" in workflow_execution:
             if isinstance(workflow_execution["has_output"], list):
-                has_output = set(workflow_execution["has_output"])  # eliminates duplicate elements
+                has_output = set(
+                    workflow_execution["has_output"]
+                )  # eliminates duplicate elements
             elif workflow_execution["has_output"] is None:
                 log.warning(
                     f"`WorkflowExecution` {workflow_execution_id!r} has a `has_output` value "
