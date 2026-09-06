@@ -17,7 +17,7 @@ from nmdc_runtime.api.endpoints.lib.workflow_executions import (
 
 class SentinelValue(Enum):
     """
-    Value that cannot occur in the context in which it is used.
+    Value that cannot naturally occur in the context in which it is used.
 
     Reference: https://en.wikipedia.org/wiki/Sentinel_value
     """
@@ -55,12 +55,16 @@ def synchronize_superseded_by_field_op(
 ) -> None:
     """
     Synchronize the "superseded_by" field of documents in the "workflow_execution_set" collection,
-    so they reflect the sequences represented by "base ID" and "run  number" parts of those documents'
-    "id" values, based on the "id" conventions established by the NMDC workflow management team members.
+    so they reflect the sequences represented by "base ID" and "run number" parts of those documents'
+    "id" values, based on the "id" conventions established by the NMDC workflow management team members
+    (i.e. run number "5" supersedes run number "4", run number "4" supersedes run number "2", etc.,
+    acknowledging that the run numbers of a given base ID are not necessarily contiguous).
 
     Also, synchronize the "superseded_by" field of documents in the "data_object_set" collection so
     they match the "superseded_by" field of the "workflow_execution_set" document that identifies
-    those "data_object_set" documents as outputs (via the "has_output" field).
+    those "data_object_set" documents as outputs (via the "has_output" field). If the "data_object_set"
+    document is not identified as an output of any "workflow_execution_set" document, drop the
+    "superseded_by" field (if present) from the "data_object_set" document.
     """
 
     # Get references to relevant MongoDB collections via the op execution context.
