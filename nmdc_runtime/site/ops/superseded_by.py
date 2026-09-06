@@ -104,7 +104,21 @@ def synchronize_superseded_by_field_op(
                 f"Multiple `WorkflowExecutions` have both base ID {base_id!r} "
                 f"and run number {run_number!r}."
             )
-        has_output: list[str] = doc["has_output"] if "has_output" in doc else []
+        has_output: list[str] = []
+        if "has_output" in doc:
+            if isinstance(doc["has_output"], list):
+                has_output = doc["has_output"]
+            elif doc["has_output"] is None:
+                has_output = []
+                log.warning(
+                    f"`WorkflowExecution` {workflow_execution_id!r} has a `has_output` value "
+                    "of `None`, which violates NMDC conventions."
+                )
+            else:
+                raise ValueError(
+                    f"`WorkflowExecution` {workflow_execution_id!r} has a `has_output` value "
+                    f"of {doc['has_output']!r}, which violates the NMDC schema."
+                )
         superseded_by = SentinelValue.FIELD_ABSENT
         if "superseded_by" in doc:
             if isinstance(doc["superseded_by"], str):
@@ -187,7 +201,7 @@ def synchronize_superseded_by_field_op(
                 ):
                     raise ValueError(
                         f"`DataObject` {data_object_id!r} is identified either as "
-                        "an output of multiple `WorkflowExecution`s, or "
+                        "an output of multiple `WorkflowExecution`s, or as "
                         "multiple outputs of one `WorkflowExecution`."
                     )
                 wfe_expected_superseded_by_value_by_own_output_id[data_object_id] = (
