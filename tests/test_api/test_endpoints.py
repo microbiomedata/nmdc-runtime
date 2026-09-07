@@ -985,7 +985,7 @@ class TestFindDataObjectsForStudy:
         "nmdc:dobj-00-000002",
         "nmdc:dobj-00-000003",
     ]
-    workflow_execution_ids = ["nmdc:wfmgan-00-000001", "nmdc:wfmgan-00-000002"]
+    workflow_execution_ids = ["nmdc:wfmgan-00-000001.1", "nmdc:wfmgan-00-000001.2"]
 
     @pytest.fixture()
     def seeded_db(self):
@@ -1375,7 +1375,8 @@ class TestFindDataObjectsForStudy:
             quantity=1,
             has_input=[ntseq_dobj["id"]],
             was_informed_by=[nucleotide_sequencing_id],
-            id="nmdc:wfmgan-00-000001.1",
+            # Use a distinct ID from the workflows in `seeded_db`.
+            id="nmdc:wfmgan-00-000003.1",
             has_output=[wfmgan_dobj["id"]],
         )[0]
 
@@ -1383,6 +1384,10 @@ class TestFindDataObjectsForStudy:
         workflow_execution_set = seeded_db.get_collection(name="workflow_execution_set")
         data_object_set = seeded_db.get_collection(name="data_object_set")
 
+        assert (
+            workflow_execution_set.count_documents({"id": metagenome_annotation_workflow["id"]})
+            == 0
+        )
         data_generation_set.insert_many([nucleotide_sequencing_process])
         workflow_execution_set.insert_many([metagenome_annotation_workflow])
         data_object_set.insert_many([ntseq_dobj, wfmgan_dobj])
