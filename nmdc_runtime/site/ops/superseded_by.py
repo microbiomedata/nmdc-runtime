@@ -50,41 +50,142 @@ class WorkflowExecutionDescriptor:
     """The `superseded_by` value that correctly reflects the `WorkflowExecution` document's place in its supersession chain."""
 
 
-def normalize_has_output_value(
-    has_output_value_raw: list[str] | None,
-    logging_fn: Callable[[str], None] | None = None,
-) -> set[str]:
-    """Normalizes a `has_output` value belonging to a `WorkflowExecution` instance, into a Set,
-    thereby filtering out duplicate values from it.
+def read_superseded_by_value(
+    document: dict,
+    warning_fn: Callable[[str], None] | None = None,
+) -> str | None | SentinelValue:
+    """
+    Reads the `superseded_by` field of the specified document, returning one of the following
+    normalized representations of it:
+    1. If the field is missing, return `SentinelValue.FIELD_ABSENT`.
+    2. If the value is `None`, return `None` and log a warning.
+    3. If the value is a string, return that string.
+    4. If the value is anything else, raise a `ValueError` exception.
 
-    >>> normalize_has_output_value(None) == set()
+    Define a mock warning function.
+    >>> warnings = []
+    >>> def warn(message):
+    ...     warnings.append(message)
+
+    1. If the field is missing, return `SentinelValue.FIELD_ABSENT`.
+    >>> warnings = []
+    >>> read_superseded_by_value({"id": "nmdc:wfe-00-000001.1"}, warn) is SentinelValue.FIELD_ABSENT
     True
-    >>> normalize_has_output_value([]) == set()
+    >>> len(warnings)
+    0
+
+    2. If the value is `None`, return `None` and log a warning.
+    >>> warnings = []
+    >>> read_superseded_by_value({"id": "nmdc:wfe-00-000001.1", "superseded_by": None}, warn) is None
     True
-    >>> normalize_has_output_value(["a", "b"]) == {"a", "b"}
-    True
-    >>> normalize_has_output_value(["a", "b", "a"]) == {"a", "b"}
-    True
-    >>> normalize_has_output_value("a")
+    >>> len(warnings)
+    1
+
+    3. If the value is a string, return that string.
+    >>> warnings = []
+    >>> read_superseded_by_value({"id": "nmdc:wfe-00-000001.1", "superseded_by": "nmdc:wfe-00-000001.2"}, warn)
+    'nmdc:wfe-00-000001.2'
+    >>> len(warnings)
+    0
+
+    4. If the value is anything else, raise a `ValueError` exception.
+    >>> warnings = []
+    >>> read_superseded_by_value({"id": "nmdc:wfe-00-000001.1", "superseded_by": False}, warn)
     Traceback (most recent call last):
         ...
-    ValueError: `WorkflowExecution` has a `has_output` value of 'a', which violates the NMDC schema.
+    ValueError: Document 'nmdc:wfe-00-000001.1' has a `superseded_by` value of False, which does not comply with the NMDC schema.
     """
-    if has_output_value_raw is None:
-        if isinstance(logging_fn, Callable):
-            logging_fn(
-                "`WorkflowExecution` has a `has_output` value "
+
+    if "superseded_by" not in document:
+        return SentinelValue.FIELD_ABSENT
+
+    raw_value = document["superseded_by"]
+    if raw_value is None:
+        if isinstance(warning_fn, Callable):
+            warning_fn(
+                f"Document {document.get('id')!r} has a `superseded_by` value "
+                "of `None`, which violates NMDC conventions."
+            )
+        return None
+
+    if isinstance(raw_value, str):
+        return raw_value
+
+    raise ValueError(
+        f"Document {document.get('id')!r} has a `superseded_by` value "
+        f"of {raw_value!r}, which does not comply with the NMDC schema."
+    )
+
+
+def read_has_output_value(
+    document: dict,
+    warning_fn: Callable[[str], None] | None = None,
+) -> set[str]:
+    """
+    Reads the `has_output` field of the specified document, returning one of the following
+    normalized representations of it:
+    1. If the field is missing, return an empty set.
+    2. If the value is `None`, return an empty set and log a warning.
+    3. If the value is a list, return a set of its distinct items.
+    4. If the value is anything else, raise a `ValueError` exception.
+
+    Define a mock warning function.
+    >>> warnings = []
+    >>> def warn(message):
+    ...     warnings.append(message)
+
+    1. If the field is missing, return an empty set.
+    >>> warnings = []
+    >>> read_has_output_value({"id": "nmdc:wfe-00-000001.1"}, warn) == set()
+    True
+    >>> len(warnings)
+    0
+
+    2. If the value is `None`, return an empty set and log a warning.
+    >>> warnings = []
+    >>> read_has_output_value({"id": "nmdc:wfe-00-000001.1", "has_output": None}, warn) == set()
+    True
+    >>> len(warnings)
+    1
+
+    3. If the value is a list, return a set of its distinct items.
+    >>> warnings = []
+    >>> read_has_output_value({"id": "nmdc:wfe-00-000001.1", "has_output": []}, warn) == set()
+    True
+    >>> read_has_output_value({"id": "nmdc:wfe-00-000001.1", "has_output": ["a", "b"]}, warn) == {"a", "b"}
+    True
+    >>> read_has_output_value({"id": "nmdc:wfe-00-000001.1", "has_output": ["a", "b", "a"]}, warn) == {"a", "b"}
+    True
+    >>> len(warnings)
+    0
+
+    4. If the value is anything else, raise a `ValueError` exception.
+    >>> warnings = []
+    >>> read_has_output_value({"id": "nmdc:wfe-00-000001.1", "has_output": "a"}, warn)
+    Traceback (most recent call last):
+        ...
+    ValueError: Document 'nmdc:wfe-00-000001.1' has a `has_output` value of 'a', which does not comply with the NMDC schema.
+    """
+
+    if "has_output" not in document:
+        return set()
+
+    raw_value = document["has_output"]
+    if raw_value is None:
+        if isinstance(warning_fn, Callable):
+            warning_fn(
+                f"Document {document.get('id')!r} has a `has_output` value "
                 "of `None`, which violates NMDC conventions."
             )
         return set()
 
-    if not isinstance(has_output_value_raw, list):
-        raise ValueError(
-            f"`WorkflowExecution` has a `has_output` value of {has_output_value_raw!r}, "
-            "which violates the NMDC schema."
-        )
+    if isinstance(raw_value, list):
+        return set(raw_value)
 
-    return set(has_output_value_raw)
+    raise ValueError(
+        f"Document {document.get('id')!r} has a `has_output` value "
+        f"of {raw_value!r}, which does not comply with the NMDC schema."
+    )
 
 
 def make_update_statement_if_necessary(
@@ -188,25 +289,13 @@ def synchronize_superseded_by_field_op(
                 f"Multiple `WorkflowExecutions` have both base ID {base_id!r} "
                 f"and run number {run_number!r}."
             )
-        has_output = normalize_has_output_value(
-            has_output_value_raw=workflow_execution.get("has_output"),
-            logging_fn=log.warning,
+        has_output = read_has_output_value(
+            document=workflow_execution,
+            warning_fn=log.warning,
         )
-        superseded_by = SentinelValue.FIELD_ABSENT
-        if "superseded_by" in workflow_execution:
-            if isinstance(workflow_execution["superseded_by"], str):
-                superseded_by = workflow_execution["superseded_by"]
-            elif workflow_execution["superseded_by"] is None:
-                log.warning(
-                    f"`WorkflowExecution` {workflow_execution_id!r} has a `superseded_by` value "
-                    "of `None`, which violates NMDC conventions."
-                )
-                superseded_by = None
-            else:
-                raise ValueError(
-                    f"`WorkflowExecution` {workflow_execution_id!r} has a `superseded_by` value "
-                    f"of {workflow_execution['superseded_by']!r}, which violates the NMDC schema."
-                )
+        superseded_by = read_superseded_by_value(
+            workflow_execution, warning_fn=log.warning
+        )
         wfe_descriptor = WorkflowExecutionDescriptor(
             id=workflow_execution_id,
             run_number=run_number,
@@ -286,21 +375,7 @@ def synchronize_superseded_by_field_op(
         batch_size=2_000,
     ):
         data_object_id = data_object["id"]
-        superseded_by = SentinelValue.FIELD_ABSENT
-        if "superseded_by" in data_object:
-            if isinstance(data_object["superseded_by"], str):
-                superseded_by = data_object["superseded_by"]
-            elif data_object["superseded_by"] is None:
-                log.warning(
-                    f"`DataObject` {data_object_id!r} has a `superseded_by` value "
-                    "of `None`, which violates NMDC conventions."
-                )
-                superseded_by = None
-            else:
-                raise ValueError(
-                    f"`DataObject` {data_object_id!r} has a `superseded_by` value "
-                    f"of {data_object['superseded_by']!r}, which violates the NMDC schema."
-                )
+        superseded_by = read_superseded_by_value(data_object, warning_fn=log.warning)
 
         # Form our expectation for the `superseded_by` field, based on our expectation for the
         # `superseded_by` field of the outputting `WorkflowExecution`, if any.
