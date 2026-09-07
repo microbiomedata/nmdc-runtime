@@ -390,8 +390,8 @@ def synchronize_superseded_by_field_op(
     # TODO: Consider waiting to generate the `UpdateOne` statements until we are ready to submit
     #       them to the Mongo database, since they will occupy Memory while they exist.
     log.info(
-        "Determining expectations for `superseded_by` fields of `WorkflowExecution`s, "
-        "and generating `UpdateOne` statements that would fulfill them."
+        "Determining expectations for `superseded_by` fields of all `WorkflowExecution`s, "
+        "and generating `UpdateOne` statements necessary to fulfill them."
     )
     for sorted_wfe_descriptors in wfe_descriptors_by_base_id.values():
         set_expectations_for_superseded_by_field(
