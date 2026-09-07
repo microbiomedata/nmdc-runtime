@@ -50,6 +50,96 @@ class WorkflowExecutionDescriptor:
     """The `superseded_by` value that correctly reflects the `WorkflowExecution` document's place in its supersession chain."""
 
 
+def set_expectations_for_superseded_by_field(
+    wfe_descriptors: list[WorkflowExecutionDescriptor],
+) -> None:
+    """
+    Sorts the list of `WorkflowExecution` descriptors associated with a single "base ID" in place,
+    and updates each descriptor's `superseded_by_expected` field to reflect our expectation
+    about its `superseded_by` field.
+
+    Preconditions:
+    - All descriptors in the list have the same "base ID".
+    - No two descriptors can have the same run number.
+
+    - If there are no descriptors, do nothing (there is no supersession taking place).
+    - If there is only one descriptor, expect it to not be superseded by anything.
+    - Otherwise, expect each descriptor to be superseded by the next existing run in numeric order
+      (gaps are allowed); except for the final run, which is not superseded by anything.
+    - If multiple descriptors have the same run number, raise a `ValueError`.
+
+    Define a helper for constructing example descriptors.
+    >>> def make_wfe_descriptor(run_number):
+    ...     return WorkflowExecutionDescriptor(
+    ...         id=f"nmdc:wfe-00-001.{run_number}",
+    ...         run_number=run_number,
+    ...         has_output=set(),
+    ...         superseded_by=SentinelValue.FIELD_ABSENT,
+    ...         superseded_by_expected=SentinelValue.NO_EXPECTATION,
+    ...     )
+
+    1. If the list is empty, do nothing.
+    >>> descriptors = []
+    >>> set_expectations_for_superseded_by_field(descriptors)
+    >>> descriptors
+    []
+
+    2. If there is one descriptor, expect its `superseded_by` field to be absent.
+    >>> descriptors = [make_wfe_descriptor(1)]
+    >>> set_expectations_for_superseded_by_field(descriptors)
+    >>> descriptors[0].superseded_by_expected is SentinelValue.FIELD_ABSENT
+    True
+
+    3. Sort numerically and point `superseded_by` to the descriptor having the next existing run number (allowing for gaps).
+    >>> descriptors = [make_wfe_descriptor(10), make_wfe_descriptor(2), make_wfe_descriptor(1)]
+    >>> set_expectations_for_superseded_by_field(descriptors)
+    >>> [descriptor.run_number for descriptor in descriptors]
+    [1, 2, 10]
+    >>> descriptors[0].superseded_by_expected
+    'nmdc:wfe-00-001.2'
+    >>> descriptors[1].superseded_by_expected
+    'nmdc:wfe-00-001.10'
+    >>> descriptors[2].superseded_by_expected is SentinelValue.FIELD_ABSENT
+    True
+
+    4. Raise an exception upon encountering a duplicate run number.
+    >>> descriptors = [make_wfe_descriptor(2), make_wfe_descriptor(1), make_wfe_descriptor(2)]
+    >>> set_expectations_for_superseded_by_field(descriptors)
+    Traceback (most recent call last):
+        ...
+    ValueError: Workflow executions 'nmdc:wfe-00-001.2' and 'nmdc:wfe-00-001.2' have the same run number: 2.
+    >>> all(descriptor.superseded_by_expected is SentinelValue.NO_EXPECTATION for descriptor in descriptors)
+    True
+    """
+
+    # Sort the descriptors by run number (ascending).
+    wfe_descriptors.sort(key=lambda descriptor: descriptor.run_number)
+
+    # Check for duplicate run numbers and raise an exception if we encounter any.
+    # Note: Since the descriptors are already sorted by run number, we just compare the
+    #       current descriptor with and previous descriptor.
+    for idx in range(1, len(wfe_descriptors)):
+        previous_descriptor = wfe_descriptors[idx - 1]
+        current_descriptor = wfe_descriptors[idx]
+        if previous_descriptor.run_number == current_descriptor.run_number:
+            raise ValueError(
+                f"Workflow executions {previous_descriptor.id!r} and "
+                f"{current_descriptor.id!r} have the same run number: "
+                f"{current_descriptor.run_number}."
+            )
+
+    # Set the `superseded_by_expected` field to either the `id` of the descriptor having
+    # the next existing run number; or to the sentinel value that indicates the field is absent.
+    for idx, descriptor in enumerate(wfe_descriptors):
+        if idx + 1 < len(wfe_descriptors):
+            descriptor.superseded_by_expected = wfe_descriptors[idx + 1].id
+        else:
+            descriptor.superseded_by_expected = SentinelValue.FIELD_ABSENT
+
+    # Return nothing, since we modified the input list in place.
+    return None
+
+
 def read_superseded_by_value(
     document: dict,
     warning_fn: Callable[[str], None] | None = None,
@@ -281,14 +371,6 @@ def synchronize_superseded_by_field_op(
             raise ValueError(
                 f"`WorkflowExecution` {workflow_execution_id!r} has no run number."
             )
-        if any(
-            run_number == wfe_desc.run_number
-            for wfe_desc in wfe_descriptors_by_base_id[base_id]
-        ):
-            raise ValueError(
-                f"Multiple `WorkflowExecutions` have both base ID {base_id!r} "
-                f"and run number {run_number!r}."
-            )
         has_output = read_has_output_value(
             document=workflow_execution,
             warning_fn=log.warning,
@@ -305,34 +387,17 @@ def synchronize_superseded_by_field_op(
         )
         wfe_descriptors_by_base_id[base_id].append(wfe_descriptor)
 
-    log.info(
-        "Sorting `WorkflowExecution` descriptors within each group, by run number."
-    )
-    for wfe_descriptors_for_base_id in wfe_descriptors_by_base_id.values():
-        # Note: For sorting, is important that the run numbers be numbers (e.g. 2 < 10),
-        #       not numeric strings (e.g. "2" > "10") or a mixture. Fortunately, that is
-        #       enforced by `parse_workflow_execution_id` and our checks for `None` above.
-        wfe_descriptors_for_base_id.sort(key=lambda wfe_desc: wfe_desc.run_number)
-
     # TODO: Consider waiting to generate the `UpdateOne` statements until we are ready to submit
     #       them to the Mongo database, since they will occupy Memory while they exist.
     log.info(
         "Determining expectations for `superseded_by` fields of `WorkflowExecution`s, "
         "and generating `UpdateOne` statements that would fulfill them."
     )
-    for base_id, sorted_wfe_descriptors in wfe_descriptors_by_base_id.items():
-        num_descriptors = len(sorted_wfe_descriptors)
-        for idx, wfe_descriptor in enumerate(sorted_wfe_descriptors):
-            # Indicate our expectation regarding the `superseded_by` field: If there is a descriptor
-            # after this one in the group, then that one supersedes this one. Otherwise, nothing
-            # supersedes this one (i.e. this is the "terminal" one).
-            if idx + 1 < num_descriptors:
-                wfe_descriptor.superseded_by_expected = sorted_wfe_descriptors[
-                    idx + 1
-                ].id
-            else:
-                wfe_descriptor.superseded_by_expected = SentinelValue.FIELD_ABSENT
-
+    for sorted_wfe_descriptors in wfe_descriptors_by_base_id.values():
+        set_expectations_for_superseded_by_field(
+            wfe_descriptors=sorted_wfe_descriptors,
+        )
+        for wfe_descriptor in sorted_wfe_descriptors:
             # Generate and store an `UpdateOne` statement, if necessary.
             update_statement = make_update_statement_if_necessary(
                 document_id=wfe_descriptor.id,
