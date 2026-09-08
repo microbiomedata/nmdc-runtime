@@ -21,7 +21,6 @@ nav:
   - Tutorials:
     - tutorials/auth.md
     - tutorials/json.md
-    - tutorials/metadata-in.md
     - tutorials/translators.md
     - tutorials/exporters.md
     - nb/api_access_via_python.ipynb

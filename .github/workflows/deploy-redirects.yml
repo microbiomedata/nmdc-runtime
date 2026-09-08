@@ -48,6 +48,10 @@ jobs:
           #       creating redirects for those documents' URLs is unnecessary, since there was nothing at those URLs
           #       before (presumably, nobody has expects anything other than an "HTTP 404 Not Found" error at them).
           #
+          #       For documents removed from the Runtime repo's `docs/` directory _after_ the launch of the latter website,
+          #       update the existing redirect below to point to the `index.html` page. We will use that as a "catch all"
+          #       destination, instead of returning an HTTP 404 page.
+          #
           cd _build/html
           make_redirect index.html                                          > index.html
           make_redirect admin.html                                          > admin.html
@@ -65,7 +69,7 @@ jobs:
           make_redirect howto-guides/jobs/gold-translation-etl.html         > howto-guides/jobs/gold-translation-etl.html
           make_redirect tutorials/json.html                                 > tutorials/json.html
           make_redirect tutorials/exporters.html                            > tutorials/exporters.html
-          make_redirect tutorials/metadata-in.html                          > tutorials/metadata-in.html
+          make_redirect tutorials/metadata-in.html                          > index.html
           make_redirect tutorials/auth.html                                 > tutorials/auth.html
           make_redirect tutorials/translators.html                          > tutorials/translators.html
           make_redirect nb/bulk_validation_referential_integrity_check.html > nb/bulk_validation_referential_integrity_check.html
