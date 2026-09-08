@@ -361,6 +361,8 @@ def synchronize_superseded_by_field_op(
     # Get a reference to the Dagster log manager via the op execution context.
     # Docs: https://docs.dagster.io/api/dagster/loggers#dagster.DagsterLogManager
     log: DagsterLogManager = context.log
+    if context.op_config["dry_run"]:
+        log.info("Running in 'dry run' mode, so will not perform any updates.")
 
     # Initialize lists of updates that we will eventually perform on each MongoDB collection.
     workflow_execution_set_update_statements: list[UpdateOne] = []
@@ -490,12 +492,10 @@ def synchronize_superseded_by_field_op(
         f"{len(data_object_set_update_statements)}"
     )
 
+    # If we are running in "dry run" mode, stop here instead of proceeding to apply the updates.
     if context.op_config["dry_run"]:
-        log.info(
-            f"Dry run: would update {len(workflow_execution_set_update_statements)} WFEs "
-            f"and {len(data_object_set_update_statements)} DOs. No database changes applied."
-        )
-        return
+        log.info("Running in 'dry run' mode, so will not perform any updates.")
+        return None
 
     # Apply the updates to the documents in the MongoDB collections, atomically via a transaction.
     log.info(
@@ -535,3 +535,5 @@ def synchronize_superseded_by_field_op(
                         f"{bulk_write_result.matched_count}), which implies that some target "
                         "documents have been deleted since we began making the update plan."
                     )
+
+    return None
