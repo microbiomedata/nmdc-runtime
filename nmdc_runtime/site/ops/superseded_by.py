@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Callable
 
-from dagster import DagsterLogManager, OpExecutionContext, op
+from dagster import DagsterLogManager, Field, OpExecutionContext, op
 from pymongo import UpdateOne
 from pymongo.database import Database
 
@@ -320,7 +320,16 @@ def make_update_statement_if_necessary(
     )
 
 
-@op(required_resource_keys={"mongo"})
+@op(
+    required_resource_keys={"mongo"},
+    config_schema={
+        "dry_run": Field(
+            bool,
+            default_value=False,
+            description="Log planned WFE and DO update counts without writing to MongoDB.",
+        ),
+    },
+)
 def synchronize_superseded_by_field_op(
     context: OpExecutionContext,
 ) -> None:
@@ -336,6 +345,9 @@ def synchronize_superseded_by_field_op(
     those "data_object_set" documents as outputs (via the "has_output" field). If the "data_object_set"
     document is not identified as an output of any "workflow_execution_set" document, drop the
     "superseded_by" field (if present) from the "data_object_set" document.
+
+    Set `ops.synchronize_superseded_by_field_op.config.dry_run` to `true` in the Dagster
+    Launchpad to log planned update counts without applying them. Defaults to `false`.
     """
 
     # Get references to relevant MongoDB collections via the op execution context.
@@ -405,7 +417,10 @@ def synchronize_superseded_by_field_op(
                 superseded_by_expected=wfe_descriptor.superseded_by_expected,
             )
             if isinstance(update_statement, UpdateOne):
-                log.debug(f"Generated `UpdateOne` statement: {update_statement!r}")
+                log.debug(
+                    f"workflow_execution_set: filter={update_statement._filter!r}, "
+                    f"update={update_statement._doc!r}"
+                )
                 workflow_execution_set_update_statements.append(update_statement)
 
     log.info(
@@ -457,7 +472,10 @@ def synchronize_superseded_by_field_op(
             superseded_by_expected=superseded_by_expected,
         )
         if update_statement is not None:
-            log.debug(f"Generated `UpdateOne`: {update_statement!r}")
+            log.debug(
+                f"data_object_set: filter={update_statement._filter!r}, "
+                f"update={update_statement._doc!r}"
+            )
             data_object_set_update_statements.append(update_statement)
 
     log.info(
@@ -468,6 +486,13 @@ def synchronize_superseded_by_field_op(
         "Number of `UpdateOne` statements generated for `data_object_set` collection: "
         f"{len(data_object_set_update_statements)}"
     )
+
+    if context.op_config["dry_run"]:
+        log.info(
+            f"Dry run: would update {len(workflow_execution_set_update_statements)} WFEs "
+            f"and {len(data_object_set_update_statements)} DOs. No database changes applied."
+        )
+        return
 
     # Apply the updates to the documents in the MongoDB collections, atomically via a transaction.
     log.info(
