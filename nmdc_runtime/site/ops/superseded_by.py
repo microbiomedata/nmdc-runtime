@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Callable
 
-from dagster import DagsterLogManager, OpExecutionContext, op
+from dagster import DagsterLogManager, Field, OpExecutionContext, op
 from pymongo import UpdateOne
 from pymongo.database import Database
 
@@ -320,7 +320,19 @@ def make_update_statement_if_necessary(
     )
 
 
-@op(required_resource_keys={"mongo"})
+@op(
+    required_resource_keys={"mongo"},
+    config_schema={
+        "dry_run": Field(
+            bool,
+            default_value=False,
+            description=(
+                "Perform a dry run, logging the updates that _would_ be performed in a normal run,"
+                "without actually performing them. Enables people to review those changes first."
+            ),
+        ),
+    },
+)
 def synchronize_superseded_by_field_op(
     context: OpExecutionContext,
 ) -> None:
@@ -336,6 +348,9 @@ def synchronize_superseded_by_field_op(
     those "data_object_set" documents as outputs (via the "has_output" field). If the "data_object_set"
     document is not identified as an output of any "workflow_execution_set" document, drop the
     "superseded_by" field (if present) from the "data_object_set" document.
+
+    If `ops.synchronize_superseded_by_field_op.config.dry_run` is set, the op will not actually
+    perform any updates. It will just log the updates it _would_ normally perform.
     """
 
     # Get references to relevant MongoDB collections via the op execution context.
@@ -346,6 +361,8 @@ def synchronize_superseded_by_field_op(
     # Get a reference to the Dagster log manager via the op execution context.
     # Docs: https://docs.dagster.io/api/dagster/loggers#dagster.DagsterLogManager
     log: DagsterLogManager = context.log
+    if context.op_config["dry_run"]:
+        log.info("Running in 'dry run' mode, so will not perform any updates.")
 
     # Initialize lists of updates that we will eventually perform on each MongoDB collection.
     workflow_execution_set_update_statements: list[UpdateOne] = []
@@ -405,7 +422,10 @@ def synchronize_superseded_by_field_op(
                 superseded_by_expected=wfe_descriptor.superseded_by_expected,
             )
             if isinstance(update_statement, UpdateOne):
-                log.debug(f"Generated `UpdateOne` statement: {update_statement!r}")
+                log.debug(
+                    f"workflow_execution_set: filter={update_statement._filter!r}, "
+                    f"update={update_statement._doc!r}"
+                )
                 workflow_execution_set_update_statements.append(update_statement)
 
     log.info(
@@ -457,7 +477,10 @@ def synchronize_superseded_by_field_op(
             superseded_by_expected=superseded_by_expected,
         )
         if update_statement is not None:
-            log.debug(f"Generated `UpdateOne`: {update_statement!r}")
+            log.debug(
+                f"data_object_set: filter={update_statement._filter!r}, "
+                f"update={update_statement._doc!r}"
+            )
             data_object_set_update_statements.append(update_statement)
 
     log.info(
@@ -468,6 +491,11 @@ def synchronize_superseded_by_field_op(
         "Number of `UpdateOne` statements generated for `data_object_set` collection: "
         f"{len(data_object_set_update_statements)}"
     )
+
+    # If we are running in "dry run" mode, stop here instead of proceeding to apply the updates.
+    if context.op_config["dry_run"]:
+        log.info("Running in 'dry run' mode, so will not perform any updates.")
+        return None
 
     # Apply the updates to the documents in the MongoDB collections, atomically via a transaction.
     log.info(
@@ -507,3 +535,5 @@ def synchronize_superseded_by_field_op(
                         f"{bulk_write_result.matched_count}), which implies that some target "
                         "documents have been deleted since we began making the update plan."
                     )
+
+    return None

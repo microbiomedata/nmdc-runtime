@@ -1,4 +1,8 @@
-"""Exercise supersession synchronization against real MongoDB collections."""
+"""
+Tests targeting the Dagster op named `synchronize_superseded_by_field_op`, which updates the
+`superseded_by` fields of workflow executions and data objects to reflect the supersession chains
+implied by the workflow execution IDs.
+"""
 
 from collections.abc import Iterator
 from datetime import datetime
@@ -188,7 +192,20 @@ def test_synchronize_superseded_by_field_op(op_exec_ctx_having_empty_db):
         dobj_id_8: False,
     }
 
-    # Run the Dagster op.
+    # Run the Dagster op in "dry run" mode and confirm the Mongo documents are still in their initial state.
+    with build_op_context(
+        resources={"mongo": op_exec_ctx_having_empty_db.resources.mongo},
+        op_config={"dry_run": True},
+    ) as dry_run_context:
+        synchronize_superseded_by_field_op(dry_run_context)
+    for initial_wfe in initial_workflow_executions:
+        wfe_id = initial_wfe["id"]
+        assert initial_wfe == db.workflow_execution_set.find_one({"id": wfe_id})
+    for initial_dobj in initial_data_objects:
+        dobj_id = initial_dobj["id"]
+        assert initial_dobj == db.data_object_set.find_one({"id": dobj_id})
+
+    # Run the Dagster op with its default config (i.e. not in "dry run" mode) to apply the changes.
     synchronize_superseded_by_field_op(op_exec_ctx_having_empty_db)
 
     # Compare the workflow executions with our expectations.
