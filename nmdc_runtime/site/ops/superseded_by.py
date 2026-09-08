@@ -326,7 +326,10 @@ def make_update_statement_if_necessary(
         "dry_run": Field(
             bool,
             default_value=False,
-            description="Log planned WFE and DO update counts without writing to MongoDB.",
+            description=(
+                "Perform a dry run, logging the updates that _would_ be performed in a normal run,"
+                "without actually performing them. Enables people to review those changes first."
+            ),
         ),
     },
 )
@@ -346,8 +349,8 @@ def synchronize_superseded_by_field_op(
     document is not identified as an output of any "workflow_execution_set" document, drop the
     "superseded_by" field (if present) from the "data_object_set" document.
 
-    Set `ops.synchronize_superseded_by_field_op.config.dry_run` to `true` in the Dagster
-    Launchpad to log planned update counts without applying them. Defaults to `false`.
+    If `ops.synchronize_superseded_by_field_op.config.dry_run` is set, the op will not actually
+    perform any updates. It will just log the updates it _would_ normally perform.
     """
 
     # Get references to relevant MongoDB collections via the op execution context.
