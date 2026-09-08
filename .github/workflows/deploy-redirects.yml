@@ -65,7 +65,6 @@ jobs:
           make_redirect howto-guides/jobs/gold-translation-etl.html         > howto-guides/jobs/gold-translation-etl.html
           make_redirect tutorials/json.html                                 > tutorials/json.html
           make_redirect tutorials/exporters.html                            > tutorials/exporters.html
-          make_redirect tutorials/metadata-in.html                          > tutorials/metadata-in.html
           make_redirect tutorials/auth.html                                 > tutorials/auth.html
           make_redirect tutorials/translators.html                          > tutorials/translators.html
           make_redirect nb/bulk_validation_referential_integrity_check.html > nb/bulk_validation_referential_integrity_check.html
