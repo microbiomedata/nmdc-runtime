@@ -6,7 +6,7 @@ from bson import ObjectId
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
 from pymongo.database import Database as MongoDatabase
 from pymongo.operations import InsertOne
-from pymongo.errors import BulkWriteError
+from pymongo.errors import BulkWriteError, ClientBulkWriteException
 from pymongo.results import ClientBulkWriteResult
 
 from nmdc_runtime.api.core.util import raise404_if_none
@@ -380,7 +380,7 @@ async def post_workflow_execution(
                         )
                         return {"message": f"Inserted {num_inserted} documents"}
                     return {"message": "Done"}
-                except BulkWriteError as e:
+                except (BulkWriteError, ClientBulkWriteException) as e:
                     raise HTTPException(
                         status_code=status.HTTP_409_CONFLICT, detail=str(e)
                     )
