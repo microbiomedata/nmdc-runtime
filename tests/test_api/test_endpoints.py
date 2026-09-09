@@ -1767,6 +1767,71 @@ def test_queries_run_rejects_update_containing_replacement_document(api_user_cli
             allowances_collection.delete_many(allow_spec)
 
 
+def test_queries_run_allows_update_of_existing_biosample(api_user_client):
+    """
+    Submit an update command that targets a biosample that already exists in the database.
+    Expect that the endpoint performs the update, as opposed to reporting that the biosample's
+    name collides with the name of a biosample already associated with the same study (i.e. with
+    the name of that very biosample, as it exists in the database).
+    """
+
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+    biosample_set = mdb.get_collection("biosample_set")
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    did_insert_allowance: bool = False  # keep track of whether we'll clean it up later
+
+    # Generate a study and a biosample that is associated with that study.
+    faker = Faker()
+    study = faker.generate_studies(1)[0]
+    biosample = faker.generate_biosamples(1, associated_studies=[study["id"]])[0]
+
+    try:
+        if allowances_collection.count_documents(allow_spec) == 0:
+            allowances_collection.insert_one(allow_spec)
+            did_insert_allowance = True
+
+        # Seed the database with the study and the biosample.
+        study_set.insert_one(study)
+        biosample_set.insert_one(biosample)
+
+        # Update a field—other than `name`—of the biosample.
+        response = api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "update": "biosample_set",
+                "updates": [
+                    {
+                        "q": {"id": biosample["id"]},
+                        "u": {
+                            "$set": {
+                                "insdc_biosample_identifiers": [
+                                    "biosample:SAMN00000000"
+                                ]
+                            }
+                        },
+                    }
+                ],
+            },
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["n"] == 1
+
+        updated_biosample = biosample_set.find_one({"id": biosample["id"]})
+        assert updated_biosample["insdc_biosample_identifiers"] == [
+            "biosample:SAMN00000000"
+        ]
+    finally:
+        study_set.delete_many({"id": study["id"]})
+        biosample_set.delete_many({"id": biosample["id"]})
+        if did_insert_allowance:
+            allowances_collection.delete_many(allow_spec)
+
 def test_queries_run_populates_provenance_metadata(api_user_client):
     """
     Submit a request containing an update command and confirm that the endpoint populates the
