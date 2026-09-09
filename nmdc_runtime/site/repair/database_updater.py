@@ -409,44 +409,36 @@ class DatabaseUpdater:
                 existing_insdc_biosample_identifiers = biosample.get(
                     "insdc_biosample_identifiers", []
                 )
-                new_insdc_biosample_identifiers = list(
-                    set(insdc_biosample_identifiers)
+
+                # Note: The GOLD API reports bare accessions (e.g. "SAMN00000000"), whereas the
+                #       database stores them in CURIE form (e.g. "biosample:SAMN00000000"). We
+                #       apply the prefix _before_ comparing them to the ones already on the
+                #       record; otherwise, an accession that is already asserted on the record
+                #       would look like a new one, and we would emit an update that sets the
+                #       field to the value it already has.
+                prefixed_insdc_biosample_identifiers = {
+                    f"biosample:{id}" for id in insdc_biosample_identifiers
+                }
+                new_insdc_biosample_identifiers = (
+                    prefixed_insdc_biosample_identifiers
                     - set(existing_insdc_biosample_identifiers)
                 )
 
                 if new_insdc_biosample_identifiers:
-                    prefixed_new_biosample_identifiers = [
-                        f"biosample:{id}" for id in new_insdc_biosample_identifiers
-                    ]
-
-                    if existing_insdc_biosample_identifiers:
-                        all_biosample_identifiers = list(
-                            set(
-                                existing_insdc_biosample_identifiers
-                                + prefixed_new_biosample_identifiers
-                            )
-                        )
-                        biosample_updates.append(
-                            {
-                                "q": {"id": biosample_id},
-                                "u": {
-                                    "$set": {
-                                        "insdc_biosample_identifiers": all_biosample_identifiers
-                                    }
-                                },
-                            }
-                        )
-                    else:
-                        biosample_updates.append(
-                            {
-                                "q": {"id": biosample_id},
-                                "u": {
-                                    "$set": {
-                                        "insdc_biosample_identifiers": prefixed_new_biosample_identifiers
-                                    }
-                                },
-                            }
-                        )
+                    all_biosample_identifiers = sorted(
+                        set(existing_insdc_biosample_identifiers)
+                        | new_insdc_biosample_identifiers
+                    )
+                    biosample_updates.append(
+                        {
+                            "q": {"id": biosample_id},
+                            "u": {
+                                "$set": {
+                                    "insdc_biosample_identifiers": all_biosample_identifiers
+                                }
+                            },
+                        }
+                    )
 
         # Process data_generation records for insdc_bioproject_identifiers
         for data_generation in data_generation_set:
