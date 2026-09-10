@@ -396,6 +396,15 @@ def validate_json(
                 collection_name not in validation_errors
                 or len(validation_errors[collection_name]) == 0
             ):
+                # Note: We exclude the submitted biosamples themselves from this check. A submitted
+                #       biosample supersedes—as opposed to coexists with—the database document (if
+                #       any) having the same `id`. Without this exclusion, every submission that
+                #       includes an already-existing biosample (e.g. an `update` command issued via
+                #       the `/queries:run` endpoint) would be reported as colliding with that very
+                #       biosample's own name.
+                submitted_biosample_ids = [
+                    biosample["id"] for biosample in biosamples if "id" in biosample
+                ]
                 for (
                     study_id,
                     submitted_biosample_names,
@@ -404,6 +413,7 @@ def validate_json(
                         {
                             "associated_studies": study_id,
                             "name": {"$in": list(submitted_biosample_names)},
+                            "id": {"$nin": submitted_biosample_ids},
                         }
                     )
                     if biosample is not None:

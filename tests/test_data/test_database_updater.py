@@ -432,3 +432,73 @@ def test_queries_run_script_to_update_insdc_identifiers(db_updater, mock_clients
     assert (
         mock_gold_api_client.fetch_projects_by_biosample.call_count == 3
     )  # Called for the first 3 biosamples that have gold_ids
+
+
+def test_queries_run_script_to_update_insdc_identifiers_omits_already_asserted_identifiers(
+    db_updater, mock_clients
+):
+    """
+    The GOLD API reports bare accessions, whereas the database stores them in CURIE form. Confirm
+    that an accession that is already asserted on a biosample (in CURIE form) does not result in
+    an update that sets `insdc_biosample_identifiers` to the value it already has.
+    """
+    mock_runtime_api_user_client = mock_clients["runtime_api_user_client"]
+    mock_gold_api_client = mock_clients["gold_api_client"]
+
+    mock_runtime_api_user_client.get_biosamples_for_study.return_value = [
+        {
+            # Every accession GOLD reports for this biosample is already asserted on it.
+            "id": "nmdc:bsm-11-11111111",
+            "gold_biosample_identifiers": ["gold:Gb0111111"],
+            "insdc_biosample_identifiers": ["biosample:SAMN22222222"],
+        },
+        {
+            # Only one of the two accessions GOLD reports for this one is already asserted on it.
+            "id": "nmdc:bsm-11-22222222",
+            "gold_biosample_identifiers": ["gold:Gb0222222"],
+            "insdc_biosample_identifiers": ["biosample:SAMN33333333"],
+        },
+    ]
+    mock_runtime_api_user_client.get_data_generation_records_for_study.return_value = []
+
+    def mock_fetch_projects(biosample_id):
+        if biosample_id == "Gb0111111":
+            return [
+                {
+                    "projectGoldId": "Gp0111111",
+                    "ncbiBioSampleAccession": "SAMN22222222",
+                }
+            ]
+        elif biosample_id == "Gb0222222":
+            return [
+                {
+                    "projectGoldId": "Gp0222222",
+                    "ncbiBioSampleAccession": "SAMN33333333",
+                },
+                {
+                    "projectGoldId": "Gp0222223",
+                    "ncbiBioSampleAccession": "SAMN44444444",
+                },
+            ]
+        return []
+
+    mock_gold_api_client.fetch_projects_by_biosample.side_effect = mock_fetch_projects
+
+    result = db_updater.queries_run_script_to_update_insdc_identifiers()
+
+    # Since there are no data_generation updates, the result is a single command.
+    assert isinstance(result, dict)
+    assert result["update"] == "biosample_set"
+
+    biosample_updates_by_id = {u["q"]["id"]: u for u in result["updates"]}
+
+    # The biosample whose accessions are all already asserted gets no update at all.
+    assert "nmdc:bsm-11-11111111" not in biosample_updates_by_id
+
+    # The other one gets an update that preserves the already-asserted accession
+    # and adds the one that is genuinely new.
+    assert set(
+        biosample_updates_by_id["nmdc:bsm-11-22222222"]["u"]["$set"][
+            "insdc_biosample_identifiers"
+        ]
+    ) == {"biosample:SAMN33333333", "biosample:SAMN44444444"}
