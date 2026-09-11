@@ -3015,7 +3015,7 @@ requires-dist = [
     { name = "linkml-runtime" },
     { name = "lxml" },
     { name = "nmdc-schema", specifier = "==11.23.0" },
-    { name = "ontology-loader", specifier = "==0.3.1" },
+    { name = "ontology-loader", specifier = "==0.4.0" },
     { name = "pandas" },
     { name = "passlib", extras = ["bcrypt"] },
     { name = "pydantic", extras = ["email"], specifier = ">=1.10.0" },
@@ -3212,7 +3212,7 @@ wheels = [
 
 [[package]]
 name = "ontology-loader"
-version = "0.3.1"
+version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -3229,9 +3229,9 @@ dependencies = [
     { name = "tiktoken" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/34/72/6375c63f500ca9d1e6b14cbdef37807f7edbfeb053ab64f0acfed7c9ce1d/ontology_loader-0.3.1.tar.gz", hash = "sha256:4661d8d44e250707d9cc0b3f397b64de5a0718cdbd310eb1dda80a9e391b9007", size = 28631, upload-time = "2026-09-01T16:38:20.636Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/98/02/55a4aa9aaf4e905b829482aa9b1dcae3449381d87267a948d7577ab07217/ontology_loader-0.4.0.tar.gz", hash = "sha256:4eb333eb750fcbee628eb514fb1284b4e8a95ad94976476efdb6a4b4ee5d8ed3", size = 32868, upload-time = "2026-09-11T17:46:10.38Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ec/a2/2876e0839fcacec16a1b99df55d22d51241758e1a5720b84e149f6c9f354/ontology_loader-0.3.1-py3-none-any.whl", hash = "sha256:a706cabed014c4611836206da3e734ff288b0484968f490f6cde03ba159cf9c1", size = 27572, upload-time = "2026-09-01T16:38:19.787Z" },
+    { url = "https://files.pythonhosted.org/packages/ca/80/9b5521e3a8dd089f4057ccb90ccf62eb7efa1b920b3958a7dd238f6dc7d1/ontology_loader-0.4.0-py3-none-any.whl", hash = "sha256:a98c2d63593b4f9befdc6e0381ab31a5cfae6e8bd28b37989757a84a6a6c9d10", size = 31518, upload-time = "2026-09-11T17:46:09.223Z" },
 ]
 
 [[package]]
