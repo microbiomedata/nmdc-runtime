@@ -23,13 +23,6 @@ MOCK_NMDC_STUDY = {
     "name": "National Ecological Observatory Network: soil metagenomes (DP1.10107.001)",
     "description": "This study contains the quality-controlled laboratory metadata and minimally processed sequence data from NEON's soil microbial shotgun metagenomics sequencing. Typically, measurements are done on plot-level composite samples and represent up to three randomly selected sampling locations within a plot.",
     "gold_study_identifiers": ["gold:Gs0144570", "gold:Gs0161344"],
-    "principal_investigator": {
-        "has_raw_value": "Kate Thibault",
-        "email": "kthibault@battelleecology.org",
-        "name": "Kate Thibault",
-        "orcid": "orcid:0000-0003-3477-6424",
-        "profile_image_url": "https://portal.nersc.gov/project/m3408/profile_images/thibault_katy.jpg",
-    },
     "title": "National Ecological Observatory Network: soil metagenomes (DP1.10107.001)",
     "type": "nmdc:Study",
     "websites": [
@@ -510,6 +503,13 @@ class TestNCBISubmissionXML:
             biosample_library_preparation,
             all_instruments,
         )
+        root = ET.fromstring(submission_xml)
+        contact_email = root.find("Description/Organization/Contact").attrib["email"]
+        contact_first = root.find("Description/Organization/Contact/Name/First").text
+        contact_last = root.find("Description/Organization/Contact/Name/Last").text
+        assert contact_email == "kthibault@battelleecology.org"
+        assert contact_first == "Kate"
+        assert contact_last == "Thibault"
 
         assert "nmdc:bsm-12-p9q5v236" in submission_xml
         assert "E. coli" in submission_xml

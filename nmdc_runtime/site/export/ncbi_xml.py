@@ -32,10 +32,15 @@ class NCBISubmissionXML:
         # the value asserted in "insdc_bioproject_identifiers" will be a CURIE, so extract
         # everything after the prefix and delimiter (":")
         self.ncbi_bioproject_id = self.ncbi_bioproject_id.split(":")[-1]
-        self.nmdc_pi_email = nmdc_study.get("principal_investigator", {}).get("email")
-        nmdc_study_pi_name = (
-            nmdc_study.get("principal_investigator", {}).get("name").split()
+
+        # Get the first principal investigator from the NMDC study's CRediT associations
+        principal_investigator = next(
+            ca.get("applies_to_person")
+            for ca in nmdc_study.get("has_credit_associations", [])
+            if "Principal Investigator" in ca.get("applied_roles", [])
         )
+        self.nmdc_pi_email = principal_investigator.get("email")
+        nmdc_study_pi_name = principal_investigator.get("name", "").split()
         self.first_name = nmdc_study_pi_name[0]
         self.last_name = nmdc_study_pi_name[1] if len(nmdc_study_pi_name) > 1 else None
 
