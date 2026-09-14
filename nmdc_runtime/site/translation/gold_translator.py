@@ -111,38 +111,73 @@ class GoldStudyTranslator(Translator):
                     project["biosampleGoldId"]
                 ].append(analysis_project["apGoldId"])
 
-    def _get_pi(self, gold_entity: JSON_OBJECT) -> Union[nmdc.PersonValue, None]:
-        """Construct a PersonValue from the first PI in the `contacts` field
+    def _get_has_credit_associations(
+        self, gold_entity: JSON_OBJECT
+    ) -> Union[List[nmdc.CreditAssociation], None]:
+        """Construct `nmdc:CreditAssociation` instances from the `contacts` field
 
         This function iterates over the items in the `contacts` array of the given GOLD
-        entity object. Using the first item where `PI` is in its `roles` array, it
-        constructs an `nmdc:PersonValue` using the item's `name` and `email` fields.
-        If no item with `PI` in the `roles` is found, `None` is returned.
+        entity object. Using each item's `roles` array and a pre-defined mapping to
+        `nmdc:CreditEnum` values, it constructs an `nmdc:CreditAssociation` using the
+        item's `name` and `email` fields. If no items can be mapped, `None` is returned.
 
         :param gold_entity: GOLD entity object
-        :return: PersonValue corresponding to the first PI in the `contacts` field
+        :return: List of `nmdc:CreditAssociation` instances or `None`
         """
         if "contacts" not in gold_entity:
             return None
 
-        pi_dict = next(
-            (
-                contact
-                for contact in gold_entity["contacts"]
-                if "PI" in contact["roles"]
+        # Mapping of GOLD contact roles to NMDC credit enums. This is a priority order
+        # mapping: the contact list will be sorted by whether the item has a role that
+        # is in this mapping. That way the resulting list of `nmdc:CreditAssociation`
+        # instances will represent the contact with the Study PI role first, followed by
+        # contacts with the PI role, then co-PI, etc.
+        role_to_credit_enum = {
+            "Study PI": nmdc.CreditEnum["Principal Investigator"],
+            "PI": nmdc.CreditEnum["Principal Investigator"],
+            "co-PI": nmdc.CreditEnum["Principal Investigator"],
+        }
+        role_sort_order = {
+            role: index for index, role in enumerate(role_to_credit_enum.keys())
+        }
+
+        sorted_contacts = sorted(
+            gold_entity["contacts"],
+            key=lambda contact: min(
+                (
+                    role_sort_order.get(role, float("inf"))
+                    for role in contact.get("roles", [])
+                ),
+                default=float("inf"),
             ),
-            None,
         )
 
-        if pi_dict is None or "name" not in pi_dict or "email" not in pi_dict:
+        credit_associations = []
+        for contact in sorted_contacts:
+            contact_roles = contact.get("roles", [])
+            applied_roles = [
+                role_to_credit_enum[role]
+                for role in contact_roles
+                if role in role_to_credit_enum
+            ]
+            if applied_roles and "name" in contact:
+                credit_associations.append(
+                    nmdc.CreditAssociation(
+                        applies_to_person=nmdc.PersonValue(
+                            name=contact.get("name"),
+                            email=contact.get("email"),
+                            orcid=contact.get("orcidId"),
+                            type="nmdc:PersonValue",
+                        ),
+                        applied_roles=applied_roles,
+                        type="nmdc:CreditAssociation",
+                    )
+                )
+
+        if not credit_associations:
             return None
 
-        return nmdc.PersonValue(
-            has_raw_value=pi_dict.get("name"),
-            name=pi_dict.get("name"),
-            email=pi_dict.get("email"),
-            type="nmdc:PersonValue",
-        )
+        return credit_associations
 
     def _get_insdc_biosample_identifiers(self, gold_biosample_id: str) -> List[str]:
         """Get a list of INDSC biosample identifiers related to the given GOLD biosample identifier
@@ -529,7 +564,7 @@ class GoldStudyTranslator(Translator):
             id=nmdc_study_id,
             name=gold_study.get("studyName"),
             provenance_metadata=provenance_metadata,
-            principal_investigator=self._get_pi(gold_study),
+            has_credit_associations=self._get_has_credit_associations(gold_study),
             title=gold_study.get("studyName"),
             type="nmdc:Study",
             study_category=self.study_type,
@@ -652,9 +687,9 @@ class GoldStudyTranslator(Translator):
             ),
             ncbi_project_name=gold_project.get("projectName"),
             type="nmdc:NucleotideSequencing",
+            has_credit_associations=self._get_has_credit_associations(gold_project),
             has_input=nmdc_biosample_id,
             insdc_bioproject_identifiers=insdc_bioproject_identifiers,
-            principal_investigator=self._get_pi(gold_project),
             processing_institution=self._get_processing_institution(gold_project),
             provenance_metadata=provenance_metadata,
             instrument_used=self._get_instrument(gold_project),
