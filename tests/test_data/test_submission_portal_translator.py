@@ -9,6 +9,7 @@ import pytest
 from linkml_runtime.linkml_model import SlotDefinition
 from nmdc_schema import nmdc
 from nmdc_schema.nmdc import (
+    CreditAssociation,
     InstrumentModelEnum,
     InstrumentVendorEnum,
     Database,
@@ -17,6 +18,7 @@ from nmdc_schema.nmdc import (
     DoiCategoryEnum,
     Doi,
     UnitEnum,
+    PersonValue,
     Study,
 )
 
@@ -821,11 +823,40 @@ def test_parse_sample_link():
 
 def test_set_study_images():
     study = Study(
-        id="nmdc:study-00-00000000", type="nmdc:Study", study_category="research_study"
+        id="nmdc:study-00-00000000",
+        type="nmdc:Study",
+        study_category="research_study",
+        has_credit_associations=[
+            CreditAssociation(
+                applies_to_person=PersonValue(
+                    name="Lowly Intern",
+                    orcid="0000-0000-0000-0000",
+                    type="nmdc:PersonValue"
+                ),
+                applied_roles=[
+                    "Data curation",
+                ],
+                type="nmdc:CreditAssociation",
+            ),
+            CreditAssociation(
+                applies_to_person=PersonValue(
+                    name="Doctor PI",
+                    email="doctor.pi@example.org",
+                    orcid="0000-0000-0000-0001",
+                    type="nmdc:PersonValue"
+                ),
+                applied_roles=[
+                    "Conceptualization",
+                    "Principal Investigator",
+                ],
+                type="nmdc:CreditAssociation",
+            )
+        ]
     )
 
     SubmissionPortalTranslator.set_study_images(
         study,
+        pi_email="doctor.pi@example.org",
         pi_image_url="http://www.example.org/pi_image.jpg",
         primary_study_image_url="http://www.example.org/primary_study_image.jpg",
         study_images_url=[
@@ -835,7 +866,7 @@ def test_set_study_images():
     )
 
     assert (
-        study.principal_investigator.profile_image_url
+        study.has_credit_associations[1].applies_to_person.profile_image_url
         == "http://www.example.org/pi_image.jpg"
     )
     assert study.study_image is not None

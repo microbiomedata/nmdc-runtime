@@ -5,7 +5,7 @@ metadata_submission:
     NCBIBioProjectId: ''
     contributors:
       - name: Test Testerson
-        type: nmdc:PersonValue
+        permissionLevel: "editor"
         orcid: 0000-0000-0000-0000
         roles:
           - Principal Investigator

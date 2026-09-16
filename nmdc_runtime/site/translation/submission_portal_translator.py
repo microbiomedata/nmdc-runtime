@@ -229,6 +229,10 @@ class SubmissionPortalTranslator(Translator):
         if not study_form:
             return None
 
+        piEmail = study_form.get("piEmail")
+        if not piEmail:
+            return None
+
         return nmdc.PersonValue(
             name=study_form.get("piName"),
             email=study_form.get("piEmail"),
@@ -246,21 +250,65 @@ class SubmissionPortalTranslator(Translator):
         :return: nmdc.CreditAssociation list
         """
         contributors = get_in(["study_form", "contributors"], metadata_submission)
-        if not contributors:
-            return None
 
-        return [
-            nmdc.CreditAssociation(
-                applies_to_person=nmdc.PersonValue(
-                    name=contributor.get("name"),
-                    orcid=contributor.get("orcid"),
-                    type="nmdc:PersonValue",
-                ),
-                applied_roles=contributor.get("roles"),
-                type="nmdc:CreditAssociation",
+        # PI information stored in redundant fields in the study form. This should be
+        # in sync with the PI information in the contributors list, but we will
+        # double-check that here and add the PI to the contributors list if they are not
+        # already present.
+        principal_investigator = self._get_pi(metadata_submission)
+
+        credit_associations: List[nmdc.CreditAssociation] = []
+        for contributor in contributors or []:
+            credit_associations.append(
+                nmdc.CreditAssociation(
+                    applies_to_person=nmdc.PersonValue(
+                        name=contributor.get("name"),
+                        orcid=contributor.get("orcid"),
+                        type="nmdc:PersonValue",
+                    ),
+                    applied_roles=contributor.get("roles"),
+                    type="nmdc:CreditAssociation",
+                )
             )
-            for contributor in contributors
-        ]
+
+        if principal_investigator:
+            pi_contributor = next(
+                (
+                    ca
+                    for ca in credit_associations
+                    if ca.applies_to_person.orcid == principal_investigator.orcid
+                ),
+                None,
+            )
+            if pi_contributor:
+                # Submission Portal only collects email for PIs, not for other
+                # contributors.
+                if not pi_contributor.applies_to_person.email:
+                    pi_contributor.applies_to_person.email = (
+                        principal_investigator.email
+                    )
+
+                # Ensure that the PI has the "Principal Investigator" role in their
+                # applied_roles list.
+                if not any(
+                    str(role) == "Principal Investigator"
+                    for role in pi_contributor.applied_roles
+                ):
+                    pi_contributor.applied_roles.append(
+                        nmdc.CreditEnum("Principal Investigator")
+                    )
+            else:
+                credit_associations.append(
+                    nmdc.CreditAssociation(
+                        applies_to_person=principal_investigator,
+                        applied_roles=["Principal Investigator"],
+                        type="nmdc:CreditAssociation",
+                    )
+                )
+
+        if not credit_associations:
+            return None
+        return credit_associations
 
     def _get_gold_study_identifiers(
         self, metadata_submission: JSON_OBJECT
@@ -851,7 +899,6 @@ class SubmissionPortalTranslator(Translator):
             ),
             name=self._get_from(metadata_submission, ["study_form", "studyName"]),
             notes=self._get_from(metadata_submission, ["study_form", "notes"]),
-            principal_investigator=self._get_pi(metadata_submission),
             provenance_metadata=provenance_metadata,
             study_category=self.study_category,
             title=self._get_from(metadata_submission, ["study_form", "studyName"]),
@@ -1572,6 +1619,8 @@ class SubmissionPortalTranslator(Translator):
     @staticmethod
     def set_study_images(
         nmdc_study: nmdc.Study,
+        *,
+        pi_email: str,
         pi_image_url: Optional[str],
         primary_study_image_url: Optional[str],
         study_images_url: Optional[list[str]],
@@ -1579,11 +1628,15 @@ class SubmissionPortalTranslator(Translator):
         """Set images for a study based on provided URLs."""
 
         if pi_image_url:
-            if not nmdc_study.principal_investigator:
-                nmdc_study.principal_investigator = nmdc.PersonValue(
-                    type="nmdc:PersonValue"
-                )
-            nmdc_study.principal_investigator.profile_image_url = pi_image_url
+            # Find the correct entry from has_credit_associations based on the PI email
+            # address (required in the Submission Portal). Once the correct entry is
+            # found, set the image URL for that entry.
+            for credits_association in nmdc_study.has_credit_associations or []:
+                if credits_association.applies_to_person.email == pi_email:
+                    credits_association.applies_to_person.profile_image_url = (
+                        pi_image_url
+                    )
+                    break
 
         if primary_study_image_url:
             if not nmdc_study.study_image:

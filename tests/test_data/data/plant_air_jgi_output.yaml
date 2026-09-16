@@ -862,11 +862,14 @@ study_set:
     - Principal Investigator
     - Funding acquisition
     type: prov:Association
-  principal_investigator:
-    type: nmdc:PersonValue
-    email: shade.ashley@gmail.com
-    name: Ashley Shade
-    orcid: 0000-0002-7189-3067
+  - applies_to_person:
+      type: nmdc:PersonValue
+      email: shade.ashley@gmail.com
+      name: Ashley Shade
+      orcid: 0000-0002-7189-3067
+    applied_roles:
+    - Principal Investigator
+    type: nmdc:CreditAssociation
   title: Seasonal activities of the phyllosphere microbiome of perennial crops
   websites:
   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9950430/

@@ -124,9 +124,13 @@ study_set:
     source_system_of_record: NMDC_Submission_Portal
     submission_portal_identifier:
     - ef59f345-8c89-4201-bcdc-28ca1f6919ca
-  principal_investigator:
-    type: nmdc:PersonValue
-    email: tester@example.gov
-    name: ''
-    orcid: ''
+  has_credit_associations:
+  - applies_to_person:
+      type: nmdc:PersonValue
+      email: tester@example.gov
+      name: ''
+      orcid: ''
+    applied_roles:
+    - Principal Investigator
+    type: nmdc:CreditAssociation
   title: Isolate + Soil
