@@ -156,10 +156,10 @@ curl --silent 'https://api.microbiomedata.org/studies?fields=id,name,provenance_
 The output would be:
 
 ```tsv
-$.id    $.name  $.provenance_metadata.mod_date
-nmdc:sty-11-8fb6t785    Deep subsurface shale carbon reservoir microbial communities from Ohio and West Virginia, USA   2026-08-26T21:18:52Z
-nmdc:sty-11-33fbta56    Peatland microbial communities from Minnesota, USA, analyzing carbon cycling and trace gas fluxes       2026-08-26T21:18:52Z
-nmdc:sty-11-aygzgv51    Riverbed sediment microbial communities from the Columbia River, Washington, USA        2026-08-26T21:18:52Z
+$.id	$.name	$.provenance_metadata.mod_date
+nmdc:sty-11-8fb6t785	Deep subsurface shale carbon reservoir microbial communities from Ohio and West Virginia, USA	2026-08-26T21:18:52Z
+nmdc:sty-11-33fbta56	Peatland microbial communities from Minnesota, USA, analyzing carbon cycling and trace gas fluxes	2026-08-26T21:18:52Z
+nmdc:sty-11-aygzgv51	Riverbed sediment microbial communities from the Columbia River, Washington, USA	2026-08-26T21:18:52Z
 ```
 
 ## Conclusion
