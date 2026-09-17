@@ -283,7 +283,9 @@ class SubmissionPortalTranslator(Translator):
                 (
                     ca
                     for ca in credit_associations
-                    if ca.applies_to_agent.orcid == principal_investigator.orcid
+                    if isinstance(ca.applies_to_agent, nmdc.Person)
+                    and ca.applies_to_agent.orcid
+                    and ca.applies_to_agent.orcid == principal_investigator.orcid
                 ),
                 None,
             )
