@@ -165,10 +165,14 @@ study_set:
     source_system_of_record: NMDC_Submission_Portal
     submission_portal_identifier:
     - 406e6ce5-ec5f-4617-badd-dc061358da24
-  principal_investigator:
-    type: nmdc:PersonValue
-    email: test.testerson@example.com
-    name: Test Testerson
-    orcid: 0000-0000-0000-000X
+  has_credit_associations:
+  - applies_to_agent:
+      type: nmdc:Person
+      email: test.testerson@example.com
+      name: Test Testerson
+      orcid: orcid:0000-0000-0000-000X
+    applied_roles:
+    - Principal Investigator
+    type: nmdc:CreditAssociation
   title: A test submission where sample_link is used to generate processed sample
     records

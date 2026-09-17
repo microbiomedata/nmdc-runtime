@@ -9,6 +9,7 @@ import pytest
 from linkml_runtime.linkml_model import SlotDefinition
 from nmdc_schema import nmdc
 from nmdc_schema.nmdc import (
+    CreditAssociation,
     InstrumentModelEnum,
     InstrumentVendorEnum,
     Database,
@@ -17,6 +18,7 @@ from nmdc_schema.nmdc import (
     DoiCategoryEnum,
     Doi,
     UnitEnum,
+    Person,
     Study,
 )
 
@@ -79,7 +81,7 @@ def test_get_pi():
     assert pi_person_value is not None
     assert pi_person_value.name == "Maria D. McDonald"
     assert pi_person_value.email == "MariaDMcDonald@example.edu"
-    assert pi_person_value.orcid == "0000-0000-0000-0001"
+    assert pi_person_value.orcid == "orcid:0000-0000-0000-0001"
     assert pi_person_value.profile_image_url == "http://www.example.org/image.jpg"
 
 
@@ -177,9 +179,12 @@ def test_get_has_credit_associations():
     )
     assert credit_associations is not None
     assert len(credit_associations) == 2
-    assert credit_associations[0].applies_to_person is not None
-    assert credit_associations[0].applies_to_person.name == "Brenda Patterson"
-    assert credit_associations[0].applies_to_person.orcid == "1234"
+    assert credit_associations[0].applies_to_agent is not None
+    assert credit_associations[0].applies_to_agent.name == "Brenda Patterson"
+    assert credit_associations[0].applies_to_agent.orcid == "orcid:1234"
+    assert credit_associations[1].applies_to_agent is not None
+    assert credit_associations[1].applies_to_agent.name == "Lee F. Dukes"
+    assert credit_associations[1].applies_to_agent.orcid == "orcid:5678"
     assert credit_associations[0].applied_roles is not None
     assert len(credit_associations[0].applied_roles) == 2
     assert credit_associations[0].applied_roles[0].code.text == "Conceptualization"
@@ -448,6 +453,7 @@ def test_instruments(test_minter):
         "templates": ["soil", "data_mg_interleaved"],
         "study_form": {
             "studyName": "asdfasdf",
+            "piName": "Fake PI",
             "piEmail": "fake@fake.com",
         },
     }
@@ -821,11 +827,40 @@ def test_parse_sample_link():
 
 def test_set_study_images():
     study = Study(
-        id="nmdc:study-00-00000000", type="nmdc:Study", study_category="research_study"
+        id="nmdc:study-00-00000000",
+        type="nmdc:Study",
+        study_category="research_study",
+        has_credit_associations=[
+            CreditAssociation(
+                applies_to_agent=Person(
+                    name="Lowly Intern",
+                    orcid="0000-0000-0000-0000",
+                    type="nmdc:Person"
+                ),
+                applied_roles=[
+                    "Data curation",
+                ],
+                type="nmdc:CreditAssociation",
+            ),
+            CreditAssociation(
+                applies_to_agent=Person(
+                    name="Doctor PI",
+                    email="doctor.pi@example.org",
+                    orcid="0000-0000-0000-0001",
+                    type="nmdc:Person"
+                ),
+                applied_roles=[
+                    "Conceptualization",
+                    "Principal Investigator",
+                ],
+                type="nmdc:CreditAssociation",
+            )
+        ]
     )
 
     SubmissionPortalTranslator.set_study_images(
         study,
+        pi_email="doctor.pi@example.org",
         pi_image_url="http://www.example.org/pi_image.jpg",
         primary_study_image_url="http://www.example.org/primary_study_image.jpg",
         study_images_url=[
@@ -835,7 +870,7 @@ def test_set_study_images():
     )
 
     assert (
-        study.principal_investigator.profile_image_url
+        study.has_credit_associations[1].applies_to_agent.profile_image_url
         == "http://www.example.org/pi_image.jpg"
     )
     assert study.study_image is not None

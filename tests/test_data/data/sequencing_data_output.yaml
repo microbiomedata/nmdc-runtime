@@ -813,9 +813,12 @@ study_set:
     source_system_of_record: NMDC_Submission_Portal
     submission_portal_identifier:
     - e12d0754-c00c-4417-9a25-6eb372054182
-  principal_investigator:
-    type: nmdc:PersonValue
-    email: pkalita@lbl.gov
-    name: ''
-    orcid: ''
+  has_credit_associations:
+  - applies_to_agent:
+      type: nmdc:Person
+      email: pkalita@lbl.gov
+      name: ''
+    applied_roles:
+    - Principal Investigator
+    type: nmdc:CreditAssociation
   title: asdfasdf

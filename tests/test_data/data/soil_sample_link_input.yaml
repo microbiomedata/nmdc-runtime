@@ -21,7 +21,7 @@ metadata_submission:
     orcid: 0000-0000-0000-000X
     name: Test Testerson
     is_admin: false
-    type: nmdc:PersonValue
+    type: nmdc:Person
 sample_set:
   created: '2023-04-03T18:31:16.856377'
   id: 487875a4-e77d-56c5-a819-fb22c1550f8a

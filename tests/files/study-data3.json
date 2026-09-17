@@ -7,9 +7,18 @@
 	 "ecosystem_type": "Bacteria",
 	 "ecosystem_subtype": "Unclassified",
 	 "specific_ecosystem": "Unclassified",
-	 "principal_investigator": {
-		 "has_raw_value": "Matthias Hess"
-	 },
+	 "has_credit_associations": [
+		 {
+			 "applies_to_agent": {
+				 "name": "Matthias Hess",
+				 "type": "nmdc:Person"
+			 },
+			 "applied_roles": [
+				 "Principal Investigator"
+			 ],
+			 "type": "nmdc:CreditAssociation"
+		 }
+	 ],
 	 "doi": {
 		 "has_raw_value": "10.25585/1487758"
 	 },

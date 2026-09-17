@@ -132,9 +132,12 @@ study_set:
       doi_category: award_doi
       doi_provider: jgi
       type: nmdc:DOI
-  principal_investigator:
-    type: nmdc:PersonValue
-    email: tester@example.gov
-    name: ''
-    orcid: ''
+  has_credit_associations:
+  - applies_to_agent:
+      type: nmdc:Person
+      email: tester@example.gov
+      name: ''
+    applied_roles:
+    - Principal Investigator
+    type: nmdc:CreditAssociation
   title: Soil + Isolate + JGI

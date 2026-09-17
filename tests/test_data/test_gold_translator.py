@@ -40,59 +40,79 @@ mock_gold_nmdc_instrument_map_df = pd.DataFrame(
 )
 
 
-def test_get_pi():
+def test_get_has_credit_associations():
     translator = GoldStudyTranslator()
 
-    # _get_pi should find the first PI listed
-    pi_person_value = translator._get_pi(
+    # multiple itmes in contacts have roles that map to CreditEnum values, multiple
+    # CreditAssociation objects should be returned.
+    credit_associations = translator._get_has_credit_associations(
         {
             "contacts": [
                 {
                     "name": "Clifton P. Parker",
                     "email": "CliftonPParker@example.com",
                     "roles": ["co-PI"],
-                    "type": "nmdc:PersonValue",
+                    "orcidId": "0000-0000-0000-0001",
                 },
                 {
                     "name": "Joan D. Berger",
                     "email": "jdb@example.com",
                     "roles": ["PI"],
-                    "type": "nmdc:PersonValue",
+                    "orcidId": "0000-0000-0000-0002",
                 },
                 {
                     "name": "Beth S. Hemphill",
                     "email": "bhemphill@example.com",
                     "roles": ["submitter", "co-PI"],
-                    "type": "nmdc:PersonValue",
+                    "orcidId": "0000-0000-0000-0003",
                 },
                 {
                     "name": "Randy T. Woolf",
                     "email": "RandyWoolf@example.com",
-                    "roles": ["PI"],
-                    "type": "nmdc:PersonValue",
+                    "roles": ["Study PI", "PI"],
+                    "orcidId": "0000-0000-0000-0004",
                 },
+                {
+                    "name": "John Doe",
+                    "email": "john.doe@example.com",
+                    "roles": ["sample contact"],
+                    "orcidId": "0000-0000-0000-0005",
+                }
             ]
         }
     )
-    assert pi_person_value is not None
-    assert pi_person_value.name == "Joan D. Berger"
-    assert pi_person_value.email == "jdb@example.com"
-    assert pi_person_value.type == "nmdc:PersonValue"
+    assert len(credit_associations) == 4
+    assert credit_associations[0].applied_roles[0].code == nmdc.CreditEnum["Principal Investigator"]
+    assert credit_associations[0].applies_to_agent.name == "Randy T. Woolf"
+    assert credit_associations[0].applies_to_agent.email == "RandyWoolf@example.com"
+    assert credit_associations[0].applies_to_agent.orcid == "orcid:0000-0000-0000-0004"
+    assert credit_associations[1].applied_roles[0].code == nmdc.CreditEnum["Principal Investigator"]
+    assert credit_associations[1].applies_to_agent.name == "Joan D. Berger"
+    assert credit_associations[1].applies_to_agent.email == "jdb@example.com"
+    assert credit_associations[1].applies_to_agent.orcid == "orcid:0000-0000-0000-0002"
+    assert credit_associations[2].applied_roles[0].code == nmdc.CreditEnum["Principal Investigator"]
+    assert credit_associations[2].applies_to_agent.name == "Clifton P. Parker"
+    assert credit_associations[2].applies_to_agent.email == "CliftonPParker@example.com"
+    assert credit_associations[2].applies_to_agent.orcid == "orcid:0000-0000-0000-0001"
+    assert credit_associations[3].applied_roles[0].code == nmdc.CreditEnum["Principal Investigator"]
+    assert credit_associations[3].applies_to_agent.name == "Beth S. Hemphill"
+    assert credit_associations[3].applies_to_agent.email == "bhemphill@example.com"
+    assert credit_associations[3].applies_to_agent.orcid == "orcid:0000-0000-0000-0003"
 
-    # no PI in contacts, _get_pi should return None
-    pi_person_value = translator._get_pi(
+    # no PI in contacts, _get_has_credit_associations should return None
+    credit_associations = translator._get_has_credit_associations(
         {
             "contacts": [
                 {
                     "name": "Beth S. Hemphill",
                     "email": "bhemphill@example.com",
-                    "roles": ["submitter", "co-PI"],
-                    "type": "nmdc:PersonValue",
+                    "roles": ["submitter"],
+                    "type": "nmdc:Person",
                 },
             ]
         }
     )
-    assert pi_person_value is None
+    assert credit_associations is None
 
 
 def test_get_insdc_biosample_identifiers():

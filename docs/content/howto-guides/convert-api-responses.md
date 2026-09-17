@@ -14,7 +14,7 @@ Here's how you can convert JSON into CSV.
 
 > **Note:** In this section, we'll be demonstrating a process that produces a CSV string in which each column name is a **[JSONPath](https://en.wikipedia.org/wiki/JSONPath) expression** that indicates precisely where—in the original JSON object(s)—the value(s) in that column came from.
 >
-> For example, the column name "`$.principal_investigator.has_raw_value`" indicates that the value(s) in that column came from the "`has_raw_value`" field of the object in the "`principal_investigator`" field of the root object (represented by "`$`").
+> For example, the column name "`$.provenance_metadata.mod_date`" indicates that the value(s) in that column came from the "`mod_date`" field of the object in the "`provenance_metadata`" field of the root object (represented by "`$`").
 
 ### Prerequisites
 
@@ -28,7 +28,7 @@ Here's how you can convert JSON into CSV.
 Here's how you can convert the JSON-formatted response from an NMDC Runtime API endpoint into CSV.
 
 ```shell
-curl --silent 'https://api.microbiomedata.org/studies?fields=id,name,principal_investigator.has_raw_value&per_page=3' \
+curl --silent 'https://api.microbiomedata.org/studies?fields=id,name,provenance_metadata.mod_date&per_page=3' \
   | jq '.results' \
   | json-tabulate
 ```
@@ -42,32 +42,32 @@ The first command—`curl ...`—sends an HTTP request to the NMDC Runtime API a
   "meta": {
     "mongo_filter_dict": {},
     "mongo_sort_list": null,
-    "count": 47,
-    "db_response_time_ms": 0,
+    "count": 85,
+    "db_response_time_ms": 2,
     "page": 1,
     "per_page": 3,
-    "fields": "id,name,principal_investigator.has_raw_value"
+    "fields": "id,name,provenance_metadata.mod_date"
   },
   "results": [
     {
       "id": "nmdc:sty-11-8fb6t785",
       "name": "Deep subsurface shale carbon reservoir microbial communities from Ohio and West Virginia, USA",
-      "principal_investigator": {
-        "has_raw_value": "Kelly Wrighton"
+      "provenance_metadata": {
+        "mod_date": "2026-08-26T21:18:52Z"
       }
     },
     {
       "id": "nmdc:sty-11-33fbta56",
       "name": "Peatland microbial communities from Minnesota, USA, analyzing carbon cycling and trace gas fluxes",
-      "principal_investigator": {
-        "has_raw_value": "Christopher Schadt"
+      "provenance_metadata": {
+        "mod_date": "2026-08-26T21:18:52Z"
       }
     },
     {
       "id": "nmdc:sty-11-aygzgv51",
       "name": "Riverbed sediment microbial communities from the Columbia River, Washington, USA",
-      "principal_investigator": {
-        "has_raw_value": "James Stegen"
+      "provenance_metadata": {
+        "mod_date": "2026-08-26T21:18:52Z"
       }
     }
   ],
@@ -80,7 +80,7 @@ We wanted a list of studies, but the API response included some metadata about p
 We can pipe the output of the `curl ...` command into `jq` in order to isolate the `results` list, like this:
 
 ```shell
-curl --silent 'https://api.microbiomedata.org/studies?fields=id,name,principal_investigator.has_raw_value&per_page=3' \
+curl --silent 'https://api.microbiomedata.org/studies?fields=id,name,provenance_metadata.mod_date&per_page=3' \
   | jq '.results'
 ```
 
@@ -91,22 +91,22 @@ The output is now:
   {
     "id": "nmdc:sty-11-8fb6t785",
     "name": "Deep subsurface shale carbon reservoir microbial communities from Ohio and West Virginia, USA",
-    "principal_investigator": {
-      "has_raw_value": "Kelly Wrighton"
+    "provenance_metadata": {
+      "mod_date": "2026-08-26T21:18:52Z"
     }
   },
   {
     "id": "nmdc:sty-11-33fbta56",
     "name": "Peatland microbial communities from Minnesota, USA, analyzing carbon cycling and trace gas fluxes",
-    "principal_investigator": {
-      "has_raw_value": "Christopher Schadt"
+    "provenance_metadata": {
+      "mod_date": "2026-08-26T21:18:52Z"
     }
   },
   {
     "id": "nmdc:sty-11-aygzgv51",
     "name": "Riverbed sediment microbial communities from the Columbia River, Washington, USA",
-    "principal_investigator": {
-      "has_raw_value": "James Stegen"
+    "provenance_metadata": {
+      "mod_date": "2026-08-26T21:18:52Z"
     }
   }
 ]
@@ -117,7 +117,7 @@ Much better! Lastly, this how-to guide is about converting JSON-formatted metada
 We can pipe the output of the `jq ...` command into `json-tabulate` in order to convert the metadata into CSV, like this:
 
 ```shell
-curl --silent 'https://api.microbiomedata.org/studies?fields=id,name,principal_investigator.has_raw_value&per_page=3' \
+curl --silent 'https://api.microbiomedata.org/studies?fields=id,name,provenance_metadata.mod_date&per_page=3' \
   | jq '.results' \
   | json-tabulate
 ```
@@ -125,19 +125,19 @@ curl --silent 'https://api.microbiomedata.org/studies?fields=id,name,principal_i
 The output is now:
 
 ```csv
-$.id,$.name,$.principal_investigator.has_raw_value
-nmdc:sty-11-8fb6t785,"Deep subsurface shale carbon reservoir microbial communities from Ohio and West Virginia, USA",Kelly Wrighton
-nmdc:sty-11-33fbta56,"Peatland microbial communities from Minnesota, USA, analyzing carbon cycling and trace gas fluxes",Christopher Schadt
-nmdc:sty-11-aygzgv51,"Riverbed sediment microbial communities from the Columbia River, Washington, USA",James Stegen
+$.id,$.name,$.provenance_metadata.mod_date
+nmdc:sty-11-8fb6t785,"Deep subsurface shale carbon reservoir microbial communities from Ohio and West Virginia, USA",2026-08-26T21:18:52Z
+nmdc:sty-11-33fbta56,"Peatland microbial communities from Minnesota, USA, analyzing carbon cycling and trace gas fluxes",2026-08-26T21:18:52Z
+nmdc:sty-11-aygzgv51,"Riverbed sediment microbial communities from the Columbia River, Washington, USA",2026-08-26T21:18:52Z
 ```
 
 Or, as a table:
 
-|$.id                |$.name                                                                                           |$.principal_investigator.has_raw_value|
-|--------------------|-------------------------------------------------------------------------------------------------|--------------------------------------|
-|nmdc:sty-11-8fb6t785|Deep subsurface shale carbon reservoir microbial communities from Ohio and West Virginia, USA    |Kelly Wrighton                        |
-|nmdc:sty-11-33fbta56|Peatland microbial communities from Minnesota, USA, analyzing carbon cycling and trace gas fluxes|Christopher Schadt                    |
-|nmdc:sty-11-aygzgv51|Riverbed sediment microbial communities from the Columbia River, Washington, USA                 |James Stegen                          |
+|$.id                |$.name                                                                                           |$.provenance_metadata.mod_date|
+|--------------------|-------------------------------------------------------------------------------------------------|-------------------------------------|
+|nmdc:sty-11-8fb6t785|Deep subsurface shale carbon reservoir microbial communities from Ohio and West Virginia, USA    |2026-08-26T21:18:52Z                       |
+|nmdc:sty-11-33fbta56|Peatland microbial communities from Minnesota, USA, analyzing carbon cycling and trace gas fluxes|2026-08-26T21:18:52Z                   |
+|nmdc:sty-11-aygzgv51|Riverbed sediment microbial communities from the Columbia River, Washington, USA                 |2026-08-26T21:18:52Z                         |
 
 > **Wondering why all the column names begin with `$`?**
 >
@@ -148,7 +148,7 @@ Or, as a table:
 You can convert JSON into TSV by following the same procedure as converting JSON into CSV (see above); except that, for TSV, the `json-tabulate` command would include the `--output-format tsv` option, like this:
 
 ```shell
-curl --silent 'https://api.microbiomedata.org/studies?fields=id,name,principal_investigator.has_raw_value&per_page=3' \
+curl --silent 'https://api.microbiomedata.org/studies?fields=id,name,provenance_metadata.mod_date&per_page=3' \
   | jq '.results' \
   | json-tabulate --output-format tsv
 ```
@@ -156,10 +156,10 @@ curl --silent 'https://api.microbiomedata.org/studies?fields=id,name,principal_i
 The output would be:
 
 ```tsv
-$.id	$.name	$.principal_investigator.has_raw_value
-nmdc:sty-11-8fb6t785	Deep subsurface shale carbon reservoir microbial communities from Ohio and West Virginia, USA	Kelly Wrighton
-nmdc:sty-11-33fbta56	Peatland microbial communities from Minnesota, USA, analyzing carbon cycling and trace gas fluxes	Christopher Schadt
-nmdc:sty-11-aygzgv51	Riverbed sediment microbial communities from the Columbia River, Washington, USA	James Stegen
+$.id	$.name	$.provenance_metadata.mod_date
+nmdc:sty-11-8fb6t785	Deep subsurface shale carbon reservoir microbial communities from Ohio and West Virginia, USA	2026-08-26T21:18:52Z
+nmdc:sty-11-33fbta56	Peatland microbial communities from Minnesota, USA, analyzing carbon cycling and trace gas fluxes	2026-08-26T21:18:52Z
+nmdc:sty-11-aygzgv51	Riverbed sediment microbial communities from the Columbia River, Washington, USA	2026-08-26T21:18:52Z
 ```
 
 ## Conclusion

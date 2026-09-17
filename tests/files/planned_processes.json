@@ -29,12 +29,19 @@
       "add_date": "2021-08-20T00:00:00",
       "mod_date": "2021-08-20T00:00:00",
       "ncbi_project_name": "Root microbial communities from poplar common garden site in Clatskanie, Oregon, USA - BESC-847-CL1_28_5 endosphere",
-      "principal_investigator": {
-        "has_raw_value": "Mitchel Doktycz",
-        "email": "doktyczmj@ornl.gov",
-        "name": "Mitchel Doktycz",
-        "type": "nmdc:PersonValue"
-      },
+      "has_credit_associations": [
+        {
+          "applies_to_agent": {
+            "name": "Mitchel Doktycz",
+            "email": "doktyczmj@ornl.gov",
+            "type": "nmdc:Person"
+          },
+          "applied_roles": [
+            "Principal Investigator"
+          ],
+          "type": "nmdc:CreditAssociation"
+        }
+      ],
       "processing_institution": "JGI",
       "type": "nmdc:NucleotideSequencing",
       "gold_sequencing_project_identifiers": [

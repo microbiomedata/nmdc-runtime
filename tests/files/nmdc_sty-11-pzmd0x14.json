@@ -12,20 +12,13 @@
   "funding_sources": [
     "NSF#1724433 National Ecological Observatory Network: Operations Activities"
   ],
-  "principal_investigator": {
-    "name": "Kate Thibault",
-    "email": "kthibault@battelleecology.org",
-    "orcid": "orcid:0000-0003-3477-6424",
-    "has_raw_value": "Kate Thibault",
-    "type": "nmdc:PersonValue"
-  },
   "has_credit_associations": [
     {
-      "applies_to_person": {
+      "applies_to_agent": {
         "name": "Hugh Cross",
         "email": "crossh@battelleecology.org",
         "orcid": "orcid:0000-0002-6745-9479",
-        "type": "nmdc:PersonValue"
+        "type": "nmdc:Person"
       },
       "applied_roles": [
         "Methodology",
@@ -34,11 +27,11 @@
       "type": "prov:Association"
     },
     {
-      "applies_to_person": {
+      "applies_to_agent": {
         "name": "Kate Thibault",
         "email": "kthibault@battelleecology.org",
         "orcid": "orcid:0000-0003-3477-6424",
-        "type": "nmdc:PersonValue"
+        "type": "nmdc:Person"
       },
       "applied_roles": [
         "Principal Investigator"
@@ -46,11 +39,11 @@
       "type": "prov:Association"
     },
     {
-      "applies_to_person": {
+      "applies_to_agent": {
         "name": "Stephanie Parker",
         "email": "sparker@battelleecology.org",
-        "orcid": "0000-0002-7180-7245",
-        "type": "nmdc:PersonValue"
+        "orcid": "orcid:0000-0002-7180-7245",
+        "type": "nmdc:Person"
       },
       "applied_roles": [
         "Methodology",

@@ -46,9 +46,12 @@ study_set:
     source_system_of_record: NMDC_Submission_Portal
     submission_portal_identifier:
     - 91213966-e36d-40b1-841d-4f6c10c1af21
-  principal_investigator:
-    type: nmdc:PersonValue
-    email: tester@example.gov
-    name: ''
-    orcid: ''
+  has_credit_associations:
+  - applies_to_agent:
+      type: nmdc:Person
+      email: tester@example.gov
+      name: ''
+    applied_roles:
+    - Principal Investigator
+    type: nmdc:CreditAssociation
   title: Isolate Only
