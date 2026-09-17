@@ -764,9 +764,12 @@ def migrate(
                 for line in colorized_diff_lines:
                     print(line)
 
-                    # If the user specified a path to a log file, write the diff lines there, too.
-                    if isinstance(cfg.log_file_path, Path):
-                        logger.debug(line.rstrip())  # the log handler will already append a newline
+                # If the user specified a path to a log file, write the diff lines there, too.
+                # Note: Here, we write the non-colorized lines (which are plain strings).
+                if isinstance(cfg.log_file_path, Path):
+                    for diff_lines in diff_result.diff_lines_of_differing_documents.values():
+                        for line in diff_lines:
+                            logger.debug(line)
 
                 print(diff_result.get_summary_table(title=f"Summary of differences ({collection_name})"))
                 progress.update(task_outer, advance=1)
