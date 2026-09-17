@@ -194,52 +194,6 @@ def test_changesheet_array_item_nested_attributes():
         mdb.study_set.delete_one({"id": "nmdc:" + local_id})
 
 
-def test_update_pi_websites():
-    mdb = get_mongo(run_config_frozen__normal_env).db
-    local_id = "sty-11-r2h77870"
-    restore_original_doc = False
-    remove_tmp_doc = False
-    if mdb.study_set.find_one({"id": "nmdc:" + local_id}) is None:
-        with open(
-            REPO_ROOT_DIR.joinpath(
-                "tests", "files", f"study_no_credit_associations.json"
-            )
-        ) as f:
-            mdb.study_set.insert_one(json.load(f))
-            remove_tmp_doc = True
-    else:
-        restore_original_doc = True
-    df = load_changesheet(
-        TEST_DATA_DIR.joinpath("changesheet-update-pi-websites.tsv"), mdb
-    )
-    id_ = list(df.groupby("group_id"))[0][0]
-    study_doc = dissoc(mdb.study_set.find_one({"id": id_}), "_id")
-
-    pi_info = {
-        "has_raw_value": "NEW PI NAME",
-        "name": "NEW PI NAME",
-        "profile_image_url": "https://portal.nersc.gov/NEW-PI-NAME.jpg",
-        "orcid": "orcid:0000-0000-0000-0000",
-        "websites": ["https://www.ornl.gov/staff-profile/NEW-PI-NAME"],
-    }
-    assert study_doc.get("principal_investigator", []) != pi_info
-
-    update_cmd = mongo_update_command_for(df)
-
-    mdb_scratch = mdb.client["nmdc_runtime_test"]
-    copy_docs_in_update_cmd(
-        update_cmd, mdb_from=mdb, mdb_to=mdb_scratch, drop_mdb_to=True
-    )
-    results = update_mongo_db(mdb_scratch, update_cmd)
-    first_result_pi_info = results[0]["doc_after"]["principal_investigator"]
-    for k, v in pi_info.items():
-        assert first_result_pi_info[k] == v
-    if remove_tmp_doc:
-        mdb.study_set.delete_one({"id": "nmdc:" + local_id})
-    if restore_original_doc:
-        mdb.study_set.replace_one({"id": id_}, study_doc)
-
-
 def test_update_biosample_ph():
     mdb = get_mongo_db()
     doc = json.loads(

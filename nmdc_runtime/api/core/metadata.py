@@ -115,7 +115,6 @@ def load_changesheet(
             df.loc[ix, "group_var"] = id_val
 
     # add path column used to hold the path in the data to the data that will be changed
-    # e.g. principal_investigator.name
     df["path"] = ""
     # split into id groups, this allow each id group to have its own local variables
     # i.e., same var name can be used with different ids

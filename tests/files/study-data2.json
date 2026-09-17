@@ -7,9 +7,18 @@
 	 "ecosystem_type": "Soil",
 	 "ecosystem_subtype": "Wetlands",
 	 "specific_ecosystem": "Permafrost",
-	 "principal_investigator": {
-		 "has_raw_value": "Virginia Rich"
-	 },
+	 "has_credit_associations": [
+		 {
+			 "applies_to_agent": {
+				 "name": "Virginia Rich",
+				 "type": "nmdc:Person",
+			 },
+			 "applied_roles": [
+				 "Principal Investigator"
+			 ],
+			 "type": "nmdc:CreditAssociation"
+		 }
+	 ],
 	 "doi": {
 		 "has_raw_value": "10.25585/1487764"
 	 },

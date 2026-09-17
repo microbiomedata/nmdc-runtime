@@ -2200,10 +2200,6 @@ output:
       has_raw_value: Metagenome
     part_of:
     - fake:d862c2e3-6b0a-42f7-827c-67ebc8d44df7
-    principal_investigator:
-      has_raw_value: Kelly Wrighton
-      email: kwrighton@gmail.com
-      name: Kelly Wrighton
     processing_institution: JGI
     type: nmdc:OmicsProcessing
     gold_sequencing_project_identifiers:
@@ -2221,10 +2217,6 @@ output:
       has_raw_value: Metagenome
     part_of:
     - fake:d862c2e3-6b0a-42f7-827c-67ebc8d44df7
-    principal_investigator:
-      has_raw_value: Kelly Wrighton
-      email: kwrighton@gmail.com
-      name: Kelly Wrighton
     processing_institution: JGI
     type: nmdc:OmicsProcessing
     gold_sequencing_project_identifiers:
@@ -2243,10 +2235,6 @@ output:
       has_raw_value: Metagenome
     part_of:
     - fake:d862c2e3-6b0a-42f7-827c-67ebc8d44df7
-    principal_investigator:
-      has_raw_value: Kelly Wrighton
-      email: kwrighton@gmail.com
-      name: Kelly Wrighton
     processing_institution: JGI
     type: nmdc:OmicsProcessing
     gold_sequencing_project_identifiers:
@@ -2265,10 +2253,6 @@ output:
       has_raw_value: Metagenome
     part_of:
     - fake:d862c2e3-6b0a-42f7-827c-67ebc8d44df7
-    principal_investigator:
-      has_raw_value: Kelly Wrighton
-      email: kwrighton@gmail.com
-      name: Kelly Wrighton
     processing_institution: JGI
     type: nmdc:OmicsProcessing
     gold_sequencing_project_identifiers:
@@ -2287,10 +2271,6 @@ output:
       has_raw_value: Metagenome
     part_of:
     - fake:d862c2e3-6b0a-42f7-827c-67ebc8d44df7
-    principal_investigator:
-      has_raw_value: Kelly Wrighton
-      email: kwrighton@gmail.com
-      name: Kelly Wrighton
     processing_institution: JGI
     type: nmdc:OmicsProcessing
     gold_sequencing_project_identifiers:
@@ -2303,10 +2283,6 @@ output:
       to river size.
     gold_study_identifiers:
     - GOLD:Gs0149396
-    principal_investigator:
-      has_raw_value: Kelly Wrighton
-      email: kwrighton@gmail.com
-      name: Kelly Wrighton
     title: Freshwater microbial communities from rivers from various locations all over
       the world
     type: nmdc:Study
