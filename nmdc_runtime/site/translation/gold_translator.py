@@ -132,10 +132,10 @@ class GoldStudyTranslator(Translator):
         # is in this mapping. That way the resulting list of `nmdc:CreditAssociation`
         # instances will represent the contact with the Study PI role first, followed by
         # contacts with the PI role, then co-PI, etc.
-        role_to_credit_enum = {
-            "Study PI": nmdc.CreditEnum["Principal Investigator"],
-            "PI": nmdc.CreditEnum["Principal Investigator"],
-            "co-PI": nmdc.CreditEnum["Principal Investigator"],
+        role_to_credit_enum: dict[str, nmdc.CreditEnum] = {
+            "Study PI": nmdc.CreditEnum("Principal Investigator"),
+            "PI": nmdc.CreditEnum("Principal Investigator"),
+            "co-PI": nmdc.CreditEnum("Principal Investigator"),
         }
         role_sort_order = {
             role: index for index, role in enumerate(role_to_credit_enum.keys())
@@ -155,11 +155,12 @@ class GoldStudyTranslator(Translator):
         credit_associations = []
         for contact in sorted_contacts:
             contact_roles = contact.get("roles", [])
-            applied_roles = [
-                role_to_credit_enum[role]
-                for role in contact_roles
-                if role in role_to_credit_enum
-            ]
+            applied_roles = []
+            for role in contact_roles:
+                if role in role_to_credit_enum:
+                    mapped_role = role_to_credit_enum[role]
+                    if mapped_role not in applied_roles:
+                        applied_roles.append(mapped_role)
             if applied_roles and "name" in contact:
                 orcid: str | None = contact.get("orcidId").strip() or None
                 if orcid:
