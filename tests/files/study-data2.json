@@ -11,7 +11,7 @@
 		 {
 			 "applies_to_agent": {
 				 "name": "Virginia Rich",
-				 "type": "nmdc:Person",
+				 "type": "nmdc:Person"
 			 },
 			 "applied_roles": [
 				 "Principal Investigator"
