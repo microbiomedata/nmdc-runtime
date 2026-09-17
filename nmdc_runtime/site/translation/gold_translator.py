@@ -163,11 +163,11 @@ class GoldStudyTranslator(Translator):
             if applied_roles and "name" in contact:
                 credit_associations.append(
                     nmdc.CreditAssociation(
-                        applies_to_person=nmdc.PersonValue(
+                        applies_to_agent=nmdc.Person(
                             name=contact.get("name"),
                             email=contact.get("email"),
                             orcid=contact.get("orcidId"),
-                            type="nmdc:PersonValue",
+                            type="nmdc:Person",
                         ),
                         applied_roles=applied_roles,
                         type="nmdc:CreditAssociation",

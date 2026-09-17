@@ -122,11 +122,11 @@ study_set:
   - Some award ABC
   - Some award XYZ
   has_credit_associations:
-  - applies_to_person:
-      type: nmdc:PersonValue
+  - applies_to_agent:
+      type: nmdc:Person
       email: test.testerson@example.com
       name: Test Testerson
-      orcid: 0000-0000-0000-0000
+      orcid: orcid:0000-0000-0000-0000
     applied_roles:
     - Principal Investigator
     type: nmdc:CreditAssociation

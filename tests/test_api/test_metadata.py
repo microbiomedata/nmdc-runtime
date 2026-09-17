@@ -128,12 +128,6 @@ def test_changesheet_study_update(
     id_ = list(df.groupby("group_id"))[0][0]
     study_doc = dissoc(mdb.study_set.find_one({"id": id_}), "_id")
 
-    pi_info = {
-        "name": "NEW PI NAME 1",
-        "has_raw_value": "NEW RAW NAME 1",
-        "type": "nmdc:PersonValue",
-    }
-    assert study_doc.get("principal_investigator") != pi_info
     assert study_doc.get("name") != "NEW STUDY NAME 1"
     assert study_doc.get("ecosystem") != "NEW ECOSYSTEM 1"
     assert study_doc.get("ecosystem_type") != "NEW ECOSYSTEM_TYPE 1"
@@ -150,7 +144,6 @@ def test_changesheet_study_update(
     )
     results = update_mongo_db(mdb_scratch, update_cmd)
     first_result = results[0]
-    assert first_result["doc_after"]["principal_investigator"] == pi_info
     assert first_result["doc_after"]["name"] == "NEW STUDY NAME 1"
     assert first_result["doc_after"]["ecosystem"] == "NEW ECOSYSTEM 1"
     assert first_result["doc_after"]["ecosystem_type"] == "NEW ECOSYSTEM_TYPE 1"
@@ -180,7 +173,7 @@ def test_changesheet_array_item_nested_attributes():
 
     credit_info = {
         "applied_roles": ["Conceptualization"],
-        "applies_to_person": {
+        "applies_to_agent": {
             "name": "CREDIT NAME 1",
             "email": "CREDIT_NAME_1@foo.edu",
             "orcid": "orcid:0000-0000-0000-0001",

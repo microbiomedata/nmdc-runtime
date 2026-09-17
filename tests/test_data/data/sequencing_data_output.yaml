@@ -814,11 +814,10 @@ study_set:
     submission_portal_identifier:
     - e12d0754-c00c-4417-9a25-6eb372054182
   has_credit_associations:
-  - applies_to_person:
-      type: nmdc:PersonValue
+  - applies_to_agent:
+      type: nmdc:Person
       email: pkalita@lbl.gov
       name: ''
-      orcid: ''
     applied_roles:
     - Principal Investigator
     type: nmdc:CreditAssociation

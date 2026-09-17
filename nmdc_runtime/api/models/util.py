@@ -230,8 +230,8 @@ entity_attributes_to_index = {
     },
     "study_set": {
         "has_credit_associations.applied_roles",
-        "has_credit_associations.applies_to_person.name",
-        "has_credit_associations.applies_to_person.orcid",
+        "has_credit_associations.applies_to_agent.name",
+        "has_credit_associations.applies_to_agent.orcid",
     },
     "data_object_set": {
         "data_object_type",

@@ -35,7 +35,7 @@ class NCBISubmissionXML:
 
         # Get the first principal investigator from the NMDC study's CRediT associations
         principal_investigator = next(
-            ca.get("applies_to_person")
+            ca.get("applies_to_agent")
             for ca in nmdc_study.get("has_credit_associations", [])
             if "Principal Investigator" in ca.get("applied_roles", [])
         )

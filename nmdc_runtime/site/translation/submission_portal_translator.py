@@ -217,13 +217,11 @@ class SubmissionPortalTranslator(Translator):
             if class_def is not None and not class_def.abstract:
                 self._material_processing_subclass_names.append(class_name)
 
-    def _get_pi(
-        self, metadata_submission: JSON_OBJECT
-    ) -> Union[nmdc.PersonValue, None]:
-        """Construct an nmdc:PersonValue object using values from the study form data
+    def _get_pi(self, metadata_submission: JSON_OBJECT) -> Union[nmdc.Person, None]:
+        """Construct an nmdc:Person object using values from the study form data
 
         :param metadata_submission: submission portal entry
-        :return: nmdc:PersonValue
+        :return: nmdc:Person
         """
         study_form = metadata_submission.get("study_form")
         if not study_form:
@@ -233,12 +231,16 @@ class SubmissionPortalTranslator(Translator):
         if not piEmail:
             return None
 
-        return nmdc.PersonValue(
+        piOrcid = study_form.get("piOrcid", "").strip() or None
+        if piOrcid:
+            piOrcid = self._ensure_curie(piOrcid, default_prefix="orcid")
+
+        return nmdc.Person(
             name=study_form.get("piName"),
             email=study_form.get("piEmail"),
-            orcid=study_form.get("piOrcid"),
+            orcid=piOrcid,
             profile_image_url=self.study_pi_image_url,
-            type=nmdc.PersonValue.class_class_curie,
+            type=nmdc.Person.class_class_curie,
         )
 
     def _get_has_credit_associations(
@@ -259,12 +261,17 @@ class SubmissionPortalTranslator(Translator):
 
         credit_associations: List[nmdc.CreditAssociation] = []
         for contributor in contributors or []:
+            contributor_orcid = contributor.get("orcid", "").strip() or None
+            if contributor_orcid:
+                contributor_orcid = self._ensure_curie(
+                    contributor_orcid, default_prefix="orcid"
+                )
             credit_associations.append(
                 nmdc.CreditAssociation(
-                    applies_to_person=nmdc.PersonValue(
+                    applies_to_agent=nmdc.Person(
                         name=contributor.get("name"),
-                        orcid=contributor.get("orcid"),
-                        type="nmdc:PersonValue",
+                        orcid=contributor_orcid,
+                        type="nmdc:Person",
                     ),
                     applied_roles=contributor.get("roles"),
                     type="nmdc:CreditAssociation",
@@ -276,17 +283,15 @@ class SubmissionPortalTranslator(Translator):
                 (
                     ca
                     for ca in credit_associations
-                    if ca.applies_to_person.orcid == principal_investigator.orcid
+                    if ca.applies_to_agent.orcid == principal_investigator.orcid
                 ),
                 None,
             )
             if pi_contributor:
                 # Submission Portal only collects email for PIs, not for other
                 # contributors.
-                if not pi_contributor.applies_to_person.email:
-                    pi_contributor.applies_to_person.email = (
-                        principal_investigator.email
-                    )
+                if not pi_contributor.applies_to_agent.email:
+                    pi_contributor.applies_to_agent.email = principal_investigator.email
 
                 # Ensure that the PI has the "Principal Investigator" role in their
                 # applied_roles list.
@@ -300,7 +305,7 @@ class SubmissionPortalTranslator(Translator):
             else:
                 credit_associations.append(
                     nmdc.CreditAssociation(
-                        applies_to_person=principal_investigator,
+                        applies_to_agent=principal_investigator,
                         applied_roles=["Principal Investigator"],
                         type="nmdc:CreditAssociation",
                     )
@@ -1632,8 +1637,8 @@ class SubmissionPortalTranslator(Translator):
             # address (required in the Submission Portal). Once the correct entry is
             # found, set the image URL for that entry.
             for credits_association in nmdc_study.has_credit_associations or []:
-                if credits_association.applies_to_person.email == pi_email:
-                    credits_association.applies_to_person.profile_image_url = (
+                if credits_association.applies_to_agent.email == pi_email:
+                    credits_association.applies_to_agent.profile_image_url = (
                         pi_image_url
                     )
                     break

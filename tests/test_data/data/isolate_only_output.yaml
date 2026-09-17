@@ -47,11 +47,10 @@ study_set:
     submission_portal_identifier:
     - 91213966-e36d-40b1-841d-4f6c10c1af21
   has_credit_associations:
-  - applies_to_person:
-      type: nmdc:PersonValue
+  - applies_to_agent:
+      type: nmdc:Person
       email: tester@example.gov
       name: ''
-      orcid: ''
     applied_roles:
     - Principal Investigator
     type: nmdc:CreditAssociation

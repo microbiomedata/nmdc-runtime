@@ -33,7 +33,7 @@
         "has_raw_value": "Mitchel Doktycz",
         "email": "doktyczmj@ornl.gov",
         "name": "Mitchel Doktycz",
-        "type": "nmdc:PersonValue"
+        "type": "nmdc:Person"
       },
       "processing_institution": "JGI",
       "type": "nmdc:NucleotideSequencing",

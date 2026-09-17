@@ -17,7 +17,7 @@ MOCK_PORTAL_SUBMISSION = {
         "templates": ["plant-associated"],
         "studyForm": {
             "studyName": "A test submission",
-            "type": "nmdc:PersonValue",
+            "type": "nmdc:Person",
             "piName": "Test Testerson",
             "piEmail": "test.testerson@example.com",
             "piOrcid": "0000-0000-0000-0000",

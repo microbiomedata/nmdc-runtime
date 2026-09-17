@@ -83,21 +83,21 @@ def test_get_has_credit_associations():
     )
     assert len(credit_associations) == 4
     assert credit_associations[0].applied_roles[0].code == nmdc.CreditEnum["Principal Investigator"]
-    assert credit_associations[0].applies_to_person.name == "Randy T. Woolf"
-    assert credit_associations[0].applies_to_person.email == "RandyWoolf@example.com"
-    assert credit_associations[0].applies_to_person.orcid == "0000-0000-0000-0004"
+    assert credit_associations[0].applies_to_agent.name == "Randy T. Woolf"
+    assert credit_associations[0].applies_to_agent.email == "RandyWoolf@example.com"
+    assert credit_associations[0].applies_to_agent.orcid == "0000-0000-0000-0004"
     assert credit_associations[1].applied_roles[0].code == nmdc.CreditEnum["Principal Investigator"]
-    assert credit_associations[1].applies_to_person.name == "Joan D. Berger"
-    assert credit_associations[1].applies_to_person.email == "jdb@example.com"
-    assert credit_associations[1].applies_to_person.orcid == "0000-0000-0000-0002"
+    assert credit_associations[1].applies_to_agent.name == "Joan D. Berger"
+    assert credit_associations[1].applies_to_agent.email == "jdb@example.com"
+    assert credit_associations[1].applies_to_agent.orcid == "0000-0000-0000-0002"
     assert credit_associations[2].applied_roles[0].code == nmdc.CreditEnum["Principal Investigator"]
-    assert credit_associations[2].applies_to_person.name == "Clifton P. Parker"
-    assert credit_associations[2].applies_to_person.email == "CliftonPParker@example.com"
-    assert credit_associations[2].applies_to_person.orcid == "0000-0000-0000-0001"
+    assert credit_associations[2].applies_to_agent.name == "Clifton P. Parker"
+    assert credit_associations[2].applies_to_agent.email == "CliftonPParker@example.com"
+    assert credit_associations[2].applies_to_agent.orcid == "0000-0000-0000-0001"
     assert credit_associations[3].applied_roles[0].code == nmdc.CreditEnum["Principal Investigator"]
-    assert credit_associations[3].applies_to_person.name == "Beth S. Hemphill"
-    assert credit_associations[3].applies_to_person.email == "bhemphill@example.com"
-    assert credit_associations[3].applies_to_person.orcid == "0000-0000-0000-0003"
+    assert credit_associations[3].applies_to_agent.name == "Beth S. Hemphill"
+    assert credit_associations[3].applies_to_agent.email == "bhemphill@example.com"
+    assert credit_associations[3].applies_to_agent.orcid == "0000-0000-0000-0003"
 
     # no PI in contacts, _get_has_credit_associations should return None
     credit_associations = translator._get_has_credit_associations(
@@ -107,7 +107,7 @@ def test_get_has_credit_associations():
                     "name": "Beth S. Hemphill",
                     "email": "bhemphill@example.com",
                     "roles": ["submitter"],
-                    "type": "nmdc:PersonValue",
+                    "type": "nmdc:Person",
                 },
             ]
         }

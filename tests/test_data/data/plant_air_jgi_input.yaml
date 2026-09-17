@@ -28,7 +28,7 @@ metadata_submission:
       - Some award XYZ
     contributors:
       - name: Adina Howe
-        type: nmdc:PersonValue
+        type: nmdc:Person
         orcid: 0000-0002-7705-343X
         roles:
           - Writing review and editing
@@ -59,7 +59,7 @@ metadata_submission:
     orcid: 0000-0002-7705-343X
     name: Adina Howe
     is_admin: false
-    type: nmdc:PersonValue
+    type: nmdc:Person
 sample_set:
   created: '2023-04-03T18:31:16.856377'
   id: fb8bf86e-49c9-5366-a1b9-1c5987cab967

@@ -841,10 +841,10 @@ study_set:
   - Some award ABC
   - Some award XYZ
   has_credit_associations:
-  - applies_to_person:
-      type: nmdc:PersonValue
+  - applies_to_agent:
+      type: nmdc:Person
       name: Adina Howe
-      orcid: 0000-0002-7705-343X
+      orcid: orcid:0000-0002-7705-343X
     applied_roles:
     - Writing review and editing
     - Visualization
@@ -862,11 +862,11 @@ study_set:
     - Principal Investigator
     - Funding acquisition
     type: prov:Association
-  - applies_to_person:
-      type: nmdc:PersonValue
+  - applies_to_agent:
+      type: nmdc:Person
       email: shade.ashley@gmail.com
       name: Ashley Shade
-      orcid: 0000-0002-7189-3067
+      orcid: orcid:0000-0002-7189-3067
     applied_roles:
     - Principal Investigator
     type: nmdc:CreditAssociation

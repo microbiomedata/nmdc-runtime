@@ -40,7 +40,7 @@ MOCK_NMDC_STUDY = {
     ],
     "has_credit_associations": [
         {
-            "applies_to_person": {
+            "applies_to_agent": {
                 "name": "Hugh Cross",
                 "email": "crossh@battelleecology.org",
                 "orcid": "orcid:0000-0002-6745-9479",
@@ -48,7 +48,7 @@ MOCK_NMDC_STUDY = {
             "applied_roles": ["Methodology", "Data curation"],
         },
         {
-            "applies_to_person": {
+            "applies_to_agent": {
                 "name": "Samantha Weintraub-Leff",
                 "email": "sweintraub@battelleecology.org",
                 "orcid": "orcid:0000-0003-4789-5086",
@@ -56,7 +56,7 @@ MOCK_NMDC_STUDY = {
             "applied_roles": ["Methodology", "Data curation"],
         },
         {
-            "applies_to_person": {
+            "applies_to_agent": {
                 "name": "Kate Thibault",
                 "email": "kthibault@battelleecology.org",
                 "orcid": "orcid:0000-0003-3477-6424",

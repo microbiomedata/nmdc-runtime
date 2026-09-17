@@ -370,7 +370,7 @@ def make_vargroup_updates(df: pds.DataFrame) -> List:
             # values into a single object, e.g:
             # {'has_credit_associations': {
             #     'applied_role': 'Conceptualization',
-            #     'applies_to_person': {
+            #     'applies_to_agent': {
             #         'name': 'CREDIT NAME 1',
             #         'email': 'CREDIT_NAME_1@foo.edu',
             #         'orcid': 'orcid:0000-0000-0000-0001'}}}
