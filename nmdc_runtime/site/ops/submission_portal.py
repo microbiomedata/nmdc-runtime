@@ -318,9 +318,10 @@ def finalize_submission(
     # be persisted through /metadata/json:submit.
     SubmissionPortalTranslator.set_study_images(
         database.study_set[0],
-        public_images.get("pi_image_url"),
-        public_images.get("primary_study_image_url"),
-        public_images.get("study_image_urls"),
+        pi_email=metadata_submission.get("study_form", {}).get("piEmail"),
+        pi_image_url=public_images.get("pi_image_url"),
+        primary_study_image_url=public_images.get("primary_study_image_url"),
+        study_images_url=public_images.get("study_image_urls"),
     )
     yield Output(
         nmdc.Database(study_set=[database.study_set[0]]),
