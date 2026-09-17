@@ -22,6 +22,7 @@ on:
       - 'pyproject.toml'
       - 'uv.lock'
       - '!util/load_testing/**'
+      - '!db/migrations/cli**'
   pull_request:
     paths:
       - '.github/workflows/python-app.yml'
@@ -31,6 +32,7 @@ on:
       - 'pyproject.toml'
       - 'uv.lock'
       - '!util/load_testing/**'
+      - '!db/migrations/cli**'
   # Allow developers to trigger this workflow manually via the "Actions" page on GitHub.
   # Reference: https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/manually-running-a-workflow
   workflow_dispatch: { }
