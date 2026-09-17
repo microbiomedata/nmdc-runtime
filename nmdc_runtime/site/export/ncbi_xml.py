@@ -39,7 +39,7 @@ class NCBISubmissionXML:
             for ca in nmdc_study.get("has_credit_associations", [])
             if "Principal Investigator" in ca.get("applied_roles", [])
         )
-        self.nmdc_pi_email = principal_investigator.get("email")
+        self.nmdc_pi_email = principal_investigator.get("email", "")
         nmdc_study_pi_name = principal_investigator.get("name", "").split()
         self.first_name = nmdc_study_pi_name[0]
         self.last_name = nmdc_study_pi_name[1] if len(nmdc_study_pi_name) > 1 else None
