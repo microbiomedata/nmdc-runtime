@@ -294,6 +294,9 @@ class SubmissionPortalTranslator(Translator):
                 # contributors.
                 if not pi_contributor.applies_to_agent.email:
                     pi_contributor.applies_to_agent.email = principal_investigator.email
+                    pi_contributor.applies_to_agent.profile_image_url = (
+                        principal_investigator.profile_image_url
+                    )
 
                 # Ensure that the PI has the "Principal Investigator" role in their
                 # applied_roles list.
