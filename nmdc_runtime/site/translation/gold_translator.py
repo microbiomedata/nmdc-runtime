@@ -161,12 +161,15 @@ class GoldStudyTranslator(Translator):
                 if role in role_to_credit_enum
             ]
             if applied_roles and "name" in contact:
+                orcid: str | None = contact.get("orcidId").strip() or None
+                if orcid:
+                    orcid = self._ensure_curie(orcid, default_prefix="orcid")
                 credit_associations.append(
                     nmdc.CreditAssociation(
                         applies_to_agent=nmdc.Person(
                             name=contact.get("name"),
                             email=contact.get("email"),
-                            orcid=contact.get("orcidId"),
+                            orcid=orcid,
                             type="nmdc:Person",
                         ),
                         applied_roles=applied_roles,
