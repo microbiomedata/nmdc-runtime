@@ -80,28 +80,55 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 ENV PIP_CACHE_DIR="/tmp/.pip_cache_dir"
 RUN uv pip install --upgrade pip
 
+# Create a mongosh script that initializes a replica set named "rs0" and waits (up to 60 seconds)
+# for the MongoDB instance to become a writeable primary member of the replica set. Once the MongoDB
+# instance has become that, it will support MongoDB transactions.
+# Docs: https://www.mongodb.com/docs/manual/reference/command/hello/#replica-sets
+RUN echo 'try {'                                                                       > /init-rs.mongosh.js && \
+    echo '  rs.initiate({_id: "rs0", members: [{_id: 0, host: "localhost:27017"}]});' >> /init-rs.mongosh.js && \
+    echo '} catch (error) {'                                                          >> /init-rs.mongosh.js && \
+    echo '  if (error.codeName !== "AlreadyInitialized") throw error;'                >> /init-rs.mongosh.js && \
+    echo '}'                                                                          >> /init-rs.mongosh.js && \
+    echo ''                                                                           >> /init-rs.mongosh.js && \
+    echo 'const deadline = Date.now() + 60000;'                                       >> /init-rs.mongosh.js && \
+    echo 'while (db.hello().isWritablePrimary !== true) {'                            >> /init-rs.mongosh.js && \
+    echo '  if (Date.now() >= deadline) {'                                            >> /init-rs.mongosh.js && \
+    echo '    throw new Error("MongoDB instance did not become ready soon enough.");' >> /init-rs.mongosh.js && \
+    echo '  }'                                                                        >> /init-rs.mongosh.js && \
+    echo '  sleep(1000);'                                                             >> /init-rs.mongosh.js && \
+    echo '}'                                                                          >> /init-rs.mongosh.js
+
 # Create an init shell script that does the following things:
 # (1) prepare the MongoDB data directory (by setting its ownership and "rwx" mode to match what they
 #     are for the default one (i.e. `/data/db`);
 # (2) launch MongoDB in daemon mode, via the same entrypoint script as the base `mongo` image would,
-#      and configure it to write its logs to a file instead of to the console, and to store its data
-#      in the specified directory; and
-# (3) execute, as the container's main process, a shell command composed of whatever arguments were
+#     and configure it to (a) write its logs to a file instead of to the console, (b) to store its
+#     data in the specified directory, and (c) to be a member of a replica set named `rs0`;
+# (3) initialize the single-member replica set and wait for it to become writeable; and
+# (4) execute, as the container's main process, a shell command composed of whatever arguments were
 #     passed to the init script (typically a command to run the `nmdc-migration-cli` CLI app).
 #
 # Docs: https://www.mongodb.com/docs/manual/reference/program/mongod/#std-option-mongod.--dbpath
 #
 RUN echo '#! /bin/bash'                                                          > /init.sh && \
+    echo 'printf "\n"'                                                          >> /init.sh && \
+    echo 'set -e'                                                               >> /init.sh && \
     echo ''                                                                     >> /init.sh && \
     echo 'printf "Preparing MongoDB data directory: %s\n" "${MONGO_DATA_PATH}"' >> /init.sh && \
-    echo 'mkdir -p "${MONGO_DATA_PATH}" && \'                                   >> /init.sh && \
-    echo '  chown mongodb:mongodb "${MONGO_DATA_PATH}" && \'                    >> /init.sh && \
-    echo '  chmod 755 "${MONGO_DATA_PATH}"'                                     >> /init.sh && \
+    echo 'mkdir -p "${MONGO_DATA_PATH}"'                                        >> /init.sh && \
+    echo 'chown mongodb:mongodb "${MONGO_DATA_PATH}"'                           >> /init.sh && \
+    echo 'chmod 755 "${MONGO_DATA_PATH}"'                                       >> /init.sh && \
     echo ''                                                                     >> /init.sh && \
     echo 'printf "\nLaunching MongoDB in daemon mode:\n"'                       >> /init.sh && \
     echo 'docker-entrypoint.sh mongod --fork \'                                 >> /init.sh && \
+    echo '  --replSet rs0 \'                                                    >> /init.sh && \
     echo '  --logpath "${MONGO_LOG_PATH}" \'                                    >> /init.sh && \
     echo '  --dbpath "${MONGO_DATA_PATH}"'                                      >> /init.sh && \
+    echo ''                                                                     >> /init.sh && \
+    echo 'printf "\nInitializing MongoDB replica set:\n"'                       >> /init.sh && \
+    echo 'mongosh \'                                                            >> /init.sh && \
+    echo '  "mongodb://localhost:27017/?directConnection=true" \'               >> /init.sh && \
+    echo '  --quiet --file /init-rs.mongosh.js'                                 >> /init.sh && \
     echo ''                                                                     >> /init.sh && \
     echo 'printf "\nExecuting command: " && \'                                  >> /init.sh && \
     echo '  printf "%s " "$@" && \'                                             >> /init.sh && \
