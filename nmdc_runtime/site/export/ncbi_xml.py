@@ -20,6 +20,11 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
 )
 
 
+# NMDC Biosample slots that should never be emitted as NCBI BioSample <Attribute>
+# elements, even if they appear in the attribute mapping file.
+EXCLUDED_BIOSAMPLE_SLOTS = {"biosample_categories", "type"}
+
+
 class NCBISubmissionXML:
     def __init__(self, nmdc_study: Any, ncbi_submission_metadata: dict):
         self.root = ET.Element("Submission")
@@ -235,6 +240,9 @@ class NCBISubmissionXML:
             pooling_info = pooling_data.get(biosample["id"], {})
 
             for json_key, value in biosample.items():
+                if json_key in EXCLUDED_BIOSAMPLE_SLOTS:
+                    continue
+
                 if isinstance(value, list):
                     for item in value:
                         if json_key not in attribute_mappings:
@@ -489,7 +497,7 @@ class NCBISubmissionXML:
         # Process each biosample to collect and aggregate attributes
         for biosample in biosamples:
             for json_key, value in biosample.items():
-                if json_key == "id":
+                if json_key == "id" or json_key in EXCLUDED_BIOSAMPLE_SLOTS:
                     continue
 
                 if json_key == "env_package":
