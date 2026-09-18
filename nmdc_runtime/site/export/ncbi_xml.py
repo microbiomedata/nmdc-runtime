@@ -331,19 +331,8 @@ class NCBISubmissionXML:
 
             # Override with aggregated values for pooled samples
             if pooling_info:
-                if pooling_info.get("aggregated_collection_date"):
-                    # Find the mapping for collection_date
-                    collection_date_key = attribute_mappings.get(
-                        "collection_date", "collection_date"
-                    )
-                    attributes[collection_date_key] = pooling_info[
-                        "aggregated_collection_date"
-                    ]
-
-                if pooling_info.get("aggregated_depth"):
-                    # Find the mapping for depth
-                    depth_key = attribute_mappings.get("depth", "depth")
-                    attributes[depth_key] = pooling_info["aggregated_depth"]
+                for slot, value in pooling_info.get("aggregated_values", {}).items():
+                    attributes[attribute_mappings.get(slot, slot)] = value
 
                 # Add samp_pooling attribute with semicolon-delimited biosample IDs
                 if pooling_info.get("pooled_biosample_ids"):
@@ -592,18 +581,13 @@ class NCBISubmissionXML:
                 if xml_key not in aggregated_attributes:
                     aggregated_attributes[xml_key] = formatted_value
 
-        # Override with aggregated values for pooled samples
-        if pooling_info.get("aggregated_collection_date"):
-            collection_date_key = attribute_mappings.get(
-                "collection_date", "collection_date"
-            )
-            aggregated_attributes[collection_date_key] = pooling_info[
-                "aggregated_collection_date"
-            ]
-
-        if pooling_info.get("aggregated_depth"):
-            depth_key = attribute_mappings.get("depth", "depth")
-            aggregated_attributes[depth_key] = pooling_info["aggregated_depth"]
+        # Override with values aggregated across the constituent biosamples
+        # (see `aggregate_pooled_values` in ncbi_xml_utils)
+        aggregated_value_keys = set()
+        for slot, value in pooling_info.get("aggregated_values", {}).items():
+            xml_key = attribute_mappings.get(slot, slot)
+            aggregated_attributes[xml_key] = value
+            aggregated_value_keys.add(xml_key)
 
         # Add samp_pooling attribute with semicolon-delimited biosample IDs
         if pooling_info.get("pooled_biosample_ids"):
@@ -611,7 +595,9 @@ class NCBISubmissionXML:
                 pooling_info["pooled_biosample_ids"]
             )
 
-        # Filter attributes to only include the ones from neon_soil_example.xml for pooled samples
+        # Pooled samples only carry attributes that describe the composite:
+        # the location/environment attributes shared by all constituents
+        # (from neon_soil_example.xml) plus any value we could aggregate.
         allowed_attributes = {
             "collection_date",
             "depth",
@@ -622,7 +608,7 @@ class NCBISubmissionXML:
             "env_local_scale",
             "env_medium",
             "samp_pooling",
-        }
+        } | aggregated_value_keys
         filtered_attributes = {
             k: v for k, v in aggregated_attributes.items() if k in allowed_attributes
         }

@@ -10,6 +10,12 @@ from nmdc_runtime.site.export.ncbi_xml import (
     get_excluded_biosample_slots,
 )
 from nmdc_runtime.site.export.ncbi_xml_utils import (
+    aggregate_carb_nitro_ratio,
+    aggregate_collection_date,
+    aggregate_ph,
+    aggregate_pooled_values,
+    aggregate_range,
+    check_pooling_for_biosamples,
     load_mappings,
     handle_quantity_value,
     handle_text_value,
@@ -1173,8 +1179,10 @@ class TestNCBIXMLUtils:
                     "nmdc:bsm-12-938kxq31",
                     "nmdc:bsm-12-s2ngn133",
                 ],
-                "aggregated_collection_date": "2021-01-01/2021-01-03",
-                "aggregated_depth": "2 - 10 m",
+                "aggregated_values": {
+                    "collection_date": "2021-01-01/2021-01-03",
+                    "depth": "2 - 10 m",
+                },
             },
             "nmdc:bsm-12-938kxq31": {
                 "pooling_process_id": "nmdc:poolp-11-gznh3638",
@@ -1185,8 +1193,10 @@ class TestNCBIXMLUtils:
                     "nmdc:bsm-12-938kxq31",
                     "nmdc:bsm-12-s2ngn133",
                 ],
-                "aggregated_collection_date": "2021-01-01/2021-01-03",
-                "aggregated_depth": "2 - 10 m",
+                "aggregated_values": {
+                    "collection_date": "2021-01-01/2021-01-03",
+                    "depth": "2 - 10 m",
+                },
             },
             "nmdc:bsm-12-s2ngn133": {
                 "pooling_process_id": "nmdc:poolp-11-gznh3638",
@@ -1197,8 +1207,10 @@ class TestNCBIXMLUtils:
                     "nmdc:bsm-12-938kxq31",
                     "nmdc:bsm-12-s2ngn133",
                 ],
-                "aggregated_collection_date": "2021-01-01/2021-01-03",
-                "aggregated_depth": "2 - 10 m",
+                "aggregated_values": {
+                    "collection_date": "2021-01-01/2021-01-03",
+                    "depth": "2 - 10 m",
+                },
             },
         }
 
@@ -1618,3 +1630,214 @@ class TestNCBIXMLUtils:
         # Should contain external links to processed sample and pooling process
         assert "https://bioregistry.io/nmdc:procsm-11-dha8mw20" in biosample_xml
         assert "https://bioregistry.io/nmdc:poolp-11-gznh3638" in biosample_xml
+
+
+def _qv(value, unit):
+    return {"has_numeric_value": value, "has_unit": unit, "type": "nmdc:QuantityValue"}
+
+
+class TestPooledValueAggregation:
+    def test_aggregate_range_quantity_values(self):
+        assert aggregate_range([_qv(0, "m"), _qv(10, "m")]) == "0-10 m"
+
+    def test_aggregate_range_collapses_identical_values(self):
+        assert aggregate_range([_qv(5.0, "m"), _qv(5, "m")]) == "5 m"
+
+    def test_aggregate_range_expands_min_max_values(self):
+        depth = {
+            "has_minimum_numeric_value": 0,
+            "has_maximum_numeric_value": 0.1,
+            "has_unit": "m",
+        }
+        assert aggregate_range([depth, _qv(0.3, "m")]) == "0-0.3 m"
+
+    def test_aggregate_range_bare_numbers_have_no_unit(self):
+        assert aggregate_range([1.5, 2.25]) == "1.5-2.25"
+
+    def test_aggregate_range_strings_with_unit_text(self):
+        values = [["0.75 g water/g dry soil"], ["0.6 g water/g dry soil"]]
+        assert aggregate_range(values) == "0.6-0.75 g water/g dry soil"
+
+    def test_aggregate_range_rejects_unit_mismatch(self):
+        assert aggregate_range([_qv(20, "Cel"), _qv(68, "degree Fahrenheit")]) is None
+
+    def test_aggregate_range_rejects_unparseable_value(self):
+        assert aggregate_range([_qv(1, "m"), {"has_raw_value": "unknown"}]) is None
+
+    def test_aggregate_collection_date_interval(self):
+        biosamples = [
+            {"collection_date": {"has_raw_value": "2017-06-05T17:47Z"}},
+            {"collection_date": {"has_raw_value": "2017-06-05T16:50Z"}},
+        ]
+        assert (
+            aggregate_collection_date(biosamples)
+            == "2017-06-05T16:50Z/2017-06-05T17:47Z"
+        )
+
+    def test_aggregate_collection_date_single_when_identical(self):
+        biosamples = [
+            {"collection_date": "2017-06-05"},
+            {"collection_date": "2017-06-05"},
+        ]
+        assert aggregate_collection_date(biosamples) == "2017-06-05"
+
+    def test_aggregate_ph_averages_hydrogen_ion_concentration(self):
+        # mean [H+] of pH 6 and pH 7 is 5.5e-7, i.e. pH 6.26 (not 6.5)
+        assert aggregate_ph([{"ph": 6.0}, {"ph": 7.0}]) == "6.26"
+
+    def test_aggregate_ph_identical_values(self):
+        assert aggregate_ph([{"ph": 5.83}, {"ph": 5.83}, {"ph": 5.83}]) == "5.83"
+
+    def test_aggregate_ph_requires_every_biosample(self):
+        assert aggregate_ph([{"ph": 6.0}, {"name": "no ph"}]) is None
+
+    def test_aggregate_carb_nitro_ratio_from_components(self):
+        # sum(C)/sum(N) = 30/4 = 7.5, whereas mean of ratios would be 8.33
+        biosamples = [
+            {
+                "org_carb": _qv(10, "g/kg"),
+                "nitro": _qv(1, "g/kg"),
+                "carb_nitro_ratio": _qv(10, ""),
+            },
+            {
+                "org_carb": _qv(20, "g/kg"),
+                "nitro": _qv(3, "g/kg"),
+                "carb_nitro_ratio": _qv(6.67, ""),
+            },
+        ]
+        assert aggregate_carb_nitro_ratio(biosamples) == "7.5"
+
+    def test_aggregate_carb_nitro_ratio_falls_back_to_mean_of_ratios(self):
+        biosamples = [
+            {"carb_nitro_ratio": _qv(10, "")},
+            {"carb_nitro_ratio": _qv(20, "")},
+        ]
+        assert aggregate_carb_nitro_ratio(biosamples) == "15"
+
+    def test_aggregate_carb_nitro_ratio_component_unit_mismatch_falls_back(self):
+        biosamples = [
+            {
+                "org_carb": _qv(10, "g/kg"),
+                "nitro": _qv(1000, "mg/kg"),
+                "carb_nitro_ratio": _qv(10, ""),
+            },
+            {
+                "org_carb": _qv(20, "g/kg"),
+                "nitro": _qv(3000, "mg/kg"),
+                "carb_nitro_ratio": _qv(6, ""),
+            },
+        ]
+        assert aggregate_carb_nitro_ratio(biosamples) == "8"
+
+    def test_aggregate_pooled_values_omits_unaggregatable_slots(self):
+        biosamples = [
+            {
+                "collection_date": {"has_raw_value": "2017-06-05"},
+                "depth": _qv(0, "m"),
+                "temp": _qv(15, "Cel"),
+                "ph": 6.0,
+            },
+            {
+                "collection_date": {"has_raw_value": "2017-06-06"},
+                "depth": _qv(0.1, "m"),
+                "temp": _qv(17, "Cel"),
+                "ph": 7.0,
+                "org_carb": _qv(1, "g/kg"),  # only on one constituent
+            },
+        ]
+        assert aggregate_pooled_values(biosamples) == {
+            "collection_date": "2017-06-05/2017-06-06",
+            "depth": "0-0.1 m",
+            "temp": "15-17 Cel",
+            "ph": "6.26",
+        }
+
+    def test_check_pooling_for_biosamples_populates_aggregated_values(self):
+        biosamples = [
+            {"id": "nmdc:bsm-11-a", "ph": 6.0, "depth": _qv(0, "m")},
+            {"id": "nmdc:bsm-11-b", "ph": 7.0, "depth": _qv(0.1, "m")},
+            {"id": "nmdc:bsm-11-c", "ph": 5.0},
+        ]
+        material_processing_set = MagicMock()
+        material_processing_set.find.return_value = [
+            {
+                "id": "nmdc:poolp-11-x",
+                "type": "nmdc:Pooling",
+                "has_input": ["nmdc:bsm-11-a", "nmdc:bsm-11-b"],
+                "has_output": ["nmdc:procsm-11-x"],
+            }
+        ]
+
+        result = check_pooling_for_biosamples(material_processing_set, biosamples)
+
+        assert result["nmdc:bsm-11-c"] == {}
+        pooling_info = result["nmdc:bsm-11-a"]
+        assert pooling_info == result["nmdc:bsm-11-b"]
+        assert pooling_info["processed_sample_id"] == "nmdc:procsm-11-x"
+        assert pooling_info["aggregated_values"] == {"ph": "6.26", "depth": "0-0.1 m"}
+
+    def test_pooled_biosample_xml_includes_aggregated_values(
+        self,
+        ncbi_submission_client: NCBISubmissionXML,
+        mocker: Callable[..., Generator[MockerFixture, None, None]],
+    ):
+        slots = ["id", "name", "collection_date", "depth", "ph", "temp", "elev"]
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {slot: slot for slot in slots},
+                {
+                    "ph": "float",
+                    "elev": "float",
+                    "depth": "QuantityValue",
+                    "temp": "QuantityValue",
+                },
+            ),
+        )
+        pooling_info = {
+            "pooling_process_id": "nmdc:poolp-11-agg01",
+            "processed_sample_id": "nmdc:procsm-11-agg01",
+            "pooled_biosample_ids": ["nmdc:bsm-11-agg01", "nmdc:bsm-11-agg02"],
+            "aggregated_values": {
+                "collection_date": "2017-06-05/2017-06-06",
+                "depth": "0-0.1 m",
+                "ph": "6.26",
+                "temp": "15-17 Cel",
+            },
+        }
+        biosamples = [
+            {
+                "id": "nmdc:bsm-11-agg01",
+                "name": "core 1",
+                "ph": 6.0,
+                "temp": _qv(15, "Cel"),
+                "elev": 100.0,
+            },
+            {
+                "id": "nmdc:bsm-11-agg02",
+                "name": "core 2",
+                "ph": 7.0,
+                "temp": _qv(17, "Cel"),
+                "elev": 100.0,
+            },
+        ]
+
+        ncbi_submission_client.set_biosample(
+            organism_name="E. coli",
+            org="Test Org",
+            bioproject_id="PRJNA1029061",
+            nmdc_biosamples=biosamples,
+            pooled_biosamples_data={bs["id"]: pooling_info for bs in biosamples},
+        )
+
+        attributes = {
+            attr.get("attribute_name"): attr.text
+            for attr in ncbi_submission_client.root.iter("Attribute")
+        }
+        assert attributes["ph"] == "6.26"
+        assert attributes["temp"] == "15-17 Cel"
+        assert attributes["depth"] == "0-0.1 m"
+        assert attributes["collection_date"] == "2017-06-05/2017-06-06"
+        # value taken from the first constituent must not leak through
+        assert attributes["samp_pooling"] == "nmdc:bsm-11-agg01;nmdc:bsm-11-agg02"
+        assert "name" not in attributes
