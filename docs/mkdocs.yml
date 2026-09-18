@@ -120,4 +120,5 @@ plugins:
   - mermaid2:
       arguments:
         securityLevel: 'loose'
+        theme: neutral
   - mkdocs-jupyter
