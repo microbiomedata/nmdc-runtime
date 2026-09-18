@@ -5,7 +5,10 @@ import xml.etree.ElementTree as ET
 
 from pytest_mock import MockerFixture
 
-from nmdc_runtime.site.export.ncbi_xml import NCBISubmissionXML
+from nmdc_runtime.site.export.ncbi_xml import (
+    NCBISubmissionXML,
+    get_excluded_biosample_slots,
+)
 from nmdc_runtime.site.export.ncbi_xml_utils import (
     load_mappings,
     handle_quantity_value,
@@ -348,6 +351,102 @@ class TestNCBISubmissionXML:
         assert "E. coli" in biosample_xml
         assert "Test Org" in biosample_xml
         assert "PRJNA1029061" in biosample_xml
+
+    def test_get_excluded_biosample_slots(self):
+        excluded = get_excluded_biosample_slots()
+
+        # explicitly excluded slots
+        assert "biosample_categories" in excluded
+        assert "type" in excluded
+
+        # all descendants of the `external_database_identifiers` grouping slot
+        for slot in (
+            "emsl_biosample_identifiers",
+            "gold_biosample_identifiers",
+            "igsn_biosample_identifiers",
+            "img_identifiers",
+            "insdc_biosample_identifiers",
+            "neon_biosample_identifiers",
+        ):
+            assert slot in excluded
+
+        # slots that must still be exported as attributes
+        for slot in ("collection_date", "env_medium", "geo_loc_name", "name"):
+            assert slot not in excluded
+
+    @pytest.mark.parametrize("pooled", [False, True])
+    def test_set_biosample_omits_excluded_slots(
+        self,
+        ncbi_submission_client: NCBISubmissionXML,
+        mocker: Callable[..., Generator[MockerFixture, None, None]],
+        pooled: bool,
+    ):
+        biosample = {
+            "id": "nmdc:bsm-11-excl01",
+            "type": "nmdc:Biosample",
+            "name": "Sample with external identifiers",
+            "biosample_categories": ["NEON"],
+            "gold_biosample_identifiers": ["gold:Gb0123456"],
+            "img_identifiers": ["img.taxon:3300012345"],
+            "emsl_biosample_identifiers": ["emsl:12345"],
+            "neon_biosample_identifiers": ["neon:ABBY_004-M-20170605-COMP"],
+            "elev": 100.0,
+            "env_package": {"has_raw_value": "soil", "type": "nmdc:TextValue"},
+        }
+        # Mapping file lists the identifier slots, so exclusion must come from code.
+        slots = [
+            "id",
+            "type",
+            "name",
+            "biosample_categories",
+            "gold_biosample_identifiers",
+            "img_identifiers",
+            "emsl_biosample_identifiers",
+            "neon_biosample_identifiers",
+            "elev",
+            "env_package",
+        ]
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {slot: slot for slot in slots},
+                {slot: "string" for slot in slots} | {"elev": "float"},
+            ),
+        )
+
+        pooled_biosamples_data = None
+        if pooled:
+            pooled_biosamples_data = {
+                biosample["id"]: {
+                    "pooling_process_id": "nmdc:poolp-11-excl01",
+                    "processed_sample_id": "nmdc:procsm-11-excl01",
+                    "pooled_biosample_ids": [biosample["id"]],
+                }
+            }
+
+        ncbi_submission_client.set_biosample(
+            organism_name="E. coli",
+            org="Test Org",
+            bioproject_id="PRJNA1029061",
+            nmdc_biosamples=[biosample],
+            pooled_biosamples_data=pooled_biosamples_data,
+        )
+
+        attribute_names = {
+            attr.get("attribute_name")
+            for attr in ncbi_submission_client.root.iter("Attribute")
+        }
+        assert attribute_names  # sanity: some attributes were emitted
+        assert "elev" in attribute_names
+        for slot in (
+            "type",
+            "biosample_categories",
+            "gold_biosample_identifiers",
+            "img_identifiers",
+            "emsl_biosample_identifiers",
+            "neon_biosample_identifiers",
+        ):
+            assert slot not in attribute_names
 
     def test_set_fastq(
         self,

@@ -4,6 +4,7 @@ import datetime
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
+from functools import lru_cache
 from typing import Any, List
 from urllib.parse import urlparse
 from unidecode import unidecode
@@ -18,11 +19,25 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_string_value,
     load_mappings,
 )
-
+from nmdc_runtime.util import nmdc_schema_view
 
 # NMDC Biosample slots that should never be emitted as NCBI BioSample <Attribute>
 # elements, even if they appear in the attribute mapping file.
+#
+# In addition to the slots listed here, every slot descending from the
+# `external_database_identifiers` grouping slot in the NMDC schema (e.g.
+# `gold_biosample_identifiers`, `img_identifiers`) is excluded, since NMDC
+# does not maintain identifier mappings to external systems in NCBI records.
 EXCLUDED_BIOSAMPLE_SLOTS = {"biosample_categories", "type"}
+
+
+@lru_cache
+def get_excluded_biosample_slots() -> frozenset:
+    """Return the full set of NMDC Biosample slots to omit from BioSample attributes."""
+    external_id_slots = nmdc_schema_view().slot_descendants(
+        "external_database_identifiers"
+    )
+    return frozenset(EXCLUDED_BIOSAMPLE_SLOTS) | frozenset(external_id_slots)
 
 
 class NCBISubmissionXML:
@@ -186,6 +201,7 @@ class NCBISubmissionXML:
         attribute_mappings, slot_range_mappings = load_mappings(
             self.nmdc_ncbi_attribute_mapping_file_url
         )
+        excluded_slots = get_excluded_biosample_slots()
 
         # Use provided pooling data or empty dict
         pooling_data = pooled_biosamples_data or {}
@@ -224,6 +240,7 @@ class NCBISubmissionXML:
                 bioproject_id,
                 attribute_mappings,
                 slot_range_mappings,
+                excluded_slots,
             )
 
         # Process individual biosamples
@@ -240,7 +257,7 @@ class NCBISubmissionXML:
             pooling_info = pooling_data.get(biosample["id"], {})
 
             for json_key, value in biosample.items():
-                if json_key in EXCLUDED_BIOSAMPLE_SLOTS:
+                if json_key in excluded_slots:
                     continue
 
                 if isinstance(value, list):
@@ -479,6 +496,7 @@ class NCBISubmissionXML:
         bioproject_id,
         attribute_mappings,
         slot_range_mappings,
+        excluded_slots=frozenset(),
     ):
         # Use the processed sample ID as the primary identifier
         sample_id_value = pooling_info.get("processed_sample_id")
@@ -497,7 +515,7 @@ class NCBISubmissionXML:
         # Process each biosample to collect and aggregate attributes
         for biosample in biosamples:
             for json_key, value in biosample.items():
-                if json_key == "id" or json_key in EXCLUDED_BIOSAMPLE_SLOTS:
+                if json_key == "id" or json_key in excluded_slots:
                     continue
 
                 if json_key == "env_package":
