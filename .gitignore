@@ -170,3 +170,7 @@ neon.db
 neon_api_cache.sqlite
 nmdc-db.nt.gz
 **/.claude/settings.local.json
+
+# Caches used by tools that developers are currently experimenting with for use in this repo.
+/.complexipy_cache
+/.ruff_cache
