@@ -5,13 +5,15 @@ named "workflow_execution_set" and "data_object_set".
 
 from dataclasses import dataclass
 from enum import Enum, auto
+from logging import Logger
 from typing import Callable
 
-from dagster import DagsterLogManager, Field, OpExecutionContext, op
+from dagster import Field, OpExecutionContext, op
 from pymongo import UpdateOne
 from pymongo.database import Database
 
 from nmdc_runtime.api.endpoints.lib.workflow_executions import (
+    make_pattern_matching_ids_having_base_id,
     parse_workflow_execution_id,
 )
 
@@ -337,6 +339,25 @@ def synchronize_superseded_by_field_op(
     context: OpExecutionContext,
 ) -> None:
     """
+    Synchronize the `superseded_by` field of workflow executions and their output data objects.
+    """
+
+    synchronize_superseded_by_field(
+        db=context.resources.mongo.db,
+        logger=context.log,
+        is_dry_run=context.op_config["dry_run"],
+        wfe_base_ids=None,
+    )
+
+
+def synchronize_superseded_by_field(
+    db: Database,
+    *,
+    logger: Logger,
+    is_dry_run: bool = False,
+    wfe_base_ids: list[str] | None = None,
+) -> None:
+    """
     Synchronize the "superseded_by" field of documents in the "workflow_execution_set" collection,
     so they reflect the sequences represented by "base ID" and "run number" parts of those documents'
     "id" values, based on the "id" conventions established by the NMDC workflow management team members
@@ -349,32 +370,48 @@ def synchronize_superseded_by_field_op(
     document is not identified as an output of any "workflow_execution_set" document, drop the
     "superseded_by" field (if present) from the "data_object_set" document.
 
-    If `ops.synchronize_superseded_by_field_op.config.dry_run` is set, the op will not actually
-    perform any updates. It will just log the updates it _would_ normally perform.
+    If `is_dry_run` is set, the function will not actually perform any updates. It will just log
+    the updates it _would_ normally perform.
+
+    If `wfe_base_ids` is a list, the function will only consider workflow executions whose IDs have
+    one of those base IDs; and the data objects outputted by those workflow executions. This can be
+    useful when the caller knows that specific WFEs/DOs have been modified and doesn't want to wait
+    for this function to process _all_ WFEs/DOs. If `wfe_base_ids` is `None` (default), the function
+    will process _all_ WFEs/DOs.
     """
 
-    # Get references to relevant MongoDB collections via the op execution context.
-    db: Database = context.resources.mongo.db
+    if isinstance(wfe_base_ids, list) and len(wfe_base_ids) == 0:
+        logger.debug("The caller provided a list of base IDs, but the list was empty.")
+        return None
+
+    # Derive a MongoDB `find` filter, based upon whether the caller provided a list of base IDs.
+    workflow_execution_filter = {}
+    if isinstance(wfe_base_ids, list) and len(wfe_base_ids) > 0:
+        workflow_execution_filter = {
+            "$or": [
+                {"id": {"$regex": make_pattern_matching_ids_having_base_id(base_id)}}
+                for base_id in list(set(wfe_base_ids))
+            ]
+        }
+
+    # Get references to relevant MongoDB collections.
     workflow_execution_set = db.get_collection("workflow_execution_set")
     data_object_set = db.get_collection("data_object_set")
 
-    # Get a reference to the Dagster log manager via the op execution context.
-    # Docs: https://docs.dagster.io/api/dagster/loggers#dagster.DagsterLogManager
-    log: DagsterLogManager = context.log
-    if context.op_config["dry_run"]:
-        log.info("Running in 'dry run' mode, so will not perform any updates.")
+    if is_dry_run:
+        logger.info("Running in 'dry run' mode, so will not perform any updates.")
 
     # Initialize lists of updates that we will eventually perform on each MongoDB collection.
     workflow_execution_set_update_statements: list[UpdateOne] = []
     data_object_set_update_statements: list[UpdateOne] = []
 
-    log.info(
-        "Building LUT of all `WorkflowExecution` descriptors, "
+    logger.info(
+        "Building LUT of selected `WorkflowExecution` descriptors, "
         "grouped by the base portion of their `id` values."
     )
     wfe_descriptors_by_base_id: dict[str, list[WorkflowExecutionDescriptor]] = {}
     for workflow_execution in workflow_execution_set.find(
-        filter={},
+        filter=workflow_execution_filter,
         projection=dict(_id=False, id=True, has_output=True, superseded_by=True),
         batch_size=2_000,
     ):
@@ -390,10 +427,10 @@ def synchronize_superseded_by_field_op(
             )
         has_output = read_has_output_value(
             document=workflow_execution,
-            warning_fn=log.warning,
+            warning_fn=logger.warning,
         )
         superseded_by = read_superseded_by_value(
-            workflow_execution, warning_fn=log.warning
+            workflow_execution, warning_fn=logger.warning
         )
         wfe_descriptor = WorkflowExecutionDescriptor(
             id=workflow_execution_id,
@@ -405,10 +442,11 @@ def synchronize_superseded_by_field_op(
         wfe_descriptors_by_base_id[base_id].append(wfe_descriptor)
 
     # TODO: Consider waiting to generate the `UpdateOne` statements until we are ready to submit
-    #       them to the Mongo database, since they will occupy Memory while they exist.
-    log.info(
-        "Determining expectations for `superseded_by` fields of all `WorkflowExecution`s, "
-        "and generating `UpdateOne` statements necessary to fulfill them."
+    #       them to the Mongo database, since they will occupy RAM (memory) while they exist.
+    logger.info(
+        "Determining expectations for `superseded_by` fields of %s `WorkflowExecution`s, "
+        "and generating `UpdateOne` statements necessary to fulfill them.",
+        "all" if workflow_execution_filter == {} else "relevant",
     )
     for sorted_wfe_descriptors in wfe_descriptors_by_base_id.values():
         set_expectations_for_superseded_by_field(
@@ -422,13 +460,13 @@ def synchronize_superseded_by_field_op(
                 superseded_by_expected=wfe_descriptor.superseded_by_expected,
             )
             if isinstance(update_statement, UpdateOne):
-                log.debug(
+                logger.debug(
                     f"workflow_execution_set: filter={update_statement._filter!r}, "
                     f"update={update_statement._doc!r}"
                 )
                 workflow_execution_set_update_statements.append(update_statement)
 
-    log.info(
+    logger.info(
         "Building LUT from each `WorkflowExecution`-outputted `DataObject.id` to "
         "the expected `superseded_by` value of the outputting `WorkflowExecution`."
     )
@@ -450,17 +488,27 @@ def synchronize_superseded_by_field_op(
                     wfe_descriptor.superseded_by_expected
                 )
 
-    log.info(
-        "Determining expectations for `superseded_by` fields of all `DataObject`s, "
-        "and generating `UpdateOne` statements necessary to fulfill them."
+    # If the caller provided a list of WFE base IDs, make a MongoDB `find` filter that only matches
+    # the DOs that are outputs of the relevant WFEs.
+    data_object_filter = {}
+    if isinstance(wfe_base_ids, list) and len(wfe_base_ids) > 0:
+        wfe_outputted_dobj_ids = list(
+            wfe_expected_superseded_by_value_by_own_output_id.keys()
+        )
+        data_object_filter = {"id": {"$in": wfe_outputted_dobj_ids}}
+
+    logger.info(
+        "Determining expectations for `superseded_by` fields of %s `DataObject`s, "
+        "and generating `UpdateOne` statements necessary to fulfill them.",
+        "all" if data_object_filter == {} else "relevant",
     )
     for data_object in data_object_set.find(
-        filter={},
+        filter=data_object_filter,
         projection=dict(_id=False, id=True, superseded_by=True),
         batch_size=2_000,
     ):
         data_object_id = data_object["id"]
-        superseded_by = read_superseded_by_value(data_object, warning_fn=log.warning)
+        superseded_by = read_superseded_by_value(data_object, warning_fn=logger.warning)
 
         # Form our expectation for the `superseded_by` field, based on our expectation for the
         # `superseded_by` field of the outputting `WorkflowExecution`, if any.
@@ -477,28 +525,28 @@ def synchronize_superseded_by_field_op(
             superseded_by_expected=superseded_by_expected,
         )
         if update_statement is not None:
-            log.debug(
+            logger.debug(
                 f"data_object_set: filter={update_statement._filter!r}, "
                 f"update={update_statement._doc!r}"
             )
             data_object_set_update_statements.append(update_statement)
 
-    log.info(
+    logger.info(
         "Number of `UpdateOne` statements generated for `workflow_execution_set` collection: "
         f"{len(workflow_execution_set_update_statements)}"
     )
-    log.info(
+    logger.info(
         "Number of `UpdateOne` statements generated for `data_object_set` collection: "
         f"{len(data_object_set_update_statements)}"
     )
 
     # If we are running in "dry run" mode, stop here instead of proceeding to apply the updates.
-    if context.op_config["dry_run"]:
-        log.info("Running in 'dry run' mode, so will not perform any updates.")
+    if is_dry_run:
+        logger.info("Running in 'dry run' mode, so will not perform any updates.")
         return None
 
     # Apply the updates to the documents in the MongoDB collections, atomically via a transaction.
-    log.info(
+    logger.info(
         "Starting MongoDB transaction to ensure all updates are performed atomically."
     )
     with db.client.start_session() as session:
@@ -507,12 +555,12 @@ def synchronize_superseded_by_field_op(
                 ("workflow_execution_set", workflow_execution_set_update_statements),
                 ("data_object_set", data_object_set_update_statements),
             ):
-                log.info(f"Applying updates to collection: {collection_name}")
+                logger.info(f"Applying updates to collection: {collection_name}")
                 collection = db.get_collection(collection_name)
 
                 num_update_statements = len(update_statements)
                 if num_update_statements == 0:
-                    log.info("No updates to apply.")
+                    logger.info("No updates to apply.")
                     continue  # note: calling `bulk_write` with no requests would raise an exception
 
                 # Note: We use `collection.bulk_write` instead of `db.command` because the former
@@ -524,7 +572,7 @@ def synchronize_superseded_by_field_op(
                     comment="Dagster op synchronizing 'superseded_by' fields",
                     session=session,
                 )
-                log.info(
+                logger.info(
                     f"Number of documents matched: {bulk_write_result.matched_count}\n"
                     f"Number of documents modified: {bulk_write_result.modified_count}"
                 )

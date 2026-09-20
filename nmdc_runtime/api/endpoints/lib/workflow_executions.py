@@ -278,14 +278,14 @@ def get_successor_from_list_by_own_id(
 
 
 def make_pattern_matching_ids_having_base_id(base_id: str) -> str:
-    """
-    Make a regular expression pattern that matches `WorkflowExecution` `id` values that share the
-    specified base ID.
+    r"""
+    Make a regular expression pattern (usable within a `{"$regex": "..."}` clause of a MongoDB
+    filter) that matches `WorkflowExecution` `id` values that share the specified base ID.
 
     >>> make_pattern_matching_ids_having_base_id("foo")
-    '^foo\\\\.\\\\d+$'
+    '^foo\\.\\d+$'
     >>> make_pattern_matching_ids_having_base_id("nmdc:wfmp-00-abcdef")
-    '^nmdc:wfmp\\\\-00\\\\-abcdef\\\\.\\\\d+$'
+    '^nmdc:wfmp\\-00\\-abcdef\\.\\d+$'
     """
 
     escaped_base_id = re.escape(base_id)
@@ -296,14 +296,20 @@ def make_pattern_matching_ids_having_base_id(base_id: str) -> str:
 
 
 def make_pattern_matching_ids_having_base_id_in_list(base_ids: List[str]) -> str:
-    """
-    Make a regular expression pattern that matches `WorkflowExecution` `id` values whose base ID
-    matches any of the specified ones.
+    r"""
+    Make a regular expression pattern (usable within a `{"$regex": "..."}` clause of a MongoDB
+    filter) that matches `WorkflowExecution` `id` values that share any of the specified base IDs.
+
+    Note: In a MongoDB, `(^...)` is a so-called "prefix expression". MongoDB has some optimizations
+          for those. However, this function returns something different: an expression like
+          `(^...)|(^...)`, which prevents MongoDB from applying those optimizations. So, instead of
+          using this function, consider using multiple `(^...)` expressions `$or`-ed together.
+          See: https://www.mongodb.com/docs/manual/reference/operator/query/regex/#index-use
 
     >>> make_pattern_matching_ids_having_base_id_in_list(["foo", "bar"])
-    '(^foo\\\\.\\\\d+$)|(^bar\\\\.\\\\d+$)'
+    '(^foo\\.\\d+$)|(^bar\\.\\d+$)'
     >>> make_pattern_matching_ids_having_base_id_in_list(["nmdc:wfmp-00-abcdef", "nmdc:wfmp-11-uvwxyz"])
-    '(^nmdc:wfmp\\\\-00\\\\-abcdef\\\\.\\\\d+$)|(^nmdc:wfmp\\\\-11\\\\-uvwxyz\\\\.\\\\d+$)'
+    '(^nmdc:wfmp\\-00\\-abcdef\\.\\d+$)|(^nmdc:wfmp\\-11\\-uvwxyz\\.\\d+$)'
     """
 
     sub_patterns = []
