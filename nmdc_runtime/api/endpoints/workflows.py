@@ -11,12 +11,7 @@ from pymongo.results import ClientBulkWriteResult
 
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.endpoints.lib.workflow_executions import (
-    derive_predecessor_id,
-    derive_successor_id,
-    make_pattern_matching_ids_having_base_id_in_list,
-    parse_workflow_execution_id,
     prepare_supersession_chain_for_workflow_execution_deletion,
-    update_superseded_by_field_of_data_objects_having_id_in_list,
 )
 from nmdc_runtime.api.endpoints.queries import (
     check_can_update_and_delete,
@@ -124,31 +119,6 @@ async def post_workflow_execution(
           currently rely on validation at the application level, as opposed to validation at the
           database level, keep this endpoint in mind when introducing new validation processes.
 
-    High-level algorithm:
-
-       Terminology:
-       - "co-submitted" means "submitted together in the same payload to this endpoint"
-       - "existing" means "already in the Mongo database"
-       - "WFE" is short for `WorkflowExecution`
-       - "DOBJ" is short for `DataObject`
-
-    1. For each submitted WFE, determine whether its `id` suffix indicates that it is SUPERSEDED BY
-       another WFE, whether the latter is co-submitted or existing. If it does, do two things:
-       (a) update the `superseded_by` field of that submitted WFE; and
-       (b) update the `superseded_by` fields of its output DOBJs, if any,
-           whether co-submitted or existing.
-    2. For each submitted WFE, determine whether its `id` indicates that it SUPERSEDES an existing
-       WFE (we don't bother checking whether it supersedes a co-submitted WFE, since we would have
-       handled that in step 1). If it does, do two things:
-       (a) update the `superseded_by` field of that existing WFE; and
-       (b) update the `superseded_by` fields of that existing WFE's output DOBJs, if any,
-           whether co-submitted or existing.
-    3. Proceed to do the insertion of the [maybe manipulated] submission payload.
-       Perform all of the above updates and insertions within a single transaction,
-       so we can roll back if something goes wrong.
-
-    Reference: https://microbiomedata.github.io/nmdc-schema/superseded_by/
-
     Note: There is a race condition where a _referenced_ document could be deleted from the database
           between the time the ref. int. check is performed via `validate_json` and the time the
           transaction is started and the referring document is actually inserted into the database.
@@ -164,18 +134,6 @@ async def post_workflow_execution(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only specific users can submit workflow executions.",
         )
-
-    id_only_projection = {"id": 1, "_id": 0}  # alias for common Mongo projection
-
-    # Get references to relevant MongoDB collections.
-    workflow_execution_set = mdb.get_collection("workflow_execution_set")
-    data_object_set = mdb.get_collection("data_object_set")
-
-    # Initialize a list of the `id`s of the "existing" (i.e. already in the database) WFEs
-    # whose `id`s share the same `base_id` as any of the submitted WFEs. According to the suffix
-    # convention established by the NMDC workflow automation team members, such WFEs are on the
-    # same supersession chain as one another.
-    relevant_existing_wfe_ids: List[str] = []
 
     with duration_logger(logging.info, "Performing preliminary validation"):
         # If the payload has a top-level key named "@type" (which the `validate_json` function
@@ -203,145 +161,10 @@ async def post_workflow_execution(
                 ),
             )
 
-        # Make lists that will be useful to subsequent code.
-        submitted_wfes: List[dict] = database_in["workflow_execution_set"]
-        submitted_wfe_ids: List[str] = [wfe["id"] for wfe in submitted_wfes]
-        submitted_dobjs: List[dict] = database_in.get("data_object_set", [])
-
     # Start a Mongo transaction before we write anything to the database.
     with duration_logger(logging.info, "Using MongoDB transaction"):
         with mdb.client.start_session() as session:
             with session.start_transaction():
-                with duration_logger(
-                    logging.info,
-                    "Gathering WFE IDs relevant to supersession management",
-                ):
-                    # Extract the `base_id` and `run_number` from the `id` of each submitted
-                    # `WorkflowExecution`.
-                    id_parts_by_submitted_wfe_id: Dict[str, Tuple[str, int | None]] = {}
-                    for submitted_wfe_id in submitted_wfe_ids:
-                        base_id, run_number = parse_workflow_execution_id(
-                            submitted_wfe_id
-                        )
-                        if run_number is None:
-                            raise HTTPException(
-                                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                                detail=(
-                                    f"The ID of WorkflowExecution '{submitted_wfe_id}' is not in the "
-                                    "format required by our supersession management processes."
-                                ),
-                            )
-                        id_parts_by_submitted_wfe_id[submitted_wfe_id] = (
-                            base_id,
-                            run_number,
-                        )
-
-                    # Now that we have all the submitted `base_id` values, get the `id` of every
-                    # `WorkflowExecution` in the database whose `id` shares any of those `base_id`
-                    # values. These are our potential anteceding (coming before) and superseding
-                    # (coming after) WFEs.
-                    if len(id_parts_by_submitted_wfe_id.keys()) > 0:
-                        base_ids: List[str] = []
-                        for _, (base_id, _) in id_parts_by_submitted_wfe_id.items():
-                            if base_id not in base_ids:  # prevents duplicates
-                                base_ids.append(base_id)
-                        pattern = make_pattern_matching_ids_having_base_id_in_list(
-                            base_ids
-                        )
-                        filter_ = {"id": {"$regex": pattern}}
-                        relevant_existing_wfes_cursor = workflow_execution_set.find(
-                            filter=filter_,
-                            projection=id_only_projection,
-                            session=session,
-                        )
-                        relevant_existing_wfe_ids = [
-                            wfe["id"] for wfe in relevant_existing_wfes_cursor
-                        ]
-                    logging.info(
-                        f"Found {len(relevant_existing_wfe_ids)} relevant existing WFEs"
-                    )
-
-                with duration_logger(
-                    logging.info, "Preparing to insert superseded WFEs and DOBJs"
-                ):
-                    # For each submitted `WorkflowExecution`, check whether it is superseded by any
-                    # other `WorkflowExecution` (whether a co-submitted one or one already in the
-                    # database) according to the `id`-derivable supersession relationships.
-                    #
-                    # If it is, update the `superseded_by` field of that submitted `WorkflowExecution`
-                    # in the insertion payload; and update the `superseded_by` fields of its output
-                    # `DataObject`s, if any, whether those are in the insertion payload or already
-                    # in the database.
-                    #
-                    submitted_and_relevant_existing_wfe_ids = (
-                        submitted_wfe_ids + relevant_existing_wfe_ids
-                    )
-                    for submitted_wfe_id in submitted_wfe_ids:
-                        successor_wfe_id = derive_successor_id(submitted_wfe_id)
-                        if successor_wfe_id in submitted_and_relevant_existing_wfe_ids:
-                            logging.info(
-                                f"WorkflowExecution '{submitted_wfe_id}' is superseded by "
-                                f"co-submitted or existing WorkflowExecution '{successor_wfe_id}'."
-                            )
-                            # Update the insertion payload and database accordingly.
-                            for submitted_wfe in submitted_wfes:
-                                if submitted_wfe["id"] == submitted_wfe_id:
-                                    submitted_wfe["superseded_by"] = successor_wfe_id
-                                    update_superseded_by_field_of_data_objects_having_id_in_list(
-                                        data_object_ids=submitted_wfe.get(
-                                            "has_output", []
-                                        ),
-                                        data_object_list=submitted_dobjs,
-                                        data_object_set_collection=data_object_set,
-                                        superseded_by=successor_wfe_id,
-                                        client_session=session,
-                                    )
-                                    # Since we found the `WorkflowExecution` we were looking for,
-                                    # we can stop looking for it.
-                                    break
-                        else:
-                            logging.debug(
-                                f"WorkflowExecution '{submitted_wfe_id}' is not superseded by "
-                                "any co-submitted or existing WorkflowExecution."
-                            )
-
-                with duration_logger(
-                    logging.info, "Preparing to insert superseding WFEs"
-                ):
-                    # For each submitted `WorkflowExecution`, check whether it supersedes any existing
-                    # `WorkflowExecution` in the database (we don't bother checking the co-submitted
-                    # ones because we would have already handled those in the previous step).
-                    #
-                    # If it does, update the `superseded_by` fields of those existing
-                    # `WorkflowExecution`s; and of their output `DataObject`s, if any, whether those
-                    # are in the insertion payload or already in the database.
-                    #
-                    for submitted_wfe_id in submitted_wfe_ids:
-                        predecessor_wfe_id = derive_predecessor_id(submitted_wfe_id)
-                        if predecessor_wfe_id in relevant_existing_wfe_ids:
-                            logging.info(
-                                f"WorkflowExecution '{submitted_wfe_id}' supersedes "
-                                f"existing WorkflowExecution '{predecessor_wfe_id}'."
-                            )
-                            wfe_document = workflow_execution_set.find_one(
-                                {"id": predecessor_wfe_id},
-                                {"has_output": 1, "_id": 0},
-                                session=session,
-                            )
-                            if wfe_document is not None:
-                                workflow_execution_set.update_one(
-                                    {"id": predecessor_wfe_id},
-                                    {"$set": {"superseded_by": submitted_wfe_id}},
-                                    session=session,
-                                )
-                                update_superseded_by_field_of_data_objects_having_id_in_list(
-                                    data_object_ids=wfe_document.get("has_output", []),
-                                    data_object_list=submitted_dobjs,
-                                    data_object_set_collection=data_object_set,
-                                    superseded_by=submitted_wfe_id,
-                                    client_session=session,
-                                )
-
                 # Generate pymongo operation instances that account for the insertion operations
                 # for the submitted data (with any "patches" introduced above intact).
                 #
@@ -364,7 +187,7 @@ async def post_workflow_execution(
 
                 try:
                     # Perform the operations via the `bulk_write` function (which is supposedly
-                    # faster that a sequence of `insert_one` invocations).
+                    # faster than a sequence of `insert_one` invocations).
                     if len(ops) > 0:
                         bulk_write_result: ClientBulkWriteResult = (
                             mdb.client.bulk_write(
