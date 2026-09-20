@@ -10,9 +10,6 @@ from pymongo.errors import BulkWriteError, ClientBulkWriteException
 from pymongo.results import ClientBulkWriteResult
 
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.endpoints.lib.workflow_executions import (
-    prepare_supersession_chain_for_workflow_execution_deletion,
-)
 from nmdc_runtime.api.endpoints.queries import (
     check_can_update_and_delete,
     _run_delete_nonschema,
@@ -141,8 +138,8 @@ async def post_workflow_execution(
         if "@type" in database_in:
             database_in.pop("@type")
 
-        # Do some preliminary validation so our subsequent supersession chain management code can
-        # take for granted the fact that the payload constitutes a valid `nmdc:Database` instance.
+        # Do some preliminary validation so subsequent code can take for granted the fact that the
+        # payload constitutes a valid `nmdc:Database` instance.
         validation_result = validate_json(
             database_in,
             mdb,
@@ -244,15 +241,9 @@ async def delete_workflow_execution(
     5. All job records that have the workflow execution ID as their config.activity_id
 
     Input data objects (has_input) are preserved as they may be used by other workflow executions.
+
     TODO: Consider deleting input data objects that are _not_ used by other workflow executions
           (otherwise, they may accumulate in the database as so-called "orphaned documents").
-
-    TODO: Use a MongoDB transaction for this API endpoint, so we prevent the possibility that
-          a `WorkflowExecution` be deleted via some other means before we have prepared the
-          supersession chain accordingly, and the possibility that we prepare the supersession
-          chain and then the deletion of the `WorkflowExecution` fails, and the possibility that
-          we prepare the supersession chain and delete the `WorkflowExecution` but then the
-          deletion of a downstream dependent `WorkflowExecution`, `DataObject`, etc. fails.
 
     Parameters
     ----------
@@ -381,24 +372,6 @@ async def delete_workflow_execution(
         # undergo schema, validation and referential integrity checking, and
         # deleted documents are backed up to the `nmdc_deleted` database.
         deletion_results = {}
-
-        # For each `WorkflowExecution` that we will be deleting, update the `superseded_by` field
-        # of each `WorkflowExecution` and `DataObject` that is superseded by it so that the
-        # supersession chain remains intact.
-        for wfe_id in deleted_workflow_execution_ids:
-            workflow_execution = mdb["workflow_execution_set"].find_one({"id": wfe_id})
-            if workflow_execution is not None:
-                prepare_supersession_chain_for_workflow_execution_deletion(
-                    workflow_execution=workflow_execution, db=mdb, client_session=None
-                )
-            else:
-                logging.error(
-                    f"WorkflowExecution '{wfe_id}' vanished during deletion prep."
-                )
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="An error occurred while preparing to delete the WorkflowExecution.",
-                )
 
         for collection_name, doc_ids in docs_to_delete.items():
             if not doc_ids:
