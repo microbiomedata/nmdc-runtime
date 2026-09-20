@@ -13,6 +13,7 @@ from pymongo import UpdateOne
 from pymongo.database import Database
 
 from nmdc_runtime.api.endpoints.lib.workflow_executions import (
+    make_pattern_matching_ids_having_base_id_in_list,
     parse_workflow_execution_id,
 )
 
@@ -345,6 +346,7 @@ def synchronize_superseded_by_field_op(
         db=context.resources.mongo.db,
         logger=context.log,
         is_dry_run=context.op_config["dry_run"],
+        wfe_base_ids=None,
     )
 
 
@@ -353,6 +355,7 @@ def synchronize_superseded_by_field(
     *,
     logger: Logger,
     is_dry_run: bool = False,
+    wfe_base_ids: list[str] | None = None,
 ) -> None:
     """
     Synchronize the "superseded_by" field of documents in the "workflow_execution_set" collection,
@@ -369,7 +372,26 @@ def synchronize_superseded_by_field(
 
     If `is_dry_run` is set, the function will not actually perform any updates. It will just log
     the updates it _would_ normally perform.
+
+    If `wfe_base_ids` is a list, the function will only consider workflow executions whose IDs have
+    one of those base IDs; and the data objects outputted by those workflow executions. This can be
+    useful when the caller knows that specific WFEs/DOs have been modified and doesn't want to wait
+    for this function to process _all_ WFEs/DOs. If `wfe_base_ids` is `None` (default), the function
+    will process _all_ WFEs/DOs.
     """
+
+    if isinstance(wfe_base_ids, list) and len(wfe_base_ids) == 0:
+        logger.debug("The caller provided a list of base IDs, but the list was empty.")
+        return None
+
+    # Derive a MongoDB `find` filter, based upon whether the caller provided a list of base IDs.
+    workflow_execution_filter = {}
+    if isinstance(wfe_base_ids, list) and len(wfe_base_ids) > 0:
+        workflow_execution_filter = {
+            "id": {
+                "$regex": make_pattern_matching_ids_having_base_id_in_list(wfe_base_ids)
+            }
+        }
 
     # Get references to relevant MongoDB collections.
     workflow_execution_set = db.get_collection("workflow_execution_set")
@@ -383,12 +405,12 @@ def synchronize_superseded_by_field(
     data_object_set_update_statements: list[UpdateOne] = []
 
     logger.info(
-        "Building LUT of all `WorkflowExecution` descriptors, "
+        "Building LUT of selected `WorkflowExecution` descriptors, "
         "grouped by the base portion of their `id` values."
     )
     wfe_descriptors_by_base_id: dict[str, list[WorkflowExecutionDescriptor]] = {}
     for workflow_execution in workflow_execution_set.find(
-        filter={},
+        filter=workflow_execution_filter,
         projection=dict(_id=False, id=True, has_output=True, superseded_by=True),
         batch_size=2_000,
     ):
@@ -419,10 +441,11 @@ def synchronize_superseded_by_field(
         wfe_descriptors_by_base_id[base_id].append(wfe_descriptor)
 
     # TODO: Consider waiting to generate the `UpdateOne` statements until we are ready to submit
-    #       them to the Mongo database, since they will occupy Memory while they exist.
+    #       them to the Mongo database, since they will occupy RAM (memory) while they exist.
     logger.info(
-        "Determining expectations for `superseded_by` fields of all `WorkflowExecution`s, "
-        "and generating `UpdateOne` statements necessary to fulfill them."
+        "Determining expectations for `superseded_by` fields of %s `WorkflowExecution`s, "
+        "and generating `UpdateOne` statements necessary to fulfill them.",
+        "all" if workflow_execution_filter == {} else "relevant"
     )
     for sorted_wfe_descriptors in wfe_descriptors_by_base_id.values():
         set_expectations_for_superseded_by_field(
@@ -464,12 +487,22 @@ def synchronize_superseded_by_field(
                     wfe_descriptor.superseded_by_expected
                 )
 
+    # If the caller provided a list of WFE base IDs, make a MongoDB `find` filter that only matches
+    # the DOs that are outputs of the relevant WFEs.
+    data_object_filter = {}
+    if isinstance(wfe_base_ids, list) and len(wfe_base_ids) > 0:
+        wfe_outputted_dobj_ids = list(wfe_expected_superseded_by_value_by_own_output_id.keys())
+        data_object_filter = {
+            "id": {"$in": wfe_outputted_dobj_ids}
+        }
+
     logger.info(
-        "Determining expectations for `superseded_by` fields of all `DataObject`s, "
-        "and generating `UpdateOne` statements necessary to fulfill them."
+        "Determining expectations for `superseded_by` fields of %s `DataObject`s, "
+        "and generating `UpdateOne` statements necessary to fulfill them.",
+        "all" if data_object_filter == {} else "relevant"
     )
     for data_object in data_object_set.find(
-        filter={},
+        filter=data_object_filter,
         projection=dict(_id=False, id=True, superseded_by=True),
         batch_size=2_000,
     ):

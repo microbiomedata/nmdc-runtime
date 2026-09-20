@@ -296,14 +296,15 @@ def make_pattern_matching_ids_having_base_id(base_id: str) -> str:
 
 
 def make_pattern_matching_ids_having_base_id_in_list(base_ids: List[str]) -> str:
-    """
-    Make a regular expression pattern that matches `WorkflowExecution` `id` values whose base ID
-    matches any of the specified ones.
+    r"""
+    Make a regular expression pattern (usable within a `{"$regex": "..."}` clause of a MongoDB
+    filter) that matches `WorkflowExecution` `id` values whose base IDs match any of the specified
+    ones.
 
     >>> make_pattern_matching_ids_having_base_id_in_list(["foo", "bar"])
-    '(^foo\\\\.\\\\d+$)|(^bar\\\\.\\\\d+$)'
+    '(^foo\\.\\d+$)|(^bar\\.\\d+$)'
     >>> make_pattern_matching_ids_having_base_id_in_list(["nmdc:wfmp-00-abcdef", "nmdc:wfmp-11-uvwxyz"])
-    '(^nmdc:wfmp\\\\-00\\\\-abcdef\\\\.\\\\d+$)|(^nmdc:wfmp\\\\-11\\\\-uvwxyz\\\\.\\\\d+$)'
+    '(^nmdc:wfmp\\-00\\-abcdef\\.\\d+$)|(^nmdc:wfmp\\-11\\-uvwxyz\\.\\d+$)'
     """
 
     sub_patterns = []
