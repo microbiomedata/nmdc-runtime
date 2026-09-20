@@ -136,7 +136,9 @@ synchronize_superseded_by_field_hourly = ScheduleDefinition(
     default_status=DefaultScheduleStatus.RUNNING,
     job=synchronize_superseded_by_field_job,
     # Configure Dagster to skip executing the job when there are already running or queued runs of it.
-    should_execute=lambda ctx: not is_dagster_job_queued_or_running(ctx, synchronize_superseded_by_field_graph.name),
+    should_execute=lambda ctx: not is_dagster_job_queued_or_running(
+        ctx, synchronize_superseded_by_field_graph.name
+    ),
 )
 
 validate_mongo_data_job = validate_mongo_data.to_job(
@@ -186,7 +188,9 @@ housekeeping_weekly = ScheduleDefinition(
 )
 
 
-def is_dagster_job_queued_or_running(context: ScheduleEvaluationContext, job_name: str) -> bool:
+def is_dagster_job_queued_or_running(
+    context: ScheduleEvaluationContext, job_name: str
+) -> bool:
     """
     Helper function that returns `True` if there are no running or queued runs of the specified job;
     otherwise, returns `False`. This function was designed to be invoked via a lambda function
@@ -219,7 +223,9 @@ ensure_alldocs_hourly = ScheduleDefinition(
     cron_schedule="0 * * * *",
     execution_timezone="America/New_York",
     # Configure Dagster to skip executing the job when there are already running or queued runs of it.
-    should_execute=lambda ctx: not is_dagster_job_queued_or_running(ctx, ensure_alldocs.name),
+    should_execute=lambda ctx: not is_dagster_job_queued_or_running(
+        ctx, ensure_alldocs.name
+    ),
     job=ensure_alldocs.to_job(
         **preset_normal,
         name=ensure_alldocs.name,
