@@ -111,13 +111,16 @@ preset_normal = {
 run_config_frozen__normal_env = freeze(preset_normal["config"])
 
 synchronize_superseded_by_field_job = synchronize_superseded_by_field_graph.to_job(
-    name="synchronize_superseded_by_field",
+    **preset_normal,
+    name=synchronize_superseded_by_field_graph.name,
     description=(
         "Updates the `superseded_by` fields of documents in the `workflow_execution_set` "
         "and `data_object_set` MongoDB collections, in order to make them reflect the "
         "supersession relationships implied by the `id` and `has_output` fields of WFEs."
     ),
-    **preset_normal,
+    run_tags={
+        MAX_RUNTIME_SECONDS_TAG: timedelta(minutes=45).total_seconds(),
+    },
 )
 
 synchronize_superseded_by_field_hourly = ScheduleDefinition(
@@ -132,6 +135,8 @@ synchronize_superseded_by_field_hourly = ScheduleDefinition(
     execution_timezone="America/New_York",
     default_status=DefaultScheduleStatus.RUNNING,
     job=synchronize_superseded_by_field_job,
+    # Configure Dagster to skip executing the job when there are already running or queued runs of it.
+    should_execute=lambda ctx: not is_dagster_job_queued_or_running(ctx, synchronize_superseded_by_field_graph.name),
 )
 
 validate_mongo_data_job = validate_mongo_data.to_job(
@@ -181,15 +186,15 @@ housekeeping_weekly = ScheduleDefinition(
 )
 
 
-def should_execute_ensure_alldocs(context: ScheduleEvaluationContext) -> bool:
+def is_dagster_job_queued_or_running(context: ScheduleEvaluationContext, job_name: str) -> bool:
     """
-    Helper function that returns `True` if there are no running or queued runs of the
-    `ensure_alldocs` job; otherwise, returns `False`. This function was designed to be passed to
-    the `ScheduleDefinition` constructor via the latter's `should_execute` kwarg.
+    Helper function that returns `True` if there are no running or queued runs of the specified job;
+    otherwise, returns `False`. This function was designed to be invoked via a lambda function
+    (supplying the job's name) passed to the `should_execute` kwarg of the `ScheduleDefinition`.
     """
     num_matching_runs = context.instance.get_runs_count(
         filters=RunsFilter(
-            job_name=ensure_alldocs.name,
+            job_name=job_name,
             statuses=[
                 DagsterRunStatus.NOT_STARTED,
                 DagsterRunStatus.QUEUED,
@@ -204,7 +209,7 @@ def should_execute_ensure_alldocs(context: ScheduleEvaluationContext) -> bool:
             ],
         )
     )
-    return num_matching_runs == 0
+    return num_matching_runs >= 1
 
 
 # Docs: https://docs.dagster.io/api/dagster/schedules-sensors#dagster.schedule
@@ -214,9 +219,10 @@ ensure_alldocs_hourly = ScheduleDefinition(
     cron_schedule="0 * * * *",
     execution_timezone="America/New_York",
     # Configure Dagster to skip executing the job when there are already running or queued runs of it.
-    should_execute=should_execute_ensure_alldocs,
+    should_execute=lambda ctx: not is_dagster_job_queued_or_running(ctx, ensure_alldocs.name),
     job=ensure_alldocs.to_job(
         **preset_normal,
+        name=ensure_alldocs.name,
         run_tags={
             # Configure Dagster's "run monitoring" feature to "fail" runs of this job whose
             # durations exceed this limit. We enable Dagster's "run monitoring" feature
