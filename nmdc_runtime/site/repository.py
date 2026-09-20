@@ -110,6 +110,30 @@ preset_normal = {
 
 run_config_frozen__normal_env = freeze(preset_normal["config"])
 
+synchronize_superseded_by_field_job = synchronize_superseded_by_field_graph.to_job(
+    name="synchronize_superseded_by_field",
+    description=(
+        "Updates the `superseded_by` fields of documents in the `workflow_execution_set` "
+        "and `data_object_set` MongoDB collections, in order to make them reflect the "
+        "supersession relationships implied by the `id` and `has_output` fields of WFEs."
+    ),
+    **preset_normal,
+)
+
+synchronize_superseded_by_field_hourly = ScheduleDefinition(
+    name="hourly_synchronize_superseded_by_field",
+    # Note: We scheduled this to run at `hh:50` so that the "ensure_alldocs_hourly" job that runs
+    #       at `hh:00` can incorporate the updated `superseded_by` values; although there is no
+    #       guarantee that the supersession chain doesn't change even more within that 10-minute
+    #       window, and also no guarantee that this job has finished before the alldocs one starts.
+    #       The latter _could_ be guaranteed by using a Dagster sensor to detect success of this
+    #       job and then trigger the other job, but that is not currently implemented.
+    cron_schedule="50 * * * *",
+    execution_timezone="America/New_York",
+    default_status=DefaultScheduleStatus.RUNNING,
+    job=synchronize_superseded_by_field_job,
+)
+
 validate_mongo_data_job = validate_mongo_data.to_job(
     name="validate_mongo_data",
     description=(
@@ -529,18 +553,11 @@ def repo():
         ),
         validate_mongo_data_job,
         test_slack_integration_job,
-        synchronize_superseded_by_field_graph.to_job(
-            name="synchronize_superseded_by_field",
-            description=(
-                "Updates the `superseded_by` fields of documents in the `workflow_execution_set` "
-                "and `data_object_set` MongoDB collections, in order to make them reflect the "
-                "supersession relationships implied by the `id` and `has_output` fields of WFEs."
-            ),
-            **preset_normal,
-        ),
+        synchronize_superseded_by_field_job,
     ]
     schedules = [
         housekeeping_weekly,
+        synchronize_superseded_by_field_hourly,
         ensure_alldocs_hourly,
         load_envo_ontology_weekly,
         load_uberon_ontology_weekly,
