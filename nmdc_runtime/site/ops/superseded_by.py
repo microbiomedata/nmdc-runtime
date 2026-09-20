@@ -445,7 +445,7 @@ def synchronize_superseded_by_field(
     logger.info(
         "Determining expectations for `superseded_by` fields of %s `WorkflowExecution`s, "
         "and generating `UpdateOne` statements necessary to fulfill them.",
-        "all" if workflow_execution_filter == {} else "relevant"
+        "all" if workflow_execution_filter == {} else "relevant",
     )
     for sorted_wfe_descriptors in wfe_descriptors_by_base_id.values():
         set_expectations_for_superseded_by_field(
@@ -491,15 +491,15 @@ def synchronize_superseded_by_field(
     # the DOs that are outputs of the relevant WFEs.
     data_object_filter = {}
     if isinstance(wfe_base_ids, list) and len(wfe_base_ids) > 0:
-        wfe_outputted_dobj_ids = list(wfe_expected_superseded_by_value_by_own_output_id.keys())
-        data_object_filter = {
-            "id": {"$in": wfe_outputted_dobj_ids}
-        }
+        wfe_outputted_dobj_ids = list(
+            wfe_expected_superseded_by_value_by_own_output_id.keys()
+        )
+        data_object_filter = {"id": {"$in": wfe_outputted_dobj_ids}}
 
     logger.info(
         "Determining expectations for `superseded_by` fields of %s `DataObject`s, "
         "and generating `UpdateOne` statements necessary to fulfill them.",
-        "all" if data_object_filter == {} else "relevant"
+        "all" if data_object_filter == {} else "relevant",
     )
     for data_object in data_object_set.find(
         filter=data_object_filter,
