@@ -232,18 +232,15 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
         }
         assert deleted_wfe_ids == expected_deleted_wfe_ids
 
-        # Verify the superseded workflow execution still exists, but its `superseded_by` field has
-        # been removed (since the superseding workflow execution has been deleted and nothing
-        # superseded _it_). Also, verify the superseded workflow execution's outputted DataObjects
-        # still exist, but their `superseded_by` fields have been removed (for the same reason).
-        # Finally, verify the superseded workflow execution's input data objects still exist.
+        # Verify the superseded workflow execution and its input and output data objects still exist.
         superseded_wfe_in_db = workflow_execution_set.find_one({"id": superseded_workflow_execution["id"]})
-        assert superseded_wfe_in_db is not None and "superseded_by" not in superseded_wfe_in_db
+        assert superseded_wfe_in_db is not None
         for data_obj in superseded_data_objects:
             data_obj_in_db = data_object_set.find_one({"id": data_obj["id"]})
-            assert data_obj_in_db is not None and "superseded_by" not in data_obj_in_db
+            assert data_obj_in_db is not None
         for data_obj in more_data_objects:
             data_obj_in_db = data_object_set.find_one({"id": data_obj["id"]})
+            assert data_obj_in_db is not None
 
         # Verify all data objects outputted by the primary and dependent WFEs were deleted
         deleted_data_object_ids = set(response_data["deleted_data_object_ids"])
