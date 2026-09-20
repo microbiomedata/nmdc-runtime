@@ -13,7 +13,7 @@ from pymongo import UpdateOne
 from pymongo.database import Database
 
 from nmdc_runtime.api.endpoints.lib.workflow_executions import (
-    make_pattern_matching_ids_having_base_id_in_list,
+    make_pattern_matching_ids_having_base_id,
     parse_workflow_execution_id,
 )
 
@@ -388,9 +388,10 @@ def synchronize_superseded_by_field(
     workflow_execution_filter = {}
     if isinstance(wfe_base_ids, list) and len(wfe_base_ids) > 0:
         workflow_execution_filter = {
-            "id": {
-                "$regex": make_pattern_matching_ids_having_base_id_in_list(wfe_base_ids)
-            }
+            "$or": [
+                {"id": {"$regex": make_pattern_matching_ids_having_base_id(base_id)}}
+                for base_id in list(set(wfe_base_ids))
+            ]
         }
 
     # Get references to relevant MongoDB collections.
