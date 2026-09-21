@@ -104,10 +104,11 @@ def run_query(
     To retrieve the next batch of items, submit a request with `getMore` set to that non-null `cursor.id`.
     When the response includes a null `cursor.id`, there are no more items available.
 
-    For `find` commands targeting the `workflow_execution_set` or `data_object_set` collection, by
-    default, the endpoint will omits superseded workflow executions, superseded data objects, and
-    failed workflow executions from the response. You can disable that omission by setting the
-    `include_superseded` and/or `include_failed` request parameters.
+    For `find` commands targeting the `data_generation_set`, `data_object_set`, or
+    `workflow_execution_set` collections, by default, the endpoint will omit superseded data objects,
+    superseded workflow executions, failed data generations, and failed workflow executions from the
+    response. You can disable that omission by setting the `include_superseded` and/or
+    `include_failed` request parameters.
 
     Note: The `include_superseded` and `include_failed` request parameters have no effect on other
           commands. For `getMore` commands, their values are reused from the initial `find` command.
@@ -255,12 +256,13 @@ def run_query(
     if isinstance(cmd, AggregateCommand):
         check_can_aggregate(user)
 
-    # If the command type is `find` and the collection name is either "workflow_execution_set" or
-    # "data_object_set", augment the filter based upon whether the requester wants to include
-    # superseded and/or failed documents.
+    # If the command type is `find` and the collection name is either "data_generation_set",
+    # "data_object_set", or "workflow_execution_set", augment the filter based upon whether
+    # the requester wants to include superseded and/or failed documents.
     if isinstance(cmd, FindCommand) and cmd.find in (
-        "workflow_execution_set",
+        "data_generation_set",
         "data_object_set",
+        "workflow_execution_set",
     ):
         cmd = cmd.model_copy(
             update={
