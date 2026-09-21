@@ -19,6 +19,7 @@ from nmdc_runtime.api.db.mongo import (
     validate_json,
 )
 from nmdc_runtime.api.endpoints.lib.helpers import simulate_updates_and_check_references
+from nmdc_runtime.api.endpoints.lib.workflow_executions import augment_filter
 from nmdc_runtime.api.endpoints.util import (
     check_action_permitted,
     strip_oid,
@@ -46,6 +47,7 @@ from nmdc_runtime.api.models.query import (
 )
 from nmdc_runtime.api.models.lib.helpers import derive_delete_specs, derive_update_specs
 from nmdc_runtime.api.models.user import get_current_active_user, User
+from nmdc_runtime.api.models.util import IncludeFailedQuery, IncludeSupersededQuery
 from nmdc_runtime.lib.mongo_command_processor import MongoCommandProcessor
 
 router = APIRouter()
@@ -90,6 +92,8 @@ def run_query(
             description="When `true`, the server will allow operations that leave behind broken references."
         ),
     ] = False,
+    include_superseded: IncludeSupersededQuery = False,
+    include_failed: IncludeFailedQuery = False,
 ):
     r"""
     Performs `find`, `aggregate`, `update`, `delete`, `count`, `collStats`, and `getMore` commands
@@ -99,6 +103,14 @@ def run_query(
     When the response includes a non-null `cursor.id`, there _may_ be more items available.
     To retrieve the next batch of items, submit a request with `getMore` set to that non-null `cursor.id`.
     When the response includes a null `cursor.id`, there are no more items available.
+
+    For `find` commands targeting the `workflow_execution_set` or `data_object_set` collection, by
+    default, the endpoint will omits superseded workflow executions, superseded data objects, and
+    failed workflow executions from the response. You can disable that omission by setting the
+    `include_superseded` and/or `include_failed` request parameters.
+
+    Note: The `include_superseded` and `include_failed` request parameters have no effect on other
+          commands. For `getMore` commands, their values are reused from the initial `find` command.
 
     **Example request bodies:**
 
@@ -243,6 +255,23 @@ def run_query(
     if isinstance(cmd, AggregateCommand):
         check_can_aggregate(user)
 
+    # If the command type is `find` and the collection name is either "workflow_execution_set" or
+    # "data_object_set", augment the filter based upon whether the requester wants to include
+    # superseded and/or failed documents.
+    if isinstance(cmd, FindCommand) and cmd.find in (
+        "workflow_execution_set",
+        "data_object_set",
+    ):
+        cmd = cmd.model_copy(
+            update={
+                "filter": augment_filter(
+                    original_filter=cmd.filter if cmd.filter is not None else {},
+                    include_superseded=include_superseded,
+                    include_failed=include_failed,
+                )
+            }
+        )
+
     # Route the command to the appropriate command-processing function, based upon the command type.
     #
     # Note: In August, 2026, we introduced the `MongoCommandProcessor` class, whose
@@ -251,13 +280,13 @@ def run_query(
     #       function, thereby making the latter easier to debug and maintain.
     #
     if isinstance(cmd, (CountCommand, CollStatsCommand, DeleteCommand)):
-        mongo_command_processor = MongoCommandProcessor(db=get_mongo_db())
+        mongo_command_processor = MongoCommandProcessor(db=mdb)
         cmd_response = mongo_command_processor.process(
             command=cmd,
             allow_broken_refs=allow_broken_refs,
         )
     else:
-        cmd_response = _run_mdb_cmd(cmd, allow_broken_refs=allow_broken_refs)
+        cmd_response = _run_mdb_cmd(cmd, mdb=mdb, allow_broken_refs=allow_broken_refs)
     return cmd_response
 
 
