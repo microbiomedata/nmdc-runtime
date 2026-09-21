@@ -42,8 +42,6 @@ from nmdc_runtime.api.models.util import (
     FindRequestWithInclusionFlags,
     FindResponse,
     FindRequest,
-    IncludeFailedQuery,
-    IncludeSupersededQuery,
 )
 from nmdc_runtime.util import duration_logger
 
