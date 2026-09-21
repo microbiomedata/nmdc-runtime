@@ -1,5 +1,5 @@
 import re
-from typing import List, Optional, Tuple
+from typing import Any, List, Mapping, Optional, Tuple
 
 from pymongo.client_session import ClientSession
 from pymongo.database import Database
@@ -366,3 +366,58 @@ def update_superseded_by_field_of_data_objects_having_id_in_list(
     num_written += result.modified_count
 
     return num_written
+
+
+def make_filter_to_omit_superseded_documents() -> Mapping[str, Any]:
+    """
+    Helper function that returns a pymongo filter that filters out documents having a field named
+    `superseded_by` whose value is not `null`.
+
+    Docs: https://microbiomedata.github.io/nmdc-schema/superseded_by/
+
+    >>> from mongomock import MongoClient
+    >>> db = MongoClient().test
+    >>> _ = db.food_set.insert_many([
+    ...     {"name": "apple"},
+    ...     {"name": "banana", "superseded_by": None},
+    ...     {"name": "carrot", "superseded_by": "123"},
+    ... ])
+    >>> cursor = db.food_set.find(filter=make_filter_to_omit_superseded_documents())
+    >>> sorted(document["name"] for document in cursor)
+    ['apple', 'banana']
+    """
+
+    return {"superseded_by": None}
+
+
+def make_filter_to_omit_qc_failed_documents() -> Mapping[str, Any]:
+    """
+    Helper function that returns a pymongo filter that filters out documents having a field named
+    `qc_status` whose value is `fail`.
+
+    Docs: https://microbiomedata.github.io/nmdc-schema/qc_status/
+
+    >>> from mongomock import MongoClient
+    >>> db = MongoClient().test
+    >>> _ = db.food_set.insert_many([
+    ...     {"name": "apple"},
+    ...     {"name": "banana", "qc_status": None},
+    ...     {"name": "carrot", "qc_status": "pass"},
+    ...     {"name": "daikon", "qc_status": "fail"},
+    ... ])
+    >>> cursor = db.food_set.find(filter=make_filter_to_omit_qc_failed_documents())
+    >>> sorted(document["name"] for document in cursor)
+    ['apple', 'banana', 'carrot']
+
+    To prevent surprises as the schema evolves: confirm that the string "fail" is still a valid
+    value for the `qc_status` field.
+
+    >>> from nmdc_schema.get_nmdc_view import ViewGetter
+    >>> schema_view = ViewGetter().get_view()
+    >>> schema_view.get_slot("qc_status").range
+    'StatusEnum'
+    >>> schema_view.get_enum("StatusEnum").permissible_values["fail"].text
+    'fail'
+    """
+
+    return {"qc_status": {"$ne": "fail"}}
