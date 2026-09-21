@@ -421,3 +421,58 @@ def make_filter_to_omit_qc_failed_documents() -> Mapping[str, Any]:
     """
 
     return {"qc_status": {"$ne": "fail"}}
+
+
+def augment_filter(
+    original_filter: Mapping[str, Any],
+    include_superseded: bool = False,
+    include_failed: bool = False,
+) -> Mapping[str, Any]:
+    """
+    Helper function that returns a pymongo filter that may or may not have an additional clause(s)
+    that either filter out superseded documents, filter out failed documents, or both.
+
+    >>> augment_filter({}, include_superseded=True, include_failed=True)
+    {}
+    >>> augment_filter({}, include_superseded=True)
+    {'$and': [{}, {'qc_status': {'$ne': 'fail'}}]}
+    >>> augment_filter({}, include_failed=True)
+    {'$and': [{}, {'superseded_by': None}]}
+    >>> augment_filter({})
+    {'$and': [{}, {'qc_status': {'$ne': 'fail'}}, {'superseded_by': None}]}
+
+    >>> augment_filter({"foo": "bar"}, include_superseded=True, include_failed=True)
+    {'foo': 'bar'}
+    >>> augment_filter({"foo": "bar"}, include_superseded=True)
+    {'$and': [{'foo': 'bar'}, {'qc_status': {'$ne': 'fail'}}]}
+    >>> augment_filter({"foo": "bar"}, include_failed=True)
+    {'$and': [{'foo': 'bar'}, {'superseded_by': None}]}
+    >>> augment_filter({"foo": "bar"})
+    {'$and': [{'foo': 'bar'}, {'qc_status': {'$ne': 'fail'}}, {'superseded_by': None}]}
+    """
+
+    if include_superseded and include_failed:
+        final_filter = original_filter
+    elif include_superseded and not include_failed:
+        final_filter = {
+            "$and": [
+                original_filter,
+                make_filter_to_omit_qc_failed_documents(),
+            ],
+        }
+    elif include_failed and not include_superseded:
+        final_filter = {
+            "$and": [
+                original_filter,
+                make_filter_to_omit_superseded_documents(),
+            ],
+        }
+    else:
+        final_filter = {
+            "$and": [
+                original_filter,
+                make_filter_to_omit_qc_failed_documents(),
+                make_filter_to_omit_superseded_documents(),
+            ],
+        }
+    return final_filter
