@@ -66,6 +66,7 @@ class ListRequest(BaseModel):
         ],
     )
 
+
 # Annotated type, for use when the default behavior is to exclude superseded workflow executions and/or data objects.
 # A superseded WFE/DO is represented by a document having a `superseded_by` field consisting of any value other than `null`.
 IncludeSupersededQuery = Annotated[
@@ -86,9 +87,7 @@ IncludeFailedQuery = Annotated[
     Query(
         default=False,
         title="Include failed",
-        description=(
-            "Whether you want to include failed workflow executions"
-        ),
+        description=("Whether you want to include failed workflow executions"),
     ),
 ]
 

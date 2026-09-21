@@ -327,7 +327,7 @@ def find_resources(
     you can use `include_superseded` and `include_failed` to include/exclude superseded workflow executions
     and superseded data objects, or failed workflow executions, respectively. By default, they are
     included, in order to preserve backwards compatibility with existing callers of this function.
-    
+
     TODO: Add type hint for function's return value (see `nmdc_runtime.api.models.util.FindResponse`).
     """
     if req.group_by:

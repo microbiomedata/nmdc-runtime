@@ -39,7 +39,12 @@ from nmdc_runtime.api.endpoints.util import (
     comma_separated_values,
 )
 from nmdc_runtime.api.models.metadata import Doc
-from nmdc_runtime.api.models.util import IncludeFailedQuery, IncludeSupersededQuery, ListRequest, ListResponse
+from nmdc_runtime.api.models.util import (
+    IncludeFailedQuery,
+    IncludeSupersededQuery,
+    ListRequest,
+    ListResponse,
+)
 
 router = APIRouter()
 
