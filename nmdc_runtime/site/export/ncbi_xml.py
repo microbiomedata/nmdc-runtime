@@ -4,6 +4,7 @@ import datetime
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
+from functools import lru_cache
 from typing import Any, List
 from urllib.parse import urlparse
 from unidecode import unidecode
@@ -18,6 +19,25 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_string_value,
     load_mappings,
 )
+from nmdc_runtime.util import nmdc_schema_view
+
+# NMDC Biosample slots that should never be emitted as NCBI BioSample <Attribute>
+# elements, even if they appear in the attribute mapping file.
+#
+# In addition to the slots listed here, every slot descending from the
+# `external_database_identifiers` grouping slot in the NMDC schema (e.g.
+# `gold_biosample_identifiers`, `img_identifiers`) is excluded, since NMDC
+# does not maintain identifier mappings to external systems in NCBI records.
+EXCLUDED_BIOSAMPLE_SLOTS = {"biosample_categories", "type"}
+
+
+@lru_cache
+def get_excluded_biosample_slots() -> frozenset:
+    """Return the full set of NMDC Biosample slots to omit from BioSample attributes."""
+    external_id_slots = nmdc_schema_view().slot_descendants(
+        "external_database_identifiers"
+    )
+    return frozenset(EXCLUDED_BIOSAMPLE_SLOTS) | frozenset(external_id_slots)
 
 
 class NCBISubmissionXML:
@@ -181,6 +201,7 @@ class NCBISubmissionXML:
         attribute_mappings, slot_range_mappings = load_mappings(
             self.nmdc_ncbi_attribute_mapping_file_url
         )
+        excluded_slots = get_excluded_biosample_slots()
 
         # Use provided pooling data or empty dict
         pooling_data = pooled_biosamples_data or {}
@@ -219,6 +240,7 @@ class NCBISubmissionXML:
                 bioproject_id,
                 attribute_mappings,
                 slot_range_mappings,
+                excluded_slots,
             )
 
         # Process individual biosamples
@@ -235,6 +257,9 @@ class NCBISubmissionXML:
             pooling_info = pooling_data.get(biosample["id"], {})
 
             for json_key, value in biosample.items():
+                if json_key in excluded_slots:
+                    continue
+
                 if isinstance(value, list):
                     for item in value:
                         if json_key not in attribute_mappings:
@@ -306,19 +331,8 @@ class NCBISubmissionXML:
 
             # Override with aggregated values for pooled samples
             if pooling_info:
-                if pooling_info.get("aggregated_collection_date"):
-                    # Find the mapping for collection_date
-                    collection_date_key = attribute_mappings.get(
-                        "collection_date", "collection_date"
-                    )
-                    attributes[collection_date_key] = pooling_info[
-                        "aggregated_collection_date"
-                    ]
-
-                if pooling_info.get("aggregated_depth"):
-                    # Find the mapping for depth
-                    depth_key = attribute_mappings.get("depth", "depth")
-                    attributes[depth_key] = pooling_info["aggregated_depth"]
+                for slot, value in pooling_info.get("aggregated_values", {}).items():
+                    attributes[attribute_mappings.get(slot, slot)] = value
 
                 # Add samp_pooling attribute with semicolon-delimited biosample IDs
                 if pooling_info.get("pooled_biosample_ids"):
@@ -471,6 +485,7 @@ class NCBISubmissionXML:
         bioproject_id,
         attribute_mappings,
         slot_range_mappings,
+        excluded_slots=frozenset(),
     ):
         # Use the processed sample ID as the primary identifier
         sample_id_value = pooling_info.get("processed_sample_id")
@@ -489,7 +504,7 @@ class NCBISubmissionXML:
         # Process each biosample to collect and aggregate attributes
         for biosample in biosamples:
             for json_key, value in biosample.items():
-                if json_key == "id":
+                if json_key == "id" or json_key in excluded_slots:
                     continue
 
                 if json_key == "env_package":
@@ -566,18 +581,13 @@ class NCBISubmissionXML:
                 if xml_key not in aggregated_attributes:
                     aggregated_attributes[xml_key] = formatted_value
 
-        # Override with aggregated values for pooled samples
-        if pooling_info.get("aggregated_collection_date"):
-            collection_date_key = attribute_mappings.get(
-                "collection_date", "collection_date"
-            )
-            aggregated_attributes[collection_date_key] = pooling_info[
-                "aggregated_collection_date"
-            ]
-
-        if pooling_info.get("aggregated_depth"):
-            depth_key = attribute_mappings.get("depth", "depth")
-            aggregated_attributes[depth_key] = pooling_info["aggregated_depth"]
+        # Override with values aggregated across the constituent biosamples
+        # (see `aggregate_pooled_values` in ncbi_xml_utils)
+        aggregated_value_keys = set()
+        for slot, value in pooling_info.get("aggregated_values", {}).items():
+            xml_key = attribute_mappings.get(slot, slot)
+            aggregated_attributes[xml_key] = value
+            aggregated_value_keys.add(xml_key)
 
         # Add samp_pooling attribute with semicolon-delimited biosample IDs
         if pooling_info.get("pooled_biosample_ids"):
@@ -585,7 +595,9 @@ class NCBISubmissionXML:
                 pooling_info["pooled_biosample_ids"]
             )
 
-        # Filter attributes to only include the ones from neon_soil_example.xml for pooled samples
+        # Pooled samples only carry attributes that describe the composite:
+        # the location/environment attributes shared by all constituents
+        # (from neon_soil_example.xml) plus any value we could aggregate.
         allowed_attributes = {
             "collection_date",
             "depth",
@@ -596,7 +608,7 @@ class NCBISubmissionXML:
             "env_local_scale",
             "env_medium",
             "samp_pooling",
-        }
+        } | aggregated_value_keys
         filtered_attributes = {
             k: v for k, v in aggregated_attributes.items() if k in allowed_attributes
         }

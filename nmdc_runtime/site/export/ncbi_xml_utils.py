@@ -1,5 +1,8 @@
 from io import BytesIO, StringIO
-from typing import Any, Dict, List
+import math
+import re
+from functools import partial
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from nmdc_runtime.api.endpoints.util import strip_oid
 from nmdc_runtime.minter.config import typecodes
@@ -275,6 +278,312 @@ def load_mappings(url):
     return attribute_mappings, slot_range_mappings
 
 
+# --- Aggregation of slot values across pooled biosamples --------------------
+#
+# When several NMDC Biosamples are physically pooled (nmdc:Pooling), the NCBI
+# BioSample we submit describes the composite. Values measured on the
+# constituent biosamples are combined as follows:
+#
+# * Slots whose MIxS definition allows a range ("{float} - {float} {unit}")
+#   are reported as "min-max unit" (or "min unit" when all constituents agree).
+# * Slots that MIxS/NCBI constrain to a single float (e.g. `ph`,
+#   `carb_nitro_ratio`) get a slot-specific reducer that computes a
+#   scientifically defensible single value.
+#
+# A value is only aggregated when *every* constituent biosample asserts it
+# and all asserted units agree; otherwise the slot is omitted for that pool.
+
+# Slots whose MIxS definition permits a range value.
+POOLED_RANGE_SLOTS = (
+    "depth",
+    "temp",
+    "org_carb",
+    "nitro",
+    "tot_nitro_content",
+    "water_content",
+    "ammonium_nitrogen",
+)
+
+# Splits a measurement string into its leading number and whatever follows
+# (typically a unit). Group 1 is the number, group 2 is the remainder. Examples:
+#   "0.75 g water/g dry soil"  ->  ("0.75", "g water/g dry soil")
+#   " -12.34e+56 foo "         ->  ("-12.34e+56", "foo ")
+#   "15"                       ->  ("15", "")
+_LEADING_NUMBER_RE = re.compile(r"^\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)\s*(.*)$")
+
+
+def _format_number(number: float) -> str:
+    """Render a number without a trailing ``.0`` when it is integral.
+
+    >>> _format_number(10.0)
+    '10'
+    >>> _format_number(0.75)
+    '0.75'
+    >>> _format_number(3)
+    '3'
+    """
+    if isinstance(number, float) and number.is_integer():
+        return str(int(number))
+    return str(number)
+
+
+def _numeric_values_and_unit(value: Any) -> Optional[Tuple[List[float], str]]:
+    """Extract the numeric value(s) and unit from a slot value.
+
+    Handles bare numbers, ``QuantityValue`` dicts (single or min/max), strings
+    with a leading number (e.g. ``"0.75 g water/g dry soil"``), and lists of
+    any of those. Returns ``None`` if the value cannot be interpreted.
+
+    >>> _numeric_values_and_unit(6.2)
+    ([6.2], '')
+    >>> _numeric_values_and_unit({"has_numeric_value": 15, "has_unit": "Cel"})
+    ([15.0], 'Cel')
+    >>> _numeric_values_and_unit(
+    ...     {"has_minimum_numeric_value": 0, "has_maximum_numeric_value": 0.1, "has_unit": "m"}
+    ... )
+    ([0.0, 0.1], 'm')
+    >>> _numeric_values_and_unit("0.75 g water/g dry soil")
+    ([0.75], 'g water/g dry soil')
+    >>> _numeric_values_and_unit(["1 %", "2 %"])
+    ([1.0, 2.0], '%')
+    >>> _numeric_values_and_unit("unknown") is None
+    True
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return [float(value)], ""
+    if isinstance(value, str):
+        match = _LEADING_NUMBER_RE.match(value)
+        if not match:
+            return None
+        return [float(match.group(1))], match.group(2).strip()
+    if isinstance(value, dict):
+        unit = str(value.get("has_unit", "")).strip()
+        if "has_numeric_value" in value:
+            return [float(value["has_numeric_value"])], unit
+        if (
+            "has_minimum_numeric_value" in value
+            and "has_maximum_numeric_value" in value
+        ):
+            return (
+                [
+                    float(value["has_minimum_numeric_value"]),
+                    float(value["has_maximum_numeric_value"]),
+                ],
+                unit,
+            )
+        if "has_raw_value" in value:
+            return _numeric_values_and_unit(value["has_raw_value"])
+        return None
+    if isinstance(value, list):
+        numbers, units = [], set()
+        for item in value:
+            parsed = _numeric_values_and_unit(item)
+            if parsed is None:
+                return None
+            numbers.extend(parsed[0])
+            units.add(parsed[1])
+        if not numbers or len(units) != 1:
+            return None
+        return numbers, units.pop()
+    return None
+
+
+def _slot_values(biosamples: List[dict], slot: str) -> Optional[List[Any]]:
+    """Return the slot's value from each biosample, or ``None`` unless all have one.
+
+    >>> _slot_values([{"ph": 6.0}, {"ph": 7.0}], "ph")
+    [6.0, 7.0]
+    >>> _slot_values([{"ph": 6.0}, {}], "ph") is None
+    True
+    """
+    values = [biosample.get(slot) for biosample in biosamples]
+    if not values or any(value is None for value in values):
+        return None
+    return values
+
+
+def _parse_all(values: List[Any]) -> Optional[Tuple[List[float], str]]:
+    """Parse every value; require a single common unit.
+
+    >>> _parse_all([{"has_numeric_value": 0, "has_unit": "m"}, "0.1 m"])
+    ([0.0, 0.1], 'm')
+    >>> _parse_all(["20 Cel", "68 degree Fahrenheit"]) is None
+    True
+    """
+    numbers, units = [], set()
+    for value in values:
+        parsed = _numeric_values_and_unit(value)
+        if parsed is None:
+            return None
+        numbers.extend(parsed[0])
+        units.add(parsed[1])
+    if not numbers or len(units) != 1:
+        return None
+    return numbers, units.pop()
+
+
+def aggregate_range(values: List[Any]) -> Optional[str]:
+    """Combine numeric values into ``"min-max unit"`` (or ``"value unit"``).
+
+    >>> aggregate_range(["0 m", "0.1 m", "0.3 m"])
+    '0-0.3 m'
+    >>> aggregate_range([5.0, 5])
+    '5'
+    >>> aggregate_range(["20 Cel", "68 degree Fahrenheit"]) is None
+    True
+    """
+    parsed = _parse_all(values)
+    if parsed is None:
+        return None
+    numbers, unit = parsed
+    low, high = min(numbers), max(numbers)
+    if low == high:
+        range_str = _format_number(low)
+    else:
+        range_str = f"{_format_number(low)}-{_format_number(high)}"
+    return f"{range_str} {unit}".strip()
+
+
+def aggregate_range_slot(slot: str, biosamples: List[dict]) -> Optional[str]:
+    """Aggregate one range-capable slot across biosamples; ``None`` unless all have it.
+
+    >>> aggregate_range_slot("temp", [{"temp": "15 Cel"}, {"temp": "17 Cel"}])
+    '15-17 Cel'
+    >>> aggregate_range_slot("temp", [{"temp": "15 Cel"}, {}]) is None
+    True
+    """
+    values = _slot_values(biosamples, slot)
+    return aggregate_range(values) if values else None
+
+
+def aggregate_collection_date(biosamples: List[dict]) -> Optional[str]:
+    """Report the earliest/latest collection dates as an ISO 8601 interval.
+
+    >>> cores = [
+    ...     {"collection_date": {"has_raw_value": "2017-06-05T17:47Z"}},
+    ...     {"collection_date": "2017-06-05T16:50Z"},
+    ... ]
+    >>> aggregate_collection_date(cores)
+    '2017-06-05T16:50Z/2017-06-05T17:47Z'
+    >>> aggregate_collection_date([{"collection_date": "2017-06-05"}] * 2)
+    '2017-06-05'
+    """
+    values = _slot_values(biosamples, "collection_date")
+    if not values:
+        return None
+    dates = []
+    for value in values:
+        if isinstance(value, dict) and "has_raw_value" in value:
+            dates.append(str(value["has_raw_value"]))
+        elif isinstance(value, str):
+            dates.append(value)
+        else:
+            return None
+    dates.sort()
+    return dates[0] if dates[0] == dates[-1] else f"{dates[0]}/{dates[-1]}"
+
+
+def aggregate_ph(biosamples: List[dict]) -> Optional[str]:
+    """Combine pH values into a single pH.
+
+    MIxS constrains ``ph`` to a single float, and pH is logarithmic, so the
+    hydrogen ion concentrations are averaged and converted back rather than
+    averaging the pH values directly.
+
+    >>> aggregate_ph([{"ph": 6.0}, {"ph": 7.0}])  # arithmetic mean would be 6.5
+    '6.26'
+    >>> aggregate_ph([{"ph": 5.83}, {"ph": 5.83}, {"ph": 5.83}])
+    '5.83'
+    >>> aggregate_ph([{"ph": 6.0}, {}]) is None
+    True
+    """
+    values = _slot_values(biosamples, "ph")
+    if not values:
+        return None
+    parsed = _parse_all(values)
+    if parsed is None:
+        return None
+    ph_values = parsed[0]
+    mean_hydrogen_ion = sum(10**-ph for ph in ph_values) / len(ph_values)
+    return _format_number(round(-math.log10(mean_hydrogen_ion), 2))
+
+
+def aggregate_carb_nitro_ratio(biosamples: List[dict]) -> Optional[str]:
+    """Combine carbon/nitrogen ratios into a single ratio.
+
+    A mean of ratios is not the ratio of the pooled material, so when every
+    constituent reports ``org_carb`` and ``nitro`` in one common unit, the
+    ratio of summed carbon to summed nitrogen is used (this assumes
+    equal-mass pooling). Otherwise the mean of the asserted ratios is used.
+
+    >>> cores = [
+    ...     {"org_carb": "10 g/kg", "nitro": "1 g/kg", "carb_nitro_ratio": 10},
+    ...     {"org_carb": "20 g/kg", "nitro": "3 g/kg", "carb_nitro_ratio": 6.67},
+    ... ]
+    >>> aggregate_carb_nitro_ratio(cores)  # 30/4, not the mean of 10 and 6.67
+    '7.5'
+    >>> aggregate_carb_nitro_ratio([{"carb_nitro_ratio": 10}, {"carb_nitro_ratio": 20}])
+    '15'
+    """
+    carbon = _slot_values(biosamples, "org_carb")
+    nitrogen = _slot_values(biosamples, "nitro")
+    if carbon and nitrogen:
+        parsed_carbon = _parse_all(carbon)
+        parsed_nitrogen = _parse_all(nitrogen)
+        if (
+            parsed_carbon is not None
+            and parsed_nitrogen is not None
+            and parsed_carbon[1] == parsed_nitrogen[1]
+            # every constituent contributed exactly one (non-range) value
+            and len(parsed_carbon[0]) == len(biosamples)
+            and len(parsed_nitrogen[0]) == len(biosamples)
+            and sum(parsed_nitrogen[0]) > 0
+        ):
+            ratio = sum(parsed_carbon[0]) / sum(parsed_nitrogen[0])
+            return _format_number(round(ratio, 2))
+
+    ratios = _slot_values(biosamples, "carb_nitro_ratio")
+    if not ratios:
+        return None
+    parsed = _parse_all(ratios)
+    if parsed is None:
+        return None
+    numbers = parsed[0]
+    return _format_number(round(sum(numbers) / len(numbers), 2))
+
+
+# Slot name -> reducer over the constituent biosamples of a pool.
+POOLED_VALUE_REDUCERS: Dict[str, Callable[[List[dict]], Optional[str]]] = {
+    "collection_date": aggregate_collection_date,
+    "ph": aggregate_ph,
+    "carb_nitro_ratio": aggregate_carb_nitro_ratio,
+    **{slot: partial(aggregate_range_slot, slot) for slot in POOLED_RANGE_SLOTS},
+}
+
+
+def aggregate_pooled_values(biosamples: List[dict]) -> Dict[str, str]:
+    """Compute every aggregatable slot value for a pool of biosamples.
+
+    :return: mapping of NMDC slot name to the aggregated value; slots that
+        could not be aggregated are omitted.
+
+    >>> cores = [
+    ...     {"ph": 6.0, "depth": "0 m", "temp": "15 Cel"},
+    ...     {"ph": 7.0, "depth": "0.1 m", "org_carb": "1 g/kg"},
+    ... ]
+    >>> aggregate_pooled_values(cores)  # temp/org_carb missing on one core
+    {'ph': '6.26', 'depth': '0-0.1 m'}
+    """
+    aggregated = {}
+    for slot, reducer in POOLED_VALUE_REDUCERS.items():
+        value = reducer(biosamples)
+        if value is not None:
+            aggregated[slot] = value
+    return aggregated
+
+
 def check_pooling_for_biosamples(
     material_processing_set: Collection, biosamples_list: List[Dict[str, Any]]
 ) -> Dict[str, Dict[str, Any]]:
@@ -312,74 +621,21 @@ def check_pooling_for_biosamples(
                 processed_sample_id = output_id
                 break
 
-        # aggregate the values on `collection_date` and `depth` slots
-        # here, we are collecting the `collection_date` and `depth` values
-        # asserted on each of the biosamples that are part of a given pooling
-        # process in the following way:
-        # example of aggregated `collection_date`: 2017-06-05T16:50Z/2017-06-05T17:47Z
-        # example of aggregated `depth`: 0-10 m
-        collection_dates = []
-        depths = []
-
-        for bs_id in pooled_biosample_ids:
-            biosample = biosample_lookup.get(bs_id)
-            if not biosample:
-                continue
-
-            if "collection_date" in biosample:
-                collection_date = biosample["collection_date"]
-                if (
-                    isinstance(collection_date, dict)
-                    and "has_raw_value" in collection_date
-                ):
-                    collection_dates.append(collection_date["has_raw_value"])
-                elif isinstance(collection_date, str):
-                    collection_dates.append(collection_date)
-
-            if "depth" in biosample:
-                depth = biosample["depth"]
-                if isinstance(depth, dict):
-                    if "has_numeric_value" in depth:
-                        depths.append(depth["has_numeric_value"])
-                    elif (
-                        "has_minimum_numeric_value" in depth
-                        and "has_maximum_numeric_value" in depth
-                    ):
-                        depths.extend(
-                            [
-                                depth["has_minimum_numeric_value"],
-                                depth["has_maximum_numeric_value"],
-                            ]
-                        )
-                elif isinstance(depth, (int, float)):
-                    depths.append(depth)
-
-        # create aggregated (forward slash separated) value for `collection_date`
-        aggregated_collection_date = None
-        if collection_dates:
-            sorted_dates = sorted(collection_dates)
-            if len(sorted_dates) > 1:
-                aggregated_collection_date = f"{sorted_dates[0]}/{sorted_dates[-1]}"
-            else:
-                aggregated_collection_date = sorted_dates[0]
-
-        # create aggregated (hyphen separated) value for `depth`
-        aggregated_depth = None
-        if depths:
-            min_depth = min(depths)
-            max_depth = max(depths)
-            if min_depth != max_depth:
-                aggregated_depth = f"{min_depth}-{max_depth} m"
-            else:
-                aggregated_depth = f"{min_depth} m"
+        # aggregate slot values (collection_date, depth, ph, ...) across the
+        # constituent biosamples; see `aggregate_pooled_values`
+        pooled_biosamples = [
+            biosample_lookup[bs_id]
+            for bs_id in pooled_biosample_ids
+            if bs_id in biosample_lookup
+        ]
+        aggregated_values = aggregate_pooled_values(pooled_biosamples)
 
         # update all biosamples that are part of this pooling process
         pooling_info = {
             "processed_sample_id": processed_sample_id,
             "pooling_process_id": pooling_process.get("id"),
             "pooled_biosample_ids": pooled_biosample_ids,
-            "aggregated_collection_date": aggregated_collection_date,
-            "aggregated_depth": aggregated_depth,
+            "aggregated_values": aggregated_values,
         }
 
         for bs_id in pooled_biosample_ids:
