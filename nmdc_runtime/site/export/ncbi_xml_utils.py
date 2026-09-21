@@ -304,6 +304,11 @@ POOLED_RANGE_SLOTS = (
     "ammonium_nitrogen",
 )
 
+# Splits a measurement string into its leading number and whatever follows
+# (typically a unit). Group 1 is the number, group 2 is the remainder. Examples:
+#   "0.75 g water/g dry soil"  ->  ("0.75", "g water/g dry soil")
+#   " -12.34e+56 foo "         ->  ("-12.34e+56", "foo ")
+#   "15"                       ->  ("15", "")
 _LEADING_NUMBER_RE = re.compile(r"^\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)\s*(.*)$")
 
 
