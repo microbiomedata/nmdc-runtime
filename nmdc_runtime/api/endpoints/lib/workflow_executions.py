@@ -1,5 +1,5 @@
 import re
-from typing import Any, List, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from pymongo.client_session import ClientSession
 from pymongo.database import Database
@@ -368,7 +368,7 @@ def update_superseded_by_field_of_data_objects_having_id_in_list(
     return num_written
 
 
-def make_filter_to_omit_superseded_documents() -> Mapping[str, Any]:
+def make_filter_to_omit_superseded_documents() -> Dict[str, Any]:
     """
     Helper function that returns a pymongo filter that filters out documents having a field named
     `superseded_by` whose value is not `null`.
@@ -390,7 +390,7 @@ def make_filter_to_omit_superseded_documents() -> Mapping[str, Any]:
     return {"superseded_by": None}
 
 
-def make_filter_to_omit_qc_failed_documents() -> Mapping[str, Any]:
+def make_filter_to_omit_qc_failed_documents() -> Dict[str, Any]:
     """
     Helper function that returns a pymongo filter that filters out documents having a field named
     `qc_status` whose value is `fail`.
@@ -424,10 +424,10 @@ def make_filter_to_omit_qc_failed_documents() -> Mapping[str, Any]:
 
 
 def augment_filter(
-    original_filter: Mapping[str, Any],
+    original_filter: Dict[str, Any],
     include_superseded: bool = False,
     include_failed: bool = False,
-) -> Mapping[str, Any]:
+) -> Dict[str, Any]:
     """
     Helper function that returns a pymongo filter that may or may not have an additional clause(s)
     that either filter out superseded documents, filter out failed documents, or both.

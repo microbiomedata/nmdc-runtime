@@ -21,6 +21,7 @@ from nmdc_runtime.api.core.util import (
     raise404_if_none,
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.endpoints.lib.workflow_executions import augment_filter
 from nmdc_runtime.api.models.job import Job, JobClaim, JobOperationMetadata
 from nmdc_runtime.api.models.object import (
     DrsId,
@@ -93,7 +94,11 @@ def check_filter(filter_: str):
 
 
 def list_resources(
-    req: ListRequest, mdb: MongoDatabase, collection_name: str = ""
+    req: ListRequest,
+    mdb: MongoDatabase,
+    collection_name: str = "",
+    include_superseded: bool = True,
+    include_failed: bool = True,
 ) -> dict:
     """
     Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
@@ -105,6 +110,11 @@ def list_resources(
 
     If the specified page size (`req.max_page_size`) is non-zero and more documents match the filter criteria than
     can fit on a page of that size, this function will paginate the resources.
+
+    When the collection name is either "workflow_execution_set" or "data_object_set",
+    you can use `include_superseded` and `include_failed` to include/exclude superseded workflow executions
+    and superseded data objects, or failed workflow executions, respectively. By default, they are
+    included, in order to preserve backwards compatibility with existing callers of this function.
     """
     if collection_name == "" and req.page_token is None:
         raise HTTPException(
@@ -137,6 +147,17 @@ def list_resources(
 
     max_page_size = req.max_page_size
     filter_ = json_util.loads(check_filter(req.filter)) if req.filter else {}
+
+    # If the collection name is either "workflow_execution_set" or "data_object_set", augment the
+    # filter based upon whether the caller wants to include superseded and/or failed documents.
+    if collection_name in ["workflow_execution_set", "data_object_set"]:
+        filter_ = augment_filter(
+            original_filter=filter_,
+            include_superseded=include_superseded,
+            include_failed=include_failed,
+        )
+        logging.debug(f"Augmented filter: {filter_}")
+
     projection = (
         list(set(comma_separated_values(req.projection)) | {id_field})
         if req.projection
@@ -291,11 +312,22 @@ def timeit(cursor):
     return results, int(round((toc - tic) / 1e6))
 
 
-def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
+def find_resources(
+    req: FindRequest,
+    mdb: MongoDatabase,
+    collection_name: str,
+    include_superseded: bool = True,
+    include_failed: bool = True,
+):
     """Find nmdc schema collection entities that match the FindRequest.
 
     "resources" is used generically here, as in "Web resources", e.g. Uniform Resource Identifiers (URIs).
 
+    When the collection name is either "workflow_execution_set" or "data_object_set",
+    you can use `include_superseded` and `include_failed` to include/exclude superseded workflow executions
+    and superseded data objects, or failed workflow executions, respectively. By default, they are
+    included, in order to preserve backwards compatibility with existing callers of this function.
+    
     TODO: Add type hint for function's return value (see `nmdc_runtime.api.models.util.FindResponse`).
     """
     if req.group_by:
@@ -319,6 +351,16 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
     sort_ = get_mongo_sort(req.sort)
 
     total_count = mdb[collection_name].count_documents(filter=filter_)
+
+    # If the collection name is either "workflow_execution_set" or "data_object_set", augment the
+    # filter based upon whether the caller wants to include superseded and/or failed documents.
+    if collection_name in ["workflow_execution_set", "data_object_set"]:
+        filter_ = augment_filter(
+            original_filter=filter_,
+            include_superseded=include_superseded,
+            include_failed=include_failed,
+        )
+        logging.debug(f"Augmented filter: {filter_}")
 
     if req.page:
         skip = (req.page - 1) * req.per_page
@@ -448,13 +490,22 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
 
 
 def find_resources_spanning(
-    req: FindRequest, mdb: MongoDatabase, collection_names: Set[str]
+    req: FindRequest,
+    mdb: MongoDatabase,
+    collection_names: Set[str],
+    include_superseded: bool = True,
+    include_failed: bool = True,
 ):
     """Find nmdc schema collection entities -- here, across multiple collections -- that match the FindRequest.
 
     This is useful for collections that house documents that are subclasses of a common ancestor class.
 
     "resources" is used generically here, as in "Web resources", e.g. Uniform Resource Identifiers (URIs).
+
+    When the collection names include "workflow_execution_set" or "data_object_set",
+    you can use `include_superseded` and `include_failed` to include/exclude superseded workflow executions
+    and superseded data objects, or failed workflow executions, respectively. By default, they are
+    included, in order to preserve backwards compatibility with existing callers of this function.
     """
     if req.cursor or not req.page:
         raise HTTPException(
@@ -475,7 +526,18 @@ def find_resources_spanning(
             "group_by": [],
         }
 
-    responses = {name: find_resources(req, mdb, name) for name in collection_names}
+    # Find the resources in each specified collection, passing the `include_superseded` and
+    # `include_failed` flags to the inner function.
+    responses = {}
+    for collection_name in collection_names:
+        responses[collection_name] = find_resources(
+            req,
+            mdb,
+            collection_name,
+            include_superseded=include_superseded,
+            include_failed=include_failed,
+        )
+
     rv = {
         "meta": {
             "mongo_filter_dict": next(

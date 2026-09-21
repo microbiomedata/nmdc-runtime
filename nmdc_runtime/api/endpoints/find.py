@@ -41,6 +41,8 @@ from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.models.util import (
     FindResponse,
     FindRequest,
+    IncludeFailedQuery,
+    IncludeSupersededQuery,
 )
 from nmdc_runtime.util import duration_logger
 
@@ -133,13 +135,21 @@ def find_biosample_by_id(
 def find_data_objects(
     req: Annotated[FindRequest, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
+    include_superseded: IncludeSupersededQuery = False,
+    include_failed: IncludeFailedQuery = False,
 ):
     """
     To retrieve metadata about NMDC data objects (such as files, records, or omics data) the GET /data_objects endpoint
     may be used along with various parameters. Please see the applicable [Data Object](https://microbiomedata.github.io/nmdc-schema/DataObject/)
     attributes.
     """
-    return find_resources(req, mdb, "data_object_set")
+    return find_resources(
+        req,
+        mdb,
+        "data_object_set",
+        include_superseded=include_superseded,
+        include_failed=include_failed,
+    )
 
 
 @router.get(
@@ -473,6 +483,8 @@ def find_data_object_by_id(
 def find_planned_processes(
     req: Annotated[FindRequest, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
+    include_superseded: IncludeSupersededQuery = False,
+    include_failed: IncludeFailedQuery = False,
 ):
     """
     The GET /planned_processes endpoint is a general way to fetch metadata about various planned processes (e.g.
@@ -488,6 +500,8 @@ def find_planned_processes(
         mdb,
         get_planned_process_collection_names()
         & get_nonempty_nmdc_schema_collection_names(mdb),
+        include_superseded=include_superseded,
+        include_failed=include_failed,
     )
 
 

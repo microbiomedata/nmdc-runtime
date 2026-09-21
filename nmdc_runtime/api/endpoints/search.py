@@ -11,7 +11,7 @@ from nmdc_runtime.api.models.nmdc_schema import (
     DataObjectListRequest,
     list_request_filter_to_mongo_filter,
 )
-from nmdc_runtime.api.models.util import ListResponse, ListRequest
+from nmdc_runtime.api.models.util import IncludeSupersededQuery, ListResponse, ListRequest
 
 router = APIRouter()
 
@@ -24,6 +24,7 @@ router = APIRouter()
 def data_objects(
     req: DataObjectListRequest = Depends(),
     mdb: MongoDatabase = Depends(get_mongo_db),
+    include_superseded: IncludeSupersededQuery = False,
 ):
     filter_ = list_request_filter_to_mongo_filter(req.model_dump(exclude_unset=True))
     max_page_size = filter_.pop("max_page_size", None)
@@ -33,6 +34,11 @@ def data_objects(
         max_page_size=max_page_size,
         page_token=page_token,
     )
-    rv = list_resources(req, mdb, "data_objects")
+    rv = list_resources(
+        req,
+        mdb,
+        "data_objects",
+        include_superseded=include_superseded,
+    )
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
     return rv
