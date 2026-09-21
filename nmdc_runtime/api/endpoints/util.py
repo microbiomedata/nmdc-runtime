@@ -345,12 +345,6 @@ def find_resources(
         )
 
     filter_ = get_mongo_filter(req.filter)
-    projection = (
-        list(set(comma_separated_values(req.fields)) | {"id"}) if req.fields else None
-    )
-    sort_ = get_mongo_sort(req.sort)
-
-    total_count = mdb[collection_name].count_documents(filter=filter_)
 
     # If the collection name is either "workflow_execution_set" or "data_object_set", augment the
     # filter based upon whether the caller wants to include superseded and/or failed documents.
@@ -361,6 +355,13 @@ def find_resources(
             include_failed=include_failed,
         )
         logging.debug(f"Augmented filter: {filter_}")
+
+    projection = (
+        list(set(comma_separated_values(req.fields)) | {"id"}) if req.fields else None
+    )
+    sort_ = get_mongo_sort(req.sort)
+
+    total_count = mdb[collection_name].count_documents(filter=filter_)
 
     if req.page:
         skip = (req.page - 1) * req.per_page
