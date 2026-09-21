@@ -72,7 +72,6 @@ class ListRequest(BaseModel):
 IncludeSupersededQuery = Annotated[
     bool,
     Query(
-        default=False,
         title="Include superseded",
         description=(
             "Whether you want to include superseded workflow executions and data objects"
@@ -85,7 +84,6 @@ IncludeSupersededQuery = Annotated[
 IncludeFailedQuery = Annotated[
     bool,
     Query(
-        default=False,
         title="Include failed",
         description=("Whether you want to include failed workflow executions"),
     ),
