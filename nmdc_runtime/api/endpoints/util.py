@@ -6,7 +6,7 @@ from functools import lru_cache
 from json import JSONDecodeError
 from pathlib import Path
 from time import time_ns
-from typing import List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 from zoneinfo import ZoneInfo
 
 from bson import json_util
@@ -518,6 +518,7 @@ def find_resources_spanning(
         return {
             "meta": {
                 "mongo_filter_dict": get_mongo_filter(req.filter),
+                "mongo_filter_dict_by_collection_name": {},
                 "count": 0,
                 "db_response_time_ms": 0,
                 "page": req.page,
@@ -539,11 +540,27 @@ def find_resources_spanning(
             include_failed=include_failed,
         )
 
+    # Here, we make a map from collection name to the pymongo filter that was ultimately used when
+    # querying that collection. We'll include this in the dictionary that we return below.
+    #
+    # Note: We introduced this dictionary concurrently with introducing the `include_superseded` and
+    #       `include_failed` flags. Those flags can cause the `find_resources` function to modify
+    #       the pymongo filter from what it was when the user submitted it, depending upon the
+    #       collection being queried. I do not know whether anybody uses "mongo_filter_dict" or
+    #       whether anybody will use this new "mongo_filter_dict_by_collection_name" dictionary.
+    #       All Mongo stuff exposed via the HTTP API seems like a leaky abstraction to me.
+    #
+    mongo_filter_dict_by_collection_name: Dict[str, dict] = {
+        collection_name: responses[collection_name]["meta"]["mongo_filter_dict"]
+        for collection_name in sorted(responses.keys())
+    }
+
     rv = {
         "meta": {
             "mongo_filter_dict": next(
                 r["meta"]["mongo_filter_dict"] for r in responses.values()
             ),
+            "mongo_filter_dict_by_collection_name": mongo_filter_dict_by_collection_name,
             "count": sum(r["meta"]["count"] for r in responses.values()),
             "db_response_time_ms": sum(
                 r["meta"]["db_response_time_ms"] for r in responses.values()
