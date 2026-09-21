@@ -103,10 +103,14 @@ def list_resources(
     """
     Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
 
-    `mdb.page_tokens` docs are `{"_id": req.page_token, "ns": collection_name}`, Because `page_token` is globally
-    unique, and because the `mdb.page_tokens.find_one({"_id": req.page_token})` document stores `collection_name` in
+    `mdb.page_tokens` documents store the token ID, collection, last ID, and inclusion flags. Because
+    `page_token` is globally unique, and because the token document stores `collection_name` in
     the "ns" (namespace) field, the value for `collection_name` stored there takes precedence over any value supplied
     as an argument to this function's `collection_name` parameter.
+
+    Inclusion flags stored in tokens take precedence over the current request's inclusion flags.
+    For tokens that lack inclusion flags (e.g. because the tokens were created before we introduced
+    the inclusion flags), the current request's inclusion flags are used.
 
     If the specified page size (`req.max_page_size`) is non-zero and more documents match the filter criteria than
     can fit on a page of that size, this function will paginate the resources.
@@ -129,6 +133,8 @@ def list_resources(
             )
         collection_name = doc["ns"]
         last_id = doc["last_id"]
+        include_superseded = doc.get("include_superseded", include_superseded)
+        include_failed = doc.get("include_failed", include_failed)
         mdb.page_tokens.delete_one({"_id": req.page_token})
     else:
         last_id = None
@@ -202,7 +208,13 @@ def list_resources(
         # TODO unify with `/queries:run` query continuation model
         #  => {_id: cursor/token, query: <full query>, last_id: <>, last_modified: <>}
         mdb.page_tokens.insert_one(
-            {"_id": token, "ns": collection_name, "last_id": last_id}
+            {
+                "_id": token,
+                "ns": collection_name,
+                "last_id": last_id,
+                "include_superseded": include_superseded,
+                "include_failed": include_failed,
+            }
         )
         return {"resources": resources, "next_page_token": token}
 
@@ -328,6 +340,10 @@ def find_resources(
     and superseded data objects, or failed workflow executions, respectively. By default, they are
     included, in order to preserve backwards compatibility with existing callers of this function.
 
+    Inclusion flags stored in tokens take precedence over the current request's inclusion flags.
+    For tokens that lack inclusion flags (e.g. because the tokens were created before we introduced
+    the inclusion flags), the current request's inclusion flags are used.
+
     TODO: Add type hint for function's return value (see `nmdc_runtime.api.models.util.FindResponse`).
     """
     if req.group_by:
@@ -343,6 +359,22 @@ def find_resources(
                 "Use ?filter=<attribute>.search:<spec> instead."
             ),
         )
+
+    # If the request included a cursor value other than "*", try to load the corresponding token.
+    #
+    # Note: We do this before potentially augmenting the filter so that we know which inclusion
+    #       flag values to apply during augmentation.
+    #
+    last_id = None
+    if req.cursor is not None and req.cursor != "*":
+        doc = mdb.page_tokens.find_one({"_id": req.cursor, "ns": collection_name})
+        if doc is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Bad cursor value"
+            )
+        last_id = doc["last_id"]
+        include_superseded = doc.get("include_superseded", include_superseded)
+        include_failed = doc.get("include_failed", include_failed)
 
     filter_ = get_mongo_filter(req.filter)
 
@@ -407,15 +439,11 @@ def find_resources(
 
     else:  # req.cursor is not None
         if req.cursor != "*":
-            doc = mdb.page_tokens.find_one({"_id": req.cursor, "ns": collection_name})
-            if doc is None:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail="Bad cursor value"
-                )
-            last_id = doc["last_id"]
+            # Note: The only reason we don't delete the token up above (when we load the token)
+            #       is that there is a chance something fails in between, and we don't want
+            #       to "consume" the token unless the user was really able to make use of it.
+            #       That way, the user can retry the request using the same token.
             mdb.page_tokens.delete_one({"_id": req.cursor})
-        else:
-            last_id = None
 
         if last_id is not None:
             if "id" in filter_:
@@ -465,7 +493,13 @@ def find_resources(
             if more_results:
                 token = generate_one_id(mdb, "page_tokens")
                 mdb.page_tokens.insert_one(
-                    {"_id": token, "ns": collection_name, "last_id": last_id}
+                    {
+                        "_id": token,
+                        "ns": collection_name,
+                        "last_id": last_id,
+                        "include_superseded": include_superseded,
+                        "include_failed": include_failed,
+                    }
                 )
             else:
                 token = None
