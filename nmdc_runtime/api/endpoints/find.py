@@ -39,6 +39,7 @@ from nmdc_runtime.api.endpoints.util import (
 from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.models.util import (
+    FindRequestWithInclusionFlags,
     FindResponse,
     FindRequest,
     IncludeFailedQuery,
@@ -133,10 +134,8 @@ def find_biosample_by_id(
     response_model_exclude_unset=True,
 )
 def find_data_objects(
-    req: Annotated[FindRequest, Query()],
+    req: Annotated[FindRequestWithInclusionFlags, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
-    include_superseded: IncludeSupersededQuery = False,
-    include_failed: IncludeFailedQuery = False,
 ):
     """
     To retrieve metadata about NMDC data objects (such as files, records, or omics data) the GET /data_objects endpoint
@@ -147,8 +146,8 @@ def find_data_objects(
         req,
         mdb,
         "data_object_set",
-        include_superseded=include_superseded,
-        include_failed=include_failed,
+        include_superseded=req.include_superseded,
+        include_failed=req.include_failed,
     )
 
 
@@ -481,10 +480,8 @@ def find_data_object_by_id(
     response_model_exclude_unset=True,
 )
 def find_planned_processes(
-    req: Annotated[FindRequest, Query()],
+    req: Annotated[FindRequestWithInclusionFlags, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
-    include_superseded: IncludeSupersededQuery = False,
-    include_failed: IncludeFailedQuery = False,
 ):
     """
     The GET /planned_processes endpoint is a general way to fetch metadata about various planned processes (e.g.
@@ -500,8 +497,8 @@ def find_planned_processes(
         mdb,
         get_planned_process_collection_names()
         & get_nonempty_nmdc_schema_collection_names(mdb),
-        include_superseded=include_superseded,
-        include_failed=include_failed,
+        include_superseded=req.include_superseded,
+        include_failed=req.include_failed,
     )
 
 

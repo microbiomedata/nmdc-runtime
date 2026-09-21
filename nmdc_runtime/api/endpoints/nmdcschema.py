@@ -43,6 +43,7 @@ from nmdc_runtime.api.models.util import (
     IncludeFailedQuery,
     IncludeSupersededQuery,
     ListRequest,
+    ListRequestWithInclusionFlags,
     ListResponse,
 )
 
@@ -453,10 +454,8 @@ def list_from_collection(
             examples=["biosample_set"],
         ),
     ],
-    req: Annotated[ListRequest, Query()],
+    req: Annotated[ListRequestWithInclusionFlags, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
-    include_superseded: IncludeSupersededQuery = False,
-    include_failed: IncludeFailedQuery = False,
 ):
     r"""
     Retrieves resources that match the specified filter criteria and reside in the specified collection.
@@ -486,8 +485,8 @@ def list_from_collection(
         req,
         mdb,
         collection_name,
-        include_superseded=include_superseded,
-        include_failed=include_failed,
+        include_superseded=req.include_superseded,
+        include_failed=req.include_failed,
     )
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
     return rv

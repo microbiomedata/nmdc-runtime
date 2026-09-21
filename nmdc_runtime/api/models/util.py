@@ -89,6 +89,14 @@ IncludeFailedQuery = Annotated[
     ),
 ]
 
+
+class ListRequestWithInclusionFlags(ListRequest):
+    r"""Same as `ListRequest`, but with the addition of some flags related to inclusion."""
+
+    include_superseded: IncludeSupersededQuery = False
+    include_failed: IncludeFailedQuery = False
+
+
 PerPageRange = Annotated[int, Field(gt=0, le=2_000)]
 
 
@@ -197,6 +205,13 @@ class FindRequest(BaseModel):
         if page is None and cursor is None:
             values["page"] = 1
         return values
+
+
+class FindRequestWithInclusionFlags(FindRequest):
+    r"""Same as `FindRequest`, but with the addition of some flags related to inclusion."""
+
+    include_superseded: IncludeSupersededQuery = False
+    include_failed: IncludeFailedQuery = False
 
 
 class FindResponse(BaseModel):
