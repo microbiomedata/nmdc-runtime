@@ -110,7 +110,7 @@ def list_resources(
 
     Inclusion flags stored in tokens take precedence over the current request's inclusion flags.
     For tokens that lack inclusion flags (e.g. because the tokens were created before we introduced
-    the inclusion flags), the current request's inclusion flags are used.
+    the inclusion flags), the flags are set to `True` to mimic the original (pre-flag) behavior.
 
     If the specified page size (`req.max_page_size`) is non-zero and more documents match the filter criteria than
     can fit on a page of that size, this function will paginate the resources.
@@ -133,8 +133,10 @@ def list_resources(
             )
         collection_name = doc["ns"]
         last_id = doc["last_id"]
-        include_superseded = doc.get("include_superseded", include_superseded)
-        include_failed = doc.get("include_failed", include_failed)
+        # Default to `True` so that, for tokens generated prior to the introduction of these flags,
+        # superseded/failed things are included like they would have been at token-generation time.
+        include_superseded = doc.get("include_superseded", True)
+        include_failed = doc.get("include_failed", True)
         mdb.page_tokens.delete_one({"_id": req.page_token})
     else:
         last_id = None
@@ -342,7 +344,7 @@ def find_resources(
 
     Inclusion flags stored in tokens take precedence over the current request's inclusion flags.
     For tokens that lack inclusion flags (e.g. because the tokens were created before we introduced
-    the inclusion flags), the current request's inclusion flags are used.
+    the inclusion flags), the flags are set to `True` to mimic the original (pre-flag) behavior.
 
     TODO: Add type hint for function's return value (see `nmdc_runtime.api.models.util.FindResponse`).
     """
@@ -373,8 +375,10 @@ def find_resources(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Bad cursor value"
             )
         last_id = doc["last_id"]
-        include_superseded = doc.get("include_superseded", include_superseded)
-        include_failed = doc.get("include_failed", include_failed)
+        # Default to `True` so that, for tokens generated prior to the introduction of these flags,
+        # superseded/failed things are included like they would have been at token-generation time.
+        include_superseded = doc.get("include_superseded", True)
+        include_failed = doc.get("include_failed", True)
 
     filter_ = get_mongo_filter(req.filter)
 
