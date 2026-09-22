@@ -5,6 +5,7 @@ named "biosample_set".
 
 from functools import lru_cache
 from logging import Logger
+from numbers import Number
 from typing import Any
 
 from dagster import OpExecutionContext, op
@@ -210,6 +211,22 @@ class BadgeMan:
         False
         >>> fn({"samp_name": " "}, "samp_name")  # string is whitespace only
         False
+        >>> fn({"ph": 0}, "ph")  # zero is a populated numeric value
+        True
+        >>> fn({"ph": 0.1}, "ph")
+        True
+        >>> fn({"biotic_relationship": "free living"}, "biotic_relationship")  # range of `BioticRelationshipEnum`
+        True
+        >>> fn({"plant_sex": "Monoecious"}, "plant_sex")  # range of `PlantSexEnum`
+        True
+        >>> fn({"host_family_relation": [None, "", " "]}, "host_family_relation")  # multivalued, no non-empty elements
+        False
+        >>> fn({"host_family_relation": ["", "sibling"]}, "host_family_relation")  # multivalued, mixture of empty and non-empty elements
+        True
+        >>> fn({"host_diet": [{"type": "nmdc:TextValue"}]}, "host_diet")  # multivalued, range of `TextValue`, empty
+        False
+        >>> fn({"host_diet": [{"type": "nmdc:TextValue", "has_raw_value": "plants"}]}, "host_diet")  # multivalued, range of `TextValue`, non-empty
+        True
         """
 
         # If the biosample lacks the field altogether, we already know it doesn't have a non-empty
@@ -231,28 +248,53 @@ class BadgeMan:
         if slot_range is None:
             raise ValueError(f"Biosample slot {field_name} lacks a range.")
 
-        # Dispatch the field value to the emptiness checker method associated with its range.
+        # Here, we normalize the value or values into a list. We do this to account for multivalued
+        # slots, since their values are lists.
+        #
+        # Note: The ranges of multivalued slots apply to each element of the list, not to the list, itself.
+        #
+        if slot_definition.multivalued:
+            if not isinstance(field_value, list):
+                raise ValueError(
+                    "Multivalued field %s contains a non-list value: %s",
+                    field_name,
+                    field_value,
+                )
+            values = field_value
+        else:
+            values = [field_value]
+
+        # Dispatch each value to the emptiness checker method associated with its range. Once we
+        # find a nonempty one, break out of the loop.
         #
         # Note: These ranges account for the currently-defined badges. We may add support for
         #       additional ranges later, as we introduce additional badges.
         #
-        is_nonempty = False  # assume empty until proven otherwise
-        if slot_range == "TextValue":
-            is_nonempty = self.is_text_value_nonempty(field_value)
-        elif slot_range == "QuantityValue":
-            is_nonempty = self.is_quantity_value_nonempty(field_value)
-        elif slot_range == "ControlledTermValue":
-            is_nonempty = self.is_controlled_term_value_nonempty(field_value)
-        elif slot_range == "ControlledIdentifiedTermValue":
-            is_nonempty = self.is_controlled_identified_term_value_nonempty(field_value)
-        elif slot_range == "string":
-            is_nonempty = field_value.strip() != ""
-        else:
-            raise ValueError(
-                "Biosample slot %s has unsupported range: %s",
-                field_name,
-                slot_range,
-            )
+        is_nonempty = False
+        for value in values:
+            if slot_range == "TextValue":
+                is_nonempty = self.is_text_value_nonempty(value)
+            elif slot_range == "QuantityValue":
+                is_nonempty = self.is_quantity_value_nonempty(value)
+            elif slot_range == "ControlledTermValue":
+                is_nonempty = self.is_controlled_term_value_nonempty(value)
+            elif slot_range == "ControlledIdentifiedTermValue":
+                is_nonempty = self.is_controlled_identified_term_value_nonempty(value)
+            elif slot_range == "string":
+                is_nonempty = isinstance(value, str) and value.strip() != ""
+            elif slot_range in self.schema_view.all_enums():
+                is_nonempty = isinstance(value, str) and value.strip() != ""
+            elif slot_range == "float":
+                is_nonempty = isinstance(value, Number)
+            else:
+                raise ValueError(
+                    f"Biosample slot {field_name} has unsupported range: {slot_range}"
+                )
+
+            # If we've already found a non-empty value in this field, stop evaluating additional
+            # values in the field.
+            if is_nonempty:
+                break
 
         return is_nonempty
 
