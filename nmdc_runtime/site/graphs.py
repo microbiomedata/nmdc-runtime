@@ -1,6 +1,7 @@
 from dagster import graph
 
 from nmdc_runtime.site.ops.alldocs import materialize_alldocs
+from nmdc_runtime.site.ops.badges import award_badges_to_biosamples_op
 from nmdc_runtime.site.ops.gold import (
     generate_biosample_set_for_nmdc_study_from_gold,
     nmdc_schema_database_from_gold_study,
@@ -82,6 +83,11 @@ from nmdc_runtime.site.ops.common import (
     send_example_slack_message_op,
 )
 from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
+
+
+@graph()
+def award_badges_to_biosamples():
+    award_badges_to_biosamples_op()
 
 
 @graph()
