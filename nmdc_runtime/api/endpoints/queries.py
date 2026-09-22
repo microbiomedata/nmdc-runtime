@@ -110,10 +110,10 @@ def run_query(
     that omission by setting `include_superseded` to `true` in your request.
 
     For `find` commands targeting any collection that can contain a `PlannedProcess` (i.e. the
-    `data_object_set`, `collecting_biosamples_from_site_set`, `storage_process_set`,
-    `material_processing_set`, `data_generation_set`, or `workflow_execution_set` collection), the
-    endpoint will — by default — omit failed `PlannedProcess`es. You can disable that omission by
-    setting `include_failed` to `true` in your request.
+    `collecting_biosamples_from_site_set`, `storage_process_set`, `material_processing_set`,
+    `data_generation_set`, or `workflow_execution_set` collection), the endpoint will — by default —
+    omit failed `PlannedProcess`es. You can disable that omission by setting `include_failed` to
+    `true` in your request.
 
     Note: The `include_superseded` and `include_failed` request parameters have no effect on other
           commands. For `getMore` commands, their values are reused from the initial `find` command.
