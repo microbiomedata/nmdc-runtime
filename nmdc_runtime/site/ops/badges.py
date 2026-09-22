@@ -193,38 +193,189 @@ class BadgeMan:
 
         return does_qualify
 
+    def has_nonempty_value(self, biosample: dict, field_name: str) -> bool:
+        """
+        Check whether a given biosample has a non-empty value in the specified field. The criteria
+        for "non-emptiness" is determined based upon the range of the field.
+
+        The doctests below focus on the checks that happen directly within this method. For the
+        range-dependent emptiness checks, see the doctests of the "emptiness checker" helper methods.
+
+        >>> fn = BadgeMan(nmdc_schema_view(), Logger(__name__)).has_nonempty_value
+        >>> fn({}, "samp_name")  # field is absent
+        False
+        >>> fn({"samp_name": None}, "samp_name")  # value is null
+        False
+        >>> fn({"samp_name": ""}, "samp_name")  # string is empty
+        False
+        >>> fn({"samp_name": " "}, "samp_name")  # string is whitespace only
+        False
+        """
+
+        # If the biosample lacks the field altogether, we already know it doesn't have a non-empty
+        # value in that field.
+        if field_name not in biosample:
+            return False
+
+        # If the biosample has the field, but its value is `null`, then (regardless of the slot's
+        # range) it doesn't have a non-empty value.
+        field_value = biosample[field_name]
+        if field_value is None:
+            return False
+
+        # Get the field's slot definition (as induced on the `Biosample` class) from the schema,
+        # so we can get the slot's range, which will allow us to apply emptiness criteria that makes
+        # sense for that slot.
+        slot_definition = self.schema_view.induced_slot(field_name, "Biosample")
+        slot_range = slot_definition.range
+        if slot_range is None:
+            raise ValueError(f"Biosample slot {field_name} lacks a range.")
+
+        # Dispatch the field value to the emptiness checker method associated with its range.
+        #
+        # Note: These ranges account for the currently-defined badges. We may add support for
+        #       additional ranges later, as we introduce additional badges.
+        #
+        is_nonempty = False  # assume empty until proven otherwise
+        if slot_range == "TextValue":
+            is_nonempty = self.is_text_value_nonempty(field_value)
+        elif slot_range == "QuantityValue":
+            is_nonempty = self.is_quantity_value_nonempty(field_value)
+        elif slot_range == "ControlledTermValue":
+            is_nonempty = self.is_controlled_term_value_nonempty(field_value)
+        elif slot_range == "ControlledIdentifiedTermValue":
+            is_nonempty = self.is_controlled_identified_term_value_nonempty(field_value)
+        elif slot_range == "string":
+            is_nonempty = field_value.strip() != ""
+        else:
+            raise ValueError(
+                "Biosample slot %s has unsupported range: %s", field_name, slot_range,
+            )
+
+        return is_nonempty
+
     @staticmethod
-    def has_nonempty_value(biosample: dict, field_name: str) -> bool:
+    def is_text_value_nonempty(value: Any) -> bool:
         """
-        Returns `True` if the specified field exists and has a non-empty value.
+        Check whether the specified value constitutes a non-empty `TextValue` value.
+        Docs: https://microbiomedata.github.io/nmdc-schema/TextValue/
 
-        >>> fn = BadgeMan.has_nonempty_value
-        >>> fn({}, "name")  # field is absent
+        >>> fn = BadgeMan.is_text_value_nonempty
+        >>> fn(None)
         False
-        >>> fn({"name": ""}, "name")
+        >>> fn("a")
         False
-        >>> fn({"name": None}, "name")
+        >>> fn({})
         False
-        >>> fn({"names": []}, "names")
+        >>> fn({"type": "nmdc:TextValue", "language": "en"})
         False
-        >>> fn({"names": {}}, "names")
+        >>> fn({"type": "nmdc:TextValue", "has_raw_value": ""})
         False
-
-        >>> fn({"name": " "}, "name")  # here, we consider whitespace to be non-empty
+        >>> fn({"type": "nmdc:TextValue", "has_raw_value": "   "})
+        False
+        >>> fn({"type": "nmdc:TextValue", "has_raw_value": "a"})
         True
-        >>> fn({"name": "a"}, "name")
-        True
-        >>> fn({"name": 0}, "name")
-        True
-        >>> fn({"names": ["a"]}, "names")
-        True
-        >>> fn({"names": {"a": False}}, "names")
+        >>> fn({"type": "nmdc:TextValue", "has_raw_value": " a "})
         True
         """
+        if isinstance(value, dict) and value.get("type") == "nmdc:TextValue":
+            if "has_raw_value" in value:
+                has_raw_value = value["has_raw_value"]
+                if isinstance(has_raw_value, str) and has_raw_value.strip() != "":
+                    return True
+        return False
 
-        if field_name in biosample:
-            if biosample[field_name] not in (None, "", [], {}):
+    @staticmethod
+    def is_quantity_value_nonempty(value: Any) -> bool:
+        """
+        Check whether the specified value constitutes a non-empty `QuantityValue` value.
+        Docs: https://microbiomedata.github.io/nmdc-schema/QuantityValue/
+
+        >>> fn = BadgeMan.is_quantity_value_nonempty
+        >>> fn(None)
+        False
+        >>> fn(12)
+        False
+        >>> fn({})
+        False
+        >>> fn({"type": "nmdc:QuantityValue", "has_unit": "g", "has_raw_value": "12 g"})  # by convention, has_raw_value is insufficient for a QV
+        False
+        >>> fn({"type": "nmdc:QuantityValue", "has_numeric_value": None, "has_minimum_numeric_value": None, "has_maximum_numeric_value": None})
+        False
+        >>> fn({"type": "nmdc:QuantityValue", "has_numeric_value": 0})
+        True
+        >>> fn({"type": "nmdc:QuantityValue", "has_minimum_numeric_value": 0})
+        True
+        >>> fn({"type": "nmdc:QuantityValue", "has_maximum_numeric_value": 0})
+        True
+        >>> fn({"type": "nmdc:QuantityValue", "has_numeric_value": 12})
+        True
+        """
+        if isinstance(value, dict) and value.get("type") == "nmdc:QuantityValue":
+            if any([
+                value.get("has_maximum_numeric_value", None) is not None,
+                value.get("has_minimum_numeric_value", None) is not None,
+                value.get("has_numeric_value", None) is not None
+            ]):
                 return True
+        return False
+
+    @staticmethod
+    def is_controlled_term_value_nonempty(value: Any) -> bool:
+        """
+        Check whether the specified value constitutes a non-empty `ControlledTermValue` value.
+        Docs: https://microbiomedata.github.io/nmdc-schema/ControlledTermValue/
+
+        >>> fn = BadgeMan.is_controlled_term_value_nonempty
+        >>> fn(None)
+        False
+        >>> fn({})
+        False
+        >>> fn({"type": "nmdc:ControlledTermValue"})
+        False
+        >>> fn({"type": "nmdc:ControlledTermValue", "has_raw_value": ""})
+        False
+        >>> fn({"type": "nmdc:ControlledTermValue", "has_raw_value": "   "})
+        False
+        >>> fn({"type": "nmdc:ControlledTermValue", "has_raw_value": "a"})
+        True
+        >>> fn({"type": "nmdc:ControlledTermValue", "has_raw_value": " a "})
+        True
+        """
+        if isinstance(value, dict) and value.get("type") == "nmdc:ControlledTermValue":
+            if "has_raw_value" in value:
+                has_raw_value = value["has_raw_value"]
+                if isinstance(has_raw_value, str) and has_raw_value.strip() != "":
+                    return True
+        return False
+
+    @staticmethod
+    def is_controlled_identified_term_value_nonempty(value: Any) -> bool:
+        """
+        Check whether the specified value constitutes a non-empty `ControlledIdentifiedTermValue` value.
+        Docs: https://microbiomedata.github.io/nmdc-schema/ControlledIdentifiedTermValue/
+
+        >>> fn = BadgeMan.is_controlled_identified_term_value_nonempty
+        >>> fn(None)
+        False
+        >>> fn({})
+        False
+        >>> fn({"type": "nmdc:ControlledIdentifiedTermValue"})
+        False
+        >>> fn({"type": "nmdc:ControlledIdentifiedTermValue", "has_raw_value": ""})
+        False
+        >>> fn({"type": "nmdc:ControlledIdentifiedTermValue", "has_raw_value": "   "})
+        False
+        >>> fn({"type": "nmdc:ControlledIdentifiedTermValue", "has_raw_value": "a"})
+        True
+        >>> fn({"type": "nmdc:ControlledIdentifiedTermValue", "has_raw_value": " a "})
+        True
+        """
+        if isinstance(value, dict) and value.get("type") == "nmdc:ControlledIdentifiedTermValue":
+            if "has_raw_value" in value:
+                has_raw_value = value["has_raw_value"]
+                if isinstance(has_raw_value, str) and has_raw_value.strip() != "":
+                    return True
         return False
 
     @staticmethod
