@@ -52,7 +52,9 @@ class BadgeMan:
         return slot_names
 
     @lru_cache
-    def get_value_of_subset_annotation(self, subset_name: str, annotation_name: str) -> Any:
+    def get_value_of_subset_annotation(
+        self, subset_name: str, annotation_name: str
+    ) -> Any:
         """
         Returns the integer value of the specified annotation on the specified subset.
         """
@@ -67,12 +69,16 @@ class BadgeMan:
             #       approach via trial and error.
             annotation_value = subset.annotations[annotation_name].value
         except:
-            self.logger.error(f"Failed to access value of annotation: {annotation_name}")
+            self.logger.error(
+                f"Failed to access value of annotation: {annotation_name}"
+            )
             raise
 
         return annotation_value
 
-    def count_nonempty_fields(self, biosample: dict, field_names: list[str], limit: int | None = None) -> int:
+    def count_nonempty_fields(
+        self, biosample: dict, field_names: list[str], limit: int | None = None
+    ) -> int:
         """
         Returns the number of the specified fields that are non-empty on the specified biosample,
         and stops counting once `limit` is reached (or counts them all if `limit` is `None`).
@@ -95,7 +101,7 @@ class BadgeMan:
 
         A biosample qualifies if it has at least some specific number of fields (among a designated
         set of fields) that are non-empty.
-        
+
         That specific number is specified in the schema, as the value of the "badge_minimum_slots"
         annotation of the "biogeochemistry" subset. Similarly, that designated set of fields is
         specified in the schema, as the names of the slots of the "biogeochemistry" subset. At this
@@ -180,7 +186,9 @@ class BadgeMan:
             provenance_metadata = biosample["provenance_metadata"]
             if isinstance(provenance_metadata, dict):
                 if "source_system_of_record" in provenance_metadata:
-                    source_system_of_record = provenance_metadata["source_system_of_record"]
+                    source_system_of_record = provenance_metadata[
+                        "source_system_of_record"
+                    ]
                     if source_system_of_record == "NMDC_Submission_Portal":
                         does_qualify = True
 
@@ -231,9 +239,7 @@ class BadgeMan:
         # This stage sets the "badges" field to its current value if the field exists and its value
         # is not null; otherwise, it initializes the field to an empty list.
         # Docs: https://www.mongodb.com/docs/manual/reference/operator/aggregation/ifnull/
-        ensure_list_stage = {
-            "$set": {"badges": {"$ifNull": ["$badges", []]}}
-        }
+        ensure_list_stage = {"$set": {"badges": {"$ifNull": ["$badges", []]}}}
 
         # This stage sets the "badges" field to the union of the existing badges and the new badges.
         # Being a set operation, it removes duplicates, but does not preserve order.
@@ -246,14 +252,11 @@ class BadgeMan:
         # Docs: https://www.mongodb.com/docs/manual/reference/operator/aggregation/literal/
         #
         insert_and_dedupe_stage = {
-            "$set": {
-                "badges": {
-                    "$setUnion": ["$badges", {"$literal": badges}]
-                }
-            }
+            "$set": {"badges": {"$setUnion": ["$badges", {"$literal": badges}]}}
         }
 
         return [ensure_list_stage, insert_and_dedupe_stage]
+
 
 @op(required_resource_keys={"mongo"})
 def award_badges_to_biosamples_op(context: OpExecutionContext) -> None:
@@ -298,5 +301,5 @@ def award_badges_to_biosamples_op(context: OpExecutionContext) -> None:
                 if any(eb not in initial_badges for eb in earned_badges):
                     biosample_set.update_one(
                         {"_id": biosample["_id"]},
-                        badge_man.make_pipeline_that_applies_badges(earned_badges)
+                        badge_man.make_pipeline_that_applies_badges(earned_badges),
                     )
