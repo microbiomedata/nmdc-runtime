@@ -86,9 +86,7 @@ IncludeFailedQuery = Annotated[
     bool,
     Query(
         title="Include failed",
-        description=(
-            "Whether you want to include failed `PlannedProcess`es"
-        ),
+        description=("Whether you want to include failed `PlannedProcess`es"),
     ),
 ]
 

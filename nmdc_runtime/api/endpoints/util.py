@@ -106,7 +106,7 @@ def list_resources(
     For invocations targeting the `data_object_set` or `workflow_execution_set` collection, you can
     use the `include_superseded` flag to control whether the function will include or omit superseded
     `DataObject`s or `WorkflowExecution`s.
-    
+
     Similarly, for invocations targeting any collection that can contain a `PlannedProcess`
     (i.e. the `data_object_set`, `collecting_biosamples_from_site_set`, `storage_process_set`,
     `material_processing_set`, `data_generation_set`, or `workflow_execution_set` collection), you
@@ -352,7 +352,7 @@ def find_resources(
     For invocations targeting the `data_object_set` or `workflow_execution_set` collection, you can
     use the `include_superseded` flag to control whether the function will include or omit superseded
     `DataObject`s or `WorkflowExecution`s.
-    
+
     Similarly, for invocations targeting any collection that can contain a `PlannedProcess`
     (i.e. the `data_object_set`, `collecting_biosamples_from_site_set`, `storage_process_set`,
     `material_processing_set`, `data_generation_set`, or `workflow_execution_set` collection), you
@@ -568,7 +568,7 @@ def find_resources_spanning(
     For invocations targeting the `data_object_set` or `workflow_execution_set` collection, you can
     use the `include_superseded` flag to control whether the function will include or omit superseded
     `DataObject`s or `WorkflowExecution`s.
-    
+
     Similarly, for invocations targeting any collection that can contain a `PlannedProcess`
     (i.e. the `data_object_set`, `collecting_biosamples_from_site_set`, `storage_process_set`,
     `material_processing_set`, `data_generation_set`, or `workflow_execution_set` collection), you

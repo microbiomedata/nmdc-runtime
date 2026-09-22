@@ -108,7 +108,7 @@ def run_query(
     omit superseded `DataObject`s. Similarly, for `find` commands targeting the `workflow_execution_set`
     collection, the endpoint will — by default — omit superseded `WorkflowExecution`s. You can disable
     that omission by setting `include_superseded` to `true` in your request.
-    
+
     For `find` commands targeting any collection that can contain a `PlannedProcess` (i.e. the
     `data_object_set`, `collecting_biosamples_from_site_set`, `storage_process_set`,
     `material_processing_set`, `data_generation_set`, or `workflow_execution_set` collection), the
