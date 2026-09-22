@@ -104,6 +104,10 @@ dev = [
     # Docs: https://coverage.readthedocs.io
     "coverage",
     "flake8",
+    # We use `mongomock` for doctests that involve basic MongoDB interaction.
+    # Note: The last release was in 2024 (they are seeking maintainers). Use as dev dependency only.
+    # Docs: https://pypi.org/project/mongomock/
+    "mongomock",
     # We use pytest as our automated test framework.
     # Docs: https://docs.pytest.org/
     "pytest",

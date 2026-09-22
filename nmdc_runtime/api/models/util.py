@@ -1,5 +1,6 @@
 from typing import TypeVar, List, Optional, Generic, Annotated
 
+from fastapi import Query
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 ResultT = TypeVar("ResultT")
@@ -64,6 +65,37 @@ class ListRequest(BaseModel):
             "name, ecosystem_type",
         ],
     )
+
+
+# Annotated type, for use when the default behavior is to exclude superseded workflow executions and data objects.
+# Note: A superseded WFE/DO is represented by a document whose `superseded_by` field is present and not null.
+IncludeSupersededQuery = Annotated[
+    bool,
+    Query(
+        title="Include superseded",
+        description=(
+            "Whether you want to include superseded `WorkflowExecution`s and "
+            "superseded `DataObject`s"
+        ),
+    ),
+]
+
+# Annotated type, for use when the default behavior is to exclude failed `PlannedProcess`es.
+# Note: A failed `PlannedProcess` is represented by a document in which `{"qc_status": "fail"}`.
+IncludeFailedQuery = Annotated[
+    bool,
+    Query(
+        title="Include failed",
+        description=("Whether you want to include failed `PlannedProcess`es"),
+    ),
+]
+
+
+class ListRequestWithInclusionFlags(ListRequest):
+    r"""Same as `ListRequest`, but with the addition of some flags related to inclusion."""
+
+    include_superseded: IncludeSupersededQuery = False
+    include_failed: IncludeFailedQuery = False
 
 
 PerPageRange = Annotated[int, Field(gt=0, le=2_000)]
@@ -174,6 +206,13 @@ class FindRequest(BaseModel):
         if page is None and cursor is None:
             values["page"] = 1
         return values
+
+
+class FindRequestWithInclusionFlags(FindRequest):
+    r"""Same as `FindRequest`, but with the addition of some flags related to inclusion."""
+
+    include_superseded: IncludeSupersededQuery = False
+    include_failed: IncludeFailedQuery = False
 
 
 class FindResponse(BaseModel):

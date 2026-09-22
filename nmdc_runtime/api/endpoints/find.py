@@ -39,6 +39,7 @@ from nmdc_runtime.api.endpoints.util import (
 from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.models.util import (
+    FindRequestWithInclusionFlags,
     FindResponse,
     FindRequest,
 )
@@ -131,7 +132,7 @@ def find_biosample_by_id(
     response_model_exclude_unset=True,
 )
 def find_data_objects(
-    req: Annotated[FindRequest, Query()],
+    req: Annotated[FindRequestWithInclusionFlags, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
@@ -139,7 +140,13 @@ def find_data_objects(
     may be used along with various parameters. Please see the applicable [Data Object](https://microbiomedata.github.io/nmdc-schema/DataObject/)
     attributes.
     """
-    return find_resources(req, mdb, "data_object_set")
+    return find_resources(
+        req,
+        mdb,
+        "data_object_set",
+        include_superseded=req.include_superseded,
+        include_failed=req.include_failed,
+    )
 
 
 @router.get(
@@ -471,7 +478,7 @@ def find_data_object_by_id(
     response_model_exclude_unset=True,
 )
 def find_planned_processes(
-    req: Annotated[FindRequest, Query()],
+    req: Annotated[FindRequestWithInclusionFlags, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
@@ -488,6 +495,8 @@ def find_planned_processes(
         mdb,
         get_planned_process_collection_names()
         & get_nonempty_nmdc_schema_collection_names(mdb),
+        include_superseded=req.include_superseded,
+        include_failed=req.include_failed,
     )
 
 

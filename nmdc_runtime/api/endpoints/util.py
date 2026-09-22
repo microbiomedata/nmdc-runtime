@@ -6,7 +6,7 @@ from functools import lru_cache
 from json import JSONDecodeError
 from pathlib import Path
 from time import time_ns
-from typing import List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 from zoneinfo import ZoneInfo
 
 from bson import json_util
@@ -21,6 +21,7 @@ from nmdc_runtime.api.core.util import (
     raise404_if_none,
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.endpoints.lib.workflow_executions import augment_filter
 from nmdc_runtime.api.models.job import Job, JobClaim, JobOperationMetadata
 from nmdc_runtime.api.models.object import (
     DrsId,
@@ -93,15 +94,33 @@ def check_filter(filter_: str):
 
 
 def list_resources(
-    req: ListRequest, mdb: MongoDatabase, collection_name: str = ""
+    req: ListRequest,
+    mdb: MongoDatabase,
+    collection_name: str = "",
+    include_superseded: bool = True,
+    include_failed: bool = True,
 ) -> dict:
     """
     Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
 
-    `mdb.page_tokens` docs are `{"_id": req.page_token, "ns": collection_name}`, Because `page_token` is globally
-    unique, and because the `mdb.page_tokens.find_one({"_id": req.page_token})` document stores `collection_name` in
+
+    For invocations targeting the `data_object_set` or `workflow_execution_set` collection, you can
+    use the `include_superseded` flag to control whether the function will include or omit superseded
+    `DataObject`s or `WorkflowExecution`s.
+
+    Similarly, for invocations targeting any collection that can contain a `PlannedProcess`
+    (i.e. `collecting_biosamples_from_site_set`, `storage_process_set`, `material_processing_set`,
+    `data_generation_set`, or `workflow_execution_set` collection), you can use the `include_failed`
+    flag to control whether the function will include or omit failed `PlannedProcess`es.
+
+    `mdb.page_tokens` documents store the token ID, collection, last ID, and inclusion flags. Because
+    `page_token` is globally unique, and because the token document stores `collection_name` in
     the "ns" (namespace) field, the value for `collection_name` stored there takes precedence over any value supplied
     as an argument to this function's `collection_name` parameter.
+
+    Inclusion flags stored in tokens take precedence over the current request's inclusion flags.
+    For tokens that lack inclusion flags (e.g. because the tokens were created before we introduced
+    the inclusion flags), the flags are set to `True` to mimic the original (pre-flag) behavior.
 
     If the specified page size (`req.max_page_size`) is non-zero and more documents match the filter criteria than
     can fit on a page of that size, this function will paginate the resources.
@@ -119,6 +138,10 @@ def list_resources(
             )
         collection_name = doc["ns"]
         last_id = doc["last_id"]
+        # Default to `True` so that, for tokens generated prior to the introduction of these flags,
+        # superseded/failed things are included like they would have been at token-generation time.
+        include_superseded = doc.get("include_superseded", True)
+        include_failed = doc.get("include_failed", True)
         mdb.page_tokens.delete_one({"_id": req.page_token})
     else:
         last_id = None
@@ -137,6 +160,24 @@ def list_resources(
 
     max_page_size = req.max_page_size
     filter_ = json_util.loads(check_filter(req.filter)) if req.filter else {}
+
+    # If the collection is one that contain documents representing `DataObject`s or `PlannedProcess`es,
+    # augment the filter based upon whether the caller wants to include superseded and/or failed documents.
+    if collection_name in (
+        "collecting_biosamples_from_site_set",
+        "data_object_set",
+        "data_generation_set",
+        "material_processing_set",
+        "storage_process_set",
+        "workflow_execution_set",
+    ):
+        filter_ = augment_filter(
+            original_filter=filter_,
+            include_superseded=include_superseded,
+            include_failed=include_failed,
+        )
+        logging.debug(f"Augmented filter: {filter_}")
+
     projection = (
         list(set(comma_separated_values(req.projection)) | {id_field})
         if req.projection
@@ -181,7 +222,13 @@ def list_resources(
         # TODO unify with `/queries:run` query continuation model
         #  => {_id: cursor/token, query: <full query>, last_id: <>, last_modified: <>}
         mdb.page_tokens.insert_one(
-            {"_id": token, "ns": collection_name, "last_id": last_id}
+            {
+                "_id": token,
+                "ns": collection_name,
+                "last_id": last_id,
+                "include_superseded": include_superseded,
+                "include_failed": include_failed,
+            }
         )
         return {"resources": resources, "next_page_token": token}
 
@@ -291,10 +338,29 @@ def timeit(cursor):
     return results, int(round((toc - tic) / 1e6))
 
 
-def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
+def find_resources(
+    req: FindRequest,
+    mdb: MongoDatabase,
+    collection_name: str,
+    include_superseded: bool = True,
+    include_failed: bool = True,
+):
     """Find nmdc schema collection entities that match the FindRequest.
 
     "resources" is used generically here, as in "Web resources", e.g. Uniform Resource Identifiers (URIs).
+
+    For invocations targeting the `data_object_set` or `workflow_execution_set` collection, you can
+    use the `include_superseded` flag to control whether the function will include or omit superseded
+    `DataObject`s or `WorkflowExecution`s.
+
+    Similarly, for invocations targeting any collection that can contain a `PlannedProcess`
+    (i.e. `collecting_biosamples_from_site_set`, `storage_process_set`, `material_processing_set`,
+    `data_generation_set`, or `workflow_execution_set` collection), you can use the `include_failed`
+    flag to control whether the function will include or omit failed `PlannedProcess`es.
+
+    Inclusion flags stored in tokens take precedence over the current request's inclusion flags.
+    For tokens that lack inclusion flags (e.g. because the tokens were created before we introduced
+    the inclusion flags), the flags are set to `True` to mimic the original (pre-flag) behavior.
 
     TODO: Add type hint for function's return value (see `nmdc_runtime.api.models.util.FindResponse`).
     """
@@ -312,7 +378,43 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
             ),
         )
 
+    # If the request included a cursor value other than "*", try to load the corresponding token.
+    #
+    # Note: We do this before potentially augmenting the filter so that we know which inclusion
+    #       flag values to apply during augmentation.
+    #
+    last_id = None
+    if req.cursor is not None and req.cursor != "*":
+        doc = mdb.page_tokens.find_one({"_id": req.cursor, "ns": collection_name})
+        if doc is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Bad cursor value"
+            )
+        last_id = doc["last_id"]
+        # Default to `True` so that, for tokens generated prior to the introduction of these flags,
+        # superseded/failed things are included like they would have been at token-generation time.
+        include_superseded = doc.get("include_superseded", True)
+        include_failed = doc.get("include_failed", True)
+
     filter_ = get_mongo_filter(req.filter)
+
+    # If the collection is one that contain documents representing `DataObject`s or `PlannedProcess`es,
+    # augment the filter based upon whether the caller wants to include superseded and/or failed documents.
+    if collection_name in (
+        "collecting_biosamples_from_site_set",
+        "data_object_set",
+        "data_generation_set",
+        "material_processing_set",
+        "storage_process_set",
+        "workflow_execution_set",
+    ):
+        filter_ = augment_filter(
+            original_filter=filter_,
+            include_superseded=include_superseded,
+            include_failed=include_failed,
+        )
+        logging.debug(f"Augmented filter: {filter_}")
+
     projection = (
         list(set(comma_separated_values(req.fields)) | {"id"}) if req.fields else None
     )
@@ -364,15 +466,11 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
 
     else:  # req.cursor is not None
         if req.cursor != "*":
-            doc = mdb.page_tokens.find_one({"_id": req.cursor, "ns": collection_name})
-            if doc is None:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail="Bad cursor value"
-                )
-            last_id = doc["last_id"]
+            # Note: The only reason we don't delete the token up above (when we load the token)
+            #       is that there is a chance something fails in between, and we don't want
+            #       to "consume" the token unless the user was really able to make use of it.
+            #       That way, the user can retry the request using the same token.
             mdb.page_tokens.delete_one({"_id": req.cursor})
-        else:
-            last_id = None
 
         if last_id is not None:
             if "id" in filter_:
@@ -422,7 +520,13 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
             if more_results:
                 token = generate_one_id(mdb, "page_tokens")
                 mdb.page_tokens.insert_one(
-                    {"_id": token, "ns": collection_name, "last_id": last_id}
+                    {
+                        "_id": token,
+                        "ns": collection_name,
+                        "last_id": last_id,
+                        "include_superseded": include_superseded,
+                        "include_failed": include_failed,
+                    }
                 )
             else:
                 token = None
@@ -448,13 +552,26 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
 
 
 def find_resources_spanning(
-    req: FindRequest, mdb: MongoDatabase, collection_names: Set[str]
+    req: FindRequest,
+    mdb: MongoDatabase,
+    collection_names: Set[str],
+    include_superseded: bool = True,
+    include_failed: bool = True,
 ):
     """Find nmdc schema collection entities -- here, across multiple collections -- that match the FindRequest.
 
     This is useful for collections that house documents that are subclasses of a common ancestor class.
 
     "resources" is used generically here, as in "Web resources", e.g. Uniform Resource Identifiers (URIs).
+
+    For invocations targeting the `data_object_set` or `workflow_execution_set` collection, you can
+    use the `include_superseded` flag to control whether the function will include or omit superseded
+    `DataObject`s or `WorkflowExecution`s.
+
+    Similarly, for invocations targeting any collection that can contain a `PlannedProcess`
+    (i.e. `collecting_biosamples_from_site_set`, `storage_process_set`, `material_processing_set`,
+    `data_generation_set`, or `workflow_execution_set` collection), you can use the `include_failed`
+    flag to control whether the function will include or omit failed `PlannedProcess`es.
     """
     if req.cursor or not req.page:
         raise HTTPException(
@@ -466,6 +583,7 @@ def find_resources_spanning(
         return {
             "meta": {
                 "mongo_filter_dict": get_mongo_filter(req.filter),
+                "mongo_filter_dict_by_collection_name": {},
                 "count": 0,
                 "db_response_time_ms": 0,
                 "page": req.page,
@@ -475,12 +593,39 @@ def find_resources_spanning(
             "group_by": [],
         }
 
-    responses = {name: find_resources(req, mdb, name) for name in collection_names}
+    # Find the resources in each specified collection, passing the `include_superseded` and
+    # `include_failed` flags to the inner function.
+    responses = {}
+    for collection_name in collection_names:
+        responses[collection_name] = find_resources(
+            req,
+            mdb,
+            collection_name,
+            include_superseded=include_superseded,
+            include_failed=include_failed,
+        )
+
+    # Here, we make a map from collection name to the pymongo filter that was ultimately used when
+    # querying that collection. We'll include this in the dictionary that we return below.
+    #
+    # Note: We introduced this dictionary concurrently with introducing the `include_superseded` and
+    #       `include_failed` flags. Those flags can cause the `find_resources` function to modify
+    #       the pymongo filter from what it was when the user submitted it, depending upon the
+    #       collection being queried. I do not know whether anybody uses "mongo_filter_dict" or
+    #       whether anybody will use this new "mongo_filter_dict_by_collection_name" dictionary.
+    #       All Mongo stuff exposed via the HTTP API seems like a leaky abstraction to me.
+    #
+    mongo_filter_dict_by_collection_name: Dict[str, dict] = {
+        collection_name: responses[collection_name]["meta"]["mongo_filter_dict"]
+        for collection_name in sorted(responses.keys())
+    }
+
     rv = {
         "meta": {
             "mongo_filter_dict": next(
                 r["meta"]["mongo_filter_dict"] for r in responses.values()
             ),
+            "mongo_filter_dict_by_collection_name": mongo_filter_dict_by_collection_name,
             "count": sum(r["meta"]["count"] for r in responses.values()),
             "db_response_time_ms": sum(
                 r["meta"]["db_response_time_ms"] for r in responses.values()

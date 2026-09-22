@@ -39,7 +39,11 @@ from nmdc_runtime.api.endpoints.util import (
     comma_separated_values,
 )
 from nmdc_runtime.api.models.metadata import Doc
-from nmdc_runtime.api.models.util import ListRequest, ListResponse
+from nmdc_runtime.api.models.util import (
+    ListRequest,
+    ListRequestWithInclusionFlags,
+    ListResponse,
+)
 
 router = APIRouter()
 
@@ -448,7 +452,7 @@ def list_from_collection(
             examples=["biosample_set"],
         ),
     ],
-    req: Annotated[ListRequest, Query()],
+    req: Annotated[ListRequestWithInclusionFlags, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     r"""
@@ -475,7 +479,13 @@ def list_from_collection(
     # raise HTTP_400_BAD_REQUEST on invalid collection_name
     ensure_collection_name_is_known_to_schema(collection_name)
 
-    rv = list_resources(req, mdb, collection_name)
+    rv = list_resources(
+        req,
+        mdb,
+        collection_name,
+        include_superseded=req.include_superseded,
+        include_failed=req.include_failed,
+    )
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
     return rv
 
