@@ -565,13 +565,10 @@ def repo():
             },
         ),
         validate_mongo_data_job,
-        # Register this job for manual launches in the UI. There is intentionally
-        # no corresponding entry in the schedules or sensors lists below.
         award_badges_to_biosamples.to_job(
             **preset_normal,
             description=(
-                "Manually award metadata badges to all Biosamples using the installed "
-                "NMDC schema's criteria. Existing badges are never removed."
+                "Award badges to biosamples, based upon schema-defined criteria."
             ),
         ),
         test_slack_integration_job,

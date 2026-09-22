@@ -16,6 +16,7 @@ from nmdc_runtime.util import nmdc_schema_view
 class BadgeMan:
     """
     Manages badges that can be awarded to biosamples. The name is short for "badge manager".
+    Its official theme song is "da na na na na na na na na na na na na na na na, the badge manager."
     """
 
     def __init__(self, schema_view: SchemaView, logger: Logger):
