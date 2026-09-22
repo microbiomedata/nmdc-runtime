@@ -40,8 +40,6 @@ from nmdc_runtime.api.endpoints.util import (
 )
 from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.util import (
-    IncludeFailedQuery,
-    IncludeSupersededQuery,
     ListRequest,
     ListRequestWithInclusionFlags,
     ListResponse,
