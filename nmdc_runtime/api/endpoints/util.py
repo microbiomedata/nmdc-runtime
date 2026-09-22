@@ -103,11 +103,15 @@ def list_resources(
     """
     Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
 
-    When the collection name is either "data_generation_set", "data_object_set", or "workflow_execution_set",
-    you can use `include_superseded` and `include_failed` to include/exclude superseded data objects,
-    superseded workflow executions, failed data generations, and/or failed workflow executions. By
-    default, they are included, in order to preserve backwards compatibility with existing callers
-    of this function.
+    For invocations targeting the `data_object_set` or `workflow_execution_set` collection, you can
+    use the `include_superseded` flag to control whether the function will include or omit superseded
+    `DataObject`s or `WorkflowExecution`s.
+    
+    Similarly, for invocations targeting any collection that can contain a `PlannedProcess`
+    (i.e. the `data_object_set`, `collecting_biosamples_from_site_set`, `storage_process_set`,
+    `material_processing_set`, `data_generation_set`, or `workflow_execution_set` collection), you
+    can use the `include_failed` flag to control whether the function will include or omit failed
+    `PlannedProcess`es.
 
     `mdb.page_tokens` documents store the token ID, collection, last ID, and inclusion flags. Because
     `page_token` is globally unique, and because the token document stores `collection_name` in
@@ -157,11 +161,14 @@ def list_resources(
     max_page_size = req.max_page_size
     filter_ = json_util.loads(check_filter(req.filter)) if req.filter else {}
 
-    # If the collection name is either "data_generation_set", "data_object_set", or "workflow_execution_set",
+    # If the collection is one that contain documents representing `DataObject`s or `PlannedProcess`es,
     # augment the filter based upon whether the caller wants to include superseded and/or failed documents.
     if collection_name in (
-        "data_generation_set",
+        "collecting_biosamples_from_site_set",
         "data_object_set",
+        "data_generation_set",
+        "material_processing_set",
+        "storage_process_set",
         "workflow_execution_set",
     ):
         filter_ = augment_filter(
@@ -342,11 +349,15 @@ def find_resources(
 
     "resources" is used generically here, as in "Web resources", e.g. Uniform Resource Identifiers (URIs).
 
-    When the collection name is either "data_generation_set", "data_object_set", or "workflow_execution_set",
-    you can use `include_superseded` and `include_failed` to include/exclude superseded data objects,
-    superseded workflow executions, failed data generations, and/or failed workflow executions. By
-    default, they are included, in order to preserve backwards compatibility with existing callers
-    of this function.
+    For invocations targeting the `data_object_set` or `workflow_execution_set` collection, you can
+    use the `include_superseded` flag to control whether the function will include or omit superseded
+    `DataObject`s or `WorkflowExecution`s.
+    
+    Similarly, for invocations targeting any collection that can contain a `PlannedProcess`
+    (i.e. the `data_object_set`, `collecting_biosamples_from_site_set`, `storage_process_set`,
+    `material_processing_set`, `data_generation_set`, or `workflow_execution_set` collection), you
+    can use the `include_failed` flag to control whether the function will include or omit failed
+    `PlannedProcess`es.
 
     Inclusion flags stored in tokens take precedence over the current request's inclusion flags.
     For tokens that lack inclusion flags (e.g. because the tokens were created before we introduced
@@ -388,11 +399,14 @@ def find_resources(
 
     filter_ = get_mongo_filter(req.filter)
 
-    # If the collection name is either "data_generation_set", "data_object_set", or "workflow_execution_set",
+    # If the collection is one that contain documents representing `DataObject`s or `PlannedProcess`es,
     # augment the filter based upon whether the caller wants to include superseded and/or failed documents.
     if collection_name in (
-        "data_generation_set",
+        "collecting_biosamples_from_site_set",
         "data_object_set",
+        "data_generation_set",
+        "material_processing_set",
+        "storage_process_set",
         "workflow_execution_set",
     ):
         filter_ = augment_filter(
@@ -551,11 +565,15 @@ def find_resources_spanning(
 
     "resources" is used generically here, as in "Web resources", e.g. Uniform Resource Identifiers (URIs).
 
-    When the collection names include "data_generation_set", "data_object_set", or "workflow_execution_set",
-    you can use `include_superseded` and `include_failed` to include/exclude superseded data objects,
-    superseded workflow executions, failed data generations, and/or failed workflow executions. By
-    default, they are included, in order to preserve backwards compatibility with existing callers
-    of this function.
+    For invocations targeting the `data_object_set` or `workflow_execution_set` collection, you can
+    use the `include_superseded` flag to control whether the function will include or omit superseded
+    `DataObject`s or `WorkflowExecution`s.
+    
+    Similarly, for invocations targeting any collection that can contain a `PlannedProcess`
+    (i.e. the `data_object_set`, `collecting_biosamples_from_site_set`, `storage_process_set`,
+    `material_processing_set`, `data_generation_set`, or `workflow_execution_set` collection), you
+    can use the `include_failed` flag to control whether the function will include or omit failed
+    `PlannedProcess`es.
     """
     if req.cursor or not req.page:
         raise HTTPException(
