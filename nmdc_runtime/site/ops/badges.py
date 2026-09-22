@@ -249,7 +249,9 @@ class BadgeMan:
             is_nonempty = field_value.strip() != ""
         else:
             raise ValueError(
-                "Biosample slot %s has unsupported range: %s", field_name, slot_range,
+                "Biosample slot %s has unsupported range: %s",
+                field_name,
+                slot_range,
             )
 
         return is_nonempty
@@ -312,11 +314,13 @@ class BadgeMan:
         True
         """
         if isinstance(value, dict) and value.get("type") == "nmdc:QuantityValue":
-            if any([
-                value.get("has_maximum_numeric_value", None) is not None,
-                value.get("has_minimum_numeric_value", None) is not None,
-                value.get("has_numeric_value", None) is not None
-            ]):
+            if any(
+                [
+                    value.get("has_maximum_numeric_value", None) is not None,
+                    value.get("has_minimum_numeric_value", None) is not None,
+                    value.get("has_numeric_value", None) is not None,
+                ]
+            ):
                 return True
         return False
 
@@ -371,7 +375,10 @@ class BadgeMan:
         >>> fn({"type": "nmdc:ControlledIdentifiedTermValue", "has_raw_value": " a "})
         True
         """
-        if isinstance(value, dict) and value.get("type") == "nmdc:ControlledIdentifiedTermValue":
+        if (
+            isinstance(value, dict)
+            and value.get("type") == "nmdc:ControlledIdentifiedTermValue"
+        ):
             if "has_raw_value" in value:
                 has_raw_value = value["has_raw_value"]
                 if isinstance(has_raw_value, str) and has_raw_value.strip() != "":
