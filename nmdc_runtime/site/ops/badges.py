@@ -56,9 +56,7 @@ class BadgeMan:
     def get_value_of_subset_annotation(
         self, subset_name: str, annotation_name: str
     ) -> Any:
-        """
-        Returns the integer value of the specified annotation on the specified subset.
-        """
+        """Returns the value of the specified annotation on the specified subset."""
 
         subset = self.schema_view.get_subset(subset_name=subset_name)
         if subset is None:
