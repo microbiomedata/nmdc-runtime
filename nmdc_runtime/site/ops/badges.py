@@ -333,6 +333,12 @@ class BadgeMan:
     def is_quantity_value_nonempty(value: Any) -> bool:
         """
         Check whether the specified value constitutes a non-empty `QuantityValue` value.
+
+        Returns `True` if the value is a dictionary having "type" == "nmdc:QuantityValue" and
+        it has a key named either "has_maximum_numeric_value", "has_minimum_numeric_value", or
+        "has_numeric_value", whose value is a number. Note: Unlike for `nmdc:TextValue` values,
+        the "has_raw_value" field does not factor into this check.
+
         Docs: https://microbiomedata.github.io/nmdc-schema/QuantityValue/
 
         >>> fn = BadgeMan.is_quantity_value_nonempty
@@ -346,6 +352,8 @@ class BadgeMan:
         False
         >>> fn({"type": "nmdc:QuantityValue", "has_numeric_value": None, "has_minimum_numeric_value": None, "has_maximum_numeric_value": None})
         False
+        >>> fn({"type": "nmdc:QuantityValue", "has_numeric_value": "123"})  # not schema compliant, but shown to emphasize the criteria here
+        False
         >>> fn({"type": "nmdc:QuantityValue", "has_numeric_value": 0})
         True
         >>> fn({"type": "nmdc:QuantityValue", "has_minimum_numeric_value": 0})
@@ -358,9 +366,9 @@ class BadgeMan:
         if isinstance(value, dict) and value.get("type") == "nmdc:QuantityValue":
             if any(
                 [
-                    value.get("has_maximum_numeric_value", None) is not None,
-                    value.get("has_minimum_numeric_value", None) is not None,
-                    value.get("has_numeric_value", None) is not None,
+                    isinstance(value.get("has_maximum_numeric_value"), Number),
+                    isinstance(value.get("has_minimum_numeric_value"), Number),
+                    isinstance(value.get("has_numeric_value"), Number),
                 ]
             ):
                 return True
