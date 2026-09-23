@@ -535,13 +535,15 @@ def award_badges_to_biosamples_op(context: OpExecutionContext) -> None:
             if len(earned_badges) > 0:
                 # If any of the earned badges aren't among the biosample's initial badges,
                 # perform an atomic update that will award those additional badges to the biosample.
-                newly_earned_badges = [eb for eb in earned_badges if eb not in initial_badges]
+                newly_earned_badges = [
+                    eb for eb in earned_badges if eb not in initial_badges
+                ]
                 if len(newly_earned_badges) > 0:
                     logger.debug(
                         "Biosample %s qualifies for %d additional badges: %s",
                         biosample["id"],
                         len(newly_earned_badges),
-                        ", ".join(sorted(newly_earned_badges))
+                        ", ".join(sorted(newly_earned_badges)),
                     )
                     biosample_set.update_one(
                         {"_id": biosample["_id"]},
