@@ -370,7 +370,14 @@ class BadgeMan:
     def is_controlled_term_value_nonempty(value: Any) -> bool:
         """
         Check whether the specified value constitutes a non-empty `ControlledTermValue` value.
+
+        Returns `True` if the value is a dictionary having "type" == "nmdc:ControlledTermValue" and
+        either (a) the dictionary has a "has_raw_value" value that is a string that, when stripped,
+        is a non-empty string; or (b) the dictionary has a "term" value that is a dictionary having
+        an "id" value that is a string that, when stripped, is a non-empty string.
+
         Docs: https://microbiomedata.github.io/nmdc-schema/ControlledTermValue/
+        Docs: https://microbiomedata.github.io/nmdc-schema/OntologyClass/ (the range of "term" slot)
 
         >>> fn = BadgeMan.is_controlled_term_value_nonempty
         >>> fn(None)
@@ -383,9 +390,17 @@ class BadgeMan:
         False
         >>> fn({"type": "nmdc:ControlledTermValue", "has_raw_value": "   "})
         False
-        >>> fn({"type": "nmdc:ControlledTermValue", "has_raw_value": "a"})
+        >>> fn({"type": "nmdc:ControlledTermValue", "has_raw_value": "a"})  # has_raw_value, stripped, is a non-empty string
         True
-        >>> fn({"type": "nmdc:ControlledTermValue", "has_raw_value": " a "})
+        >>> fn({"type": "nmdc:ControlledTermValue", "term": None})
+        False
+        >>> fn({"type": "nmdc:ControlledTermValue", "term": {}})
+        False
+        >>> fn({"type": "nmdc:ControlledTermValue", "term": {"id": None}})
+        False
+        >>> fn({"type": "nmdc:ControlledTermValue", "term": {"id": "  "}})
+        False
+        >>> fn({"type": "nmdc:ControlledTermValue", "term": {"id": "a"}})
         True
         """
         if isinstance(value, dict) and value.get("type") == "nmdc:ControlledTermValue":
@@ -393,13 +408,27 @@ class BadgeMan:
                 has_raw_value = value["has_raw_value"]
                 if isinstance(has_raw_value, str) and has_raw_value.strip() != "":
                     return True
+
+            # If the "has_raw_value" field was inadequate, check the "term" field.
+            term = value.get("term")
+            if isinstance(term, dict):
+                term_id = term.get("id")
+                if isinstance(term_id, str) and term_id.strip() != "":
+                    return True
+
         return False
 
     @staticmethod
     def is_controlled_identified_term_value_nonempty(value: Any) -> bool:
         """
         Check whether the specified value constitutes a non-empty `ControlledIdentifiedTermValue` value.
+
+        Returns `True` if the value is a dictionary having "type" == "nmdc:ControlledIdentifiedTermValue"
+        and the dictionary has a "term" value that is a dictionary having an "id" value that is a
+        string that, when stripped, is a non-empty string.
+
         Docs: https://microbiomedata.github.io/nmdc-schema/ControlledIdentifiedTermValue/
+        Docs: https://microbiomedata.github.io/nmdc-schema/OntologyClass/ (the range of "term" slot)
 
         >>> fn = BadgeMan.is_controlled_identified_term_value_nonempty
         >>> fn(None)
@@ -408,22 +437,27 @@ class BadgeMan:
         False
         >>> fn({"type": "nmdc:ControlledIdentifiedTermValue"})
         False
-        >>> fn({"type": "nmdc:ControlledIdentifiedTermValue", "has_raw_value": ""})
+        >>> fn({"type": "nmdc:ControlledIdentifiedTermValue", "has_raw_value": "a"})  # has_raw_value is not relevant for this check
         False
-        >>> fn({"type": "nmdc:ControlledIdentifiedTermValue", "has_raw_value": "   "})
+        >>> fn({"type": "nmdc:ControlledIdentifiedTermValue", "term": None})
         False
-        >>> fn({"type": "nmdc:ControlledIdentifiedTermValue", "has_raw_value": "a"})
-        True
-        >>> fn({"type": "nmdc:ControlledIdentifiedTermValue", "has_raw_value": " a "})
+        >>> fn({"type": "nmdc:ControlledIdentifiedTermValue", "term": {}})
+        False
+        >>> fn({"type": "nmdc:ControlledIdentifiedTermValue", "term": {"id": None}})
+        False
+        >>> fn({"type": "nmdc:ControlledIdentifiedTermValue", "term": {"id": "  "}})
+        False
+        >>> fn({"type": "nmdc:ControlledIdentifiedTermValue", "term": {"id": "a"}})
         True
         """
         if (
             isinstance(value, dict)
             and value.get("type") == "nmdc:ControlledIdentifiedTermValue"
         ):
-            if "has_raw_value" in value:
-                has_raw_value = value["has_raw_value"]
-                if isinstance(has_raw_value, str) and has_raw_value.strip() != "":
+            term = value.get("term")
+            if isinstance(term, dict):
+                term_id = term.get("id")
+                if isinstance(term_id, str) and term_id.strip() != "":
                     return True
         return False
 
