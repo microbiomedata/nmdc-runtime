@@ -27,6 +27,8 @@ from nmdc_runtime.api.models.run import _add_run_fail_event
 from nmdc_runtime.api.models.trigger import Trigger
 from nmdc_runtime.site.export.study_metadata import export_study_biosamples_metadata
 from nmdc_runtime.site.graphs import (
+    award_badges_to_biosamples,
+    revoke_badges_from_biosamples,
     generate_biosample_set_from_samples_in_gold,
     translate_metadata_submission_to_nmdc_schema_database,
     ingest_metadata_submission,
@@ -564,6 +566,16 @@ def repo():
             },
         ),
         validate_mongo_data_job,
+        revoke_badges_from_biosamples.to_job(
+            **preset_normal,
+            description="Revoke all badges from all biosamples.",
+        ),
+        award_badges_to_biosamples.to_job(
+            **preset_normal,
+            description=(
+                "Award badges to biosamples, based upon schema-defined criteria."
+            ),
+        ),
         test_slack_integration_job,
         synchronize_superseded_by_field_job,
     ]
