@@ -507,9 +507,13 @@ def award_badges_to_biosamples_op(context: OpExecutionContext) -> None:
 
     # Award badges to the biosamples that qualify for them.
     # TODO: Consider projecting only the fields that are relevant to badges.
+    logger.info("Evaluating biosamples and awarding badges.")
+    num_biosamples_evaluated = 0
+    num_biosamples_awarded_badges = 0
     biosample_set = context.resources.mongo.db.get_collection("biosample_set")
     with biosample_set.find({}, batch_size=1000) as cursor:
         for biosample in cursor:
+            num_biosamples_evaluated += 1
 
             # Read the initial badges from the biosample. This will allow us to avoid performing
             # unnecessary database writes (i.e. for badges that the biosample already has).
@@ -530,9 +534,23 @@ def award_badges_to_biosamples_op(context: OpExecutionContext) -> None:
 
             if len(earned_badges) > 0:
                 # If any of the earned badges aren't among the biosample's initial badges,
-                # perform an atomic update that will award them to the biosample.
-                if any(eb not in initial_badges for eb in earned_badges):
+                # perform an atomic update that will award those additional badges to the biosample.
+                newly_earned_badges = [eb for eb in earned_badges if eb not in initial_badges]
+                if len(newly_earned_badges) > 0:
+                    logger.debug(
+                        "Biosample %s qualifies for %d additional badges: %s",
+                        biosample["id"],
+                        len(newly_earned_badges),
+                        ", ".join(sorted(newly_earned_badges))
+                    )
                     biosample_set.update_one(
                         {"_id": biosample["_id"]},
                         badge_man.make_pipeline_that_applies_badges(earned_badges),
                     )
+                    num_biosamples_awarded_badges += 1
+
+    logger.info(
+        "Evaluated %d biosamples, %d of which were awarded additional badges.",
+        num_biosamples_evaluated,
+        num_biosamples_awarded_badges,
+    )
