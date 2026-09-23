@@ -492,6 +492,27 @@ class BadgeMan:
 
 
 @op(required_resource_keys={"mongo"})
+def revoke_badges_from_biosamples_op(context: OpExecutionContext) -> None:
+    """
+    Remove the `badges` field from every biosample that has it, effectively revoking all badges
+    from all biosamples.
+    """
+
+    biosample_set = context.resources.mongo.db.get_collection("biosample_set")
+
+    # Remove the `badges` field from every biosample that has it.
+    # Docs: https://www.mongodb.com/docs/manual/reference/operator/update/unset/
+    result = biosample_set.update_many(
+        {"badges": {"$exists": True}},
+        {"$unset": {"badges": ""}},
+    )
+    num_documents_modified = result.modified_count
+    context.log.info(
+        "Removed the `badges` field from %d biosamples.", num_documents_modified
+    )
+
+
+@op(required_resource_keys={"mongo"})
 def award_badges_to_biosamples_op(context: OpExecutionContext) -> None:
     """
     Award badges to biosamples, without revoking any badges from any biosamples.
