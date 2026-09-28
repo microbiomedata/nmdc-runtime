@@ -448,12 +448,12 @@ def validate_mongo_data_op(
         context,
         text=(
             f"{'✅' if total_validation_errors == 0 else '⚠️'} Finished validating "
-            f"MongoDB database. **{total_validation_errors} errors** found."
+            f"MongoDB database. **{total_validation_errors} violations** found."
         ),
     )
     if total_validation_errors > 0:
         raise Failure(
-            f"We detected {total_validation_errors} validation errors.",
+            f"We detected {total_validation_errors} violations.",
             metadata={
                 "validation_errors": total_validation_errors,
                 "collection_results": MetadataValue.json(overall_report),
