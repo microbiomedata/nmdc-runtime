@@ -447,9 +447,8 @@ def validate_mongo_data_op(
     context.resources.slack_message_sender.send_message(
         context,
         text=(
-            "%s Finished validating MongoDB database. **%d errors** found.",
-            r"✅" if total_validation_errors == 0 else r"⚠️",
-            total_validation_errors,
+            f"{'✅' if total_validation_errors == 0 else '⚠️'} Finished validating "
+            f"MongoDB database. **{total_validation_errors} errors** found."
         ),
     )
     if total_validation_errors > 0:
