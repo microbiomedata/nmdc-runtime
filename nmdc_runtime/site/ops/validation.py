@@ -444,6 +444,14 @@ def validate_mongo_data_op(
         validation_summary.num_violations
         for validation_summary in validation_summaries_by_collection_name.values()
     )
+    context.resources.slack_message_sender.send_message(
+        context,
+        text=(
+            "%s Finished validating MongoDB database. **%d errors** found.",
+            r"✅" if total_validation_errors == 0 else r"⚠️",
+            total_validation_errors,
+        ),
+    )
     if total_validation_errors > 0:
         raise Failure(
             f"We detected {total_validation_errors} validation errors.",
@@ -452,11 +460,6 @@ def validate_mongo_data_op(
                 "collection_results": MetadataValue.json(overall_report),
             },
         )
-
-    context.resources.slack_message_sender.send_message(
-        context,
-        text=r"Finished validating data in MongoDB database.",
-    )
 
     # Finally, we yield the overall report.
     #
