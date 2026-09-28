@@ -803,7 +803,10 @@ class SlackMessageSender:
             and isinstance(self.channel_name_or_id, str)
             and isinstance(self.environment_name, str)
         ):
-            context.log.warning("No Slack message sent. Slack client not configured.")
+            context.log.warning(
+                "No Slack message sent. Slack client not configured. "
+                f"Message would have been: {text}"
+            )
             return False
 
         try:
