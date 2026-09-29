@@ -13,6 +13,7 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     aggregate_carb_nitro_ratio,
     aggregate_range,
     check_pooling_for_biosamples,
+    fetch_nucleotide_sequencing_ids_downstream,
     load_mappings,
     handle_quantity_value,
     handle_text_value,
@@ -1756,3 +1757,279 @@ class TestPooledValueAggregation:
         # value taken from the first constituent must not leak through
         assert attributes["samp_pooling"] == "nmdc:bsm-11-agg01;nmdc:bsm-11-agg02"
         assert "name" not in attributes
+
+
+def _alldocs_mock(docs):
+    """Minimal alldocs stand-in: `find({"has_input": x})` returns docs whose has_input has x."""
+    alldocs = MagicMock()
+    alldocs.find.side_effect = lambda query: [
+        d for d in docs if query["has_input"] in d.get("has_input", [])
+    ]
+    return alldocs
+
+
+class TestPooledBiosampleWithIndividualSequencing:
+    """A biosample can be sequenced on its own *and* as part of a pool (e.g. NEON
+    soil cores with both a GEN and a COMP run). The individual run must get its
+    own BioSample and SRA action rather than being folded into the pool."""
+
+    POOL = "nmdc:poolp-11-dual01"
+    POOL_PROCSM = "nmdc:procsm-11-pool01"
+    BSM_A = "nmdc:bsm-11-dual0a"  # sequenced individually and in the pool
+    BSM_B = "nmdc:bsm-11-dual0b"  # pooled only
+    COMP_NTSEQ = "nmdc:dgns-11-comp01"
+    GEN_NTSEQ = "nmdc:dgns-11-gen001"
+
+    def _biosample(self, bsm_id, name):
+        return {
+            "id": bsm_id,
+            "type": "nmdc:Biosample",
+            "name": name,
+            "env_package": {"has_raw_value": "soil", "type": "nmdc:TextValue"},
+            "geo_loc_name": {"has_raw_value": "USA: Florida", "type": "nmdc:TextValue"},
+        }
+
+    def _dobj(self, dobj_id, filename, read):
+        return {
+            "id": dobj_id,
+            "type": "nmdc:DataObject",
+            "name": filename,
+            "data_object_type": f"Metagenome Raw Read {read}",
+            "url": f"https://storage.neonscience.org/x/{filename}",
+        }
+
+    def _ntseq(self, ntseq_id, name, has_input, has_output):
+        return {
+            "id": ntseq_id,
+            "type": "nmdc:NucleotideSequencing",
+            "name": name,
+            "has_input": [has_input],
+            "has_output": has_output,
+            "processing_institution": "ANL",
+            "analyte_category": "metagenome",
+            "instrument_used": ["nmdc:inst-14-xz5tb342"],
+        }
+
+    def _inputs(self, with_pooled_ntseq_ids):
+        comp_dobjs = [
+            self._dobj("nmdc:dobj-11-comp0r1", "OSBS_006-comp_R1.fastq.gz", 1),
+            self._dobj("nmdc:dobj-11-comp0r2", "OSBS_006-comp_R2.fastq.gz", 2),
+        ]
+        gen_dobjs = [
+            self._dobj("nmdc:dobj-11-gen00r1", "OSBS_006-5-30-gen_R1.fastq.gz", 1),
+            self._dobj("nmdc:dobj-11-gen00r2", "OSBS_006-5-30-gen_R2.fastq.gz", 2),
+        ]
+        comp_ntseq = self._ntseq(
+            self.COMP_NTSEQ,
+            "OSBS_006-M-20130726-COMP-DNA1",
+            "nmdc:procsm-11-complib",
+            [d["id"] for d in comp_dobjs],
+        )
+        gen_ntseq = self._ntseq(
+            self.GEN_NTSEQ,
+            "OSBS_006-M-5-30-20130726-GEN-DNA1",
+            "nmdc:procsm-11-genlib0",
+            [d["id"] for d in gen_dobjs],
+        )
+        biosamples = [
+            self._biosample(self.BSM_A, "OSBS_006-M-5-30-20130726"),
+            self._biosample(self.BSM_B, "OSBS_006-M-8-12-20130726"),
+        ]
+        # The downstream traversal reaches both runs from biosample A.
+        biosample_data_objects = [
+            {self.BSM_A: comp_dobjs + gen_dobjs},
+            {self.BSM_B: comp_dobjs},
+        ]
+        biosample_ntseq = [
+            {self.BSM_A: [comp_ntseq, gen_ntseq]},
+            {self.BSM_B: [comp_ntseq]},
+        ]
+        pooling_info = {
+            "pooling_process_id": self.POOL,
+            "processed_sample_id": self.POOL_PROCSM,
+            "processed_sample_name": "OSBS_006-M-20130726-COMP",
+            "pooled_biosample_ids": [self.BSM_A, self.BSM_B],
+            "aggregated_values": {},
+        }
+        if with_pooled_ntseq_ids:
+            pooling_info["nucleotide_sequencing_ids"] = [self.COMP_NTSEQ]
+        pooled_biosamples_data = {self.BSM_A: pooling_info, self.BSM_B: pooling_info}
+        return (
+            biosamples,
+            biosample_ntseq,
+            biosample_data_objects,
+            pooled_biosamples_data,
+        )
+
+    @pytest.fixture(autouse=True)
+    def _mappings(self, mocker):
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {"id": "", "name": "sample_name", "geo_loc_name": "geo_loc_name"},
+                {"id": "uriorcurie", "name": "string", "geo_loc_name": "TextValue"},
+            ),
+        )
+
+    @staticmethod
+    def _sra_actions(root):
+        out = {}
+        for add_files in root.findall(".//Action/AddFiles"):
+            identifier = add_files.find("Identifier/SPUID").text
+            out[identifier] = {
+                "files": sorted(f.get("file_path") for f in add_files.findall("File")),
+                "biosample_refs": [
+                    ref.find("RefId/SPUID").text
+                    for ref in add_files.findall("AttributeRefId")
+                    if ref.get("name") == "BioSample"
+                ],
+                "library_name": next(
+                    a.text
+                    for a in add_files.findall("Attribute")
+                    if a.get("name") == "library_name"
+                ),
+            }
+        return out
+
+    @staticmethod
+    def _biosample_spuids(root):
+        return sorted(
+            e.text
+            for e in root.findall(
+                ".//Action/AddData[@target_db='BioSample']/Identifier/SPUID"
+            )
+        )
+
+    def test_individual_run_gets_its_own_biosample_and_sra_action(
+        self, ncbi_submission_client: NCBISubmissionXML, mocked_instruments
+    ):
+        all_instruments = {
+            i["id"]: {"vendor": i["vendor"], "model": i["model"]}
+            for i in mocked_instruments
+        }
+        biosamples, ntseq, dobjs, pooled = self._inputs(with_pooled_ntseq_ids=True)
+
+        xml_str = ncbi_submission_client.get_submission_xml(
+            biosamples, ntseq, dobjs, [], all_instruments, pooled_biosamples_data=pooled
+        )
+        root = ET.fromstring(xml_str)
+
+        # BioSamples: the pool, plus biosample A on its own. B is pooled only.
+        assert self._biosample_spuids(root) == sorted([self.POOL_PROCSM, self.BSM_A])
+
+        sra = self._sra_actions(root)
+        assert set(sra) == {self.COMP_NTSEQ, self.GEN_NTSEQ}
+
+        pooled_action = sra[self.COMP_NTSEQ]
+        assert pooled_action["files"] == [
+            "OSBS_006-comp_R1.fastq.gz",
+            "OSBS_006-comp_R2.fastq.gz",
+        ]
+        assert pooled_action["biosample_refs"] == [self.POOL_PROCSM]
+        assert pooled_action["library_name"] == "OSBS_006-M-20130726-COMP"
+
+        individual_action = sra[self.GEN_NTSEQ]
+        assert individual_action["files"] == [
+            "OSBS_006-5-30-gen_R1.fastq.gz",
+            "OSBS_006-5-30-gen_R2.fastq.gz",
+        ]
+        assert individual_action["biosample_refs"] == [self.BSM_A]
+        assert individual_action["library_name"] == "OSBS_006-M-5-30-20130726"
+
+    def test_without_pooled_run_ids_everything_is_folded_into_the_pool(
+        self, ncbi_submission_client: NCBISubmissionXML, mocked_instruments
+    ):
+        """Previous behavior is preserved when pooling info carries no
+        `nucleotide_sequencing_ids` (older callers / pooling data)."""
+        all_instruments = {
+            i["id"]: {"vendor": i["vendor"], "model": i["model"]}
+            for i in mocked_instruments
+        }
+        biosamples, ntseq, dobjs, pooled = self._inputs(with_pooled_ntseq_ids=False)
+
+        xml_str = ncbi_submission_client.get_submission_xml(
+            biosamples, ntseq, dobjs, [], all_instruments, pooled_biosamples_data=pooled
+        )
+        root = ET.fromstring(xml_str)
+
+        assert self._biosample_spuids(root) == [self.POOL_PROCSM]
+        sra = self._sra_actions(root)
+        assert len(sra) == 1
+        (action,) = sra.values()
+        assert len(action["files"]) == 4
+        assert action["biosample_refs"] == [self.POOL_PROCSM]
+
+    def test_check_pooling_for_biosamples_collects_pooled_run_ids(self):
+        biosamples = [{"id": self.BSM_A}, {"id": self.BSM_B}]
+        material_processing_set = MagicMock()
+        material_processing_set.find.return_value = [
+            {
+                "id": self.POOL,
+                "type": "nmdc:Pooling",
+                "has_input": [self.BSM_A, self.BSM_B],
+                "has_output": [self.POOL_PROCSM],
+            }
+        ]
+        alldocs = _alldocs_mock(
+            [
+                # pooled path: procsm -> Extraction -> LibraryPrep -> COMP run
+                {
+                    "id": "nmdc:extrp-11-p",
+                    "has_input": [self.POOL_PROCSM],
+                    "has_output": ["nmdc:procsm-11-pext"],
+                },
+                {
+                    "id": "nmdc:libprp-11-p",
+                    "has_input": ["nmdc:procsm-11-pext"],
+                    "has_output": ["nmdc:procsm-11-complib"],
+                },
+                {
+                    "id": self.COMP_NTSEQ,
+                    "has_input": ["nmdc:procsm-11-complib"],
+                    "has_output": ["nmdc:dobj-11-comp0r1"],
+                },
+                # individual path from biosample A, must NOT be collected
+                {
+                    "id": "nmdc:extrp-11-a",
+                    "has_input": [self.BSM_A],
+                    "has_output": ["nmdc:procsm-11-aext"],
+                },
+                {
+                    "id": self.GEN_NTSEQ,
+                    "has_input": ["nmdc:procsm-11-aext"],
+                    "has_output": ["nmdc:dobj-11-gen00r1"],
+                },
+                # the Pooling process itself
+                {
+                    "id": self.POOL,
+                    "has_input": [self.BSM_A, self.BSM_B],
+                    "has_output": [self.POOL_PROCSM],
+                },
+            ]
+        )
+
+        result = check_pooling_for_biosamples(
+            material_processing_set, biosamples, alldocs
+        )
+
+        assert result[self.BSM_A]["nucleotide_sequencing_ids"] == [self.COMP_NTSEQ]
+        assert result[self.BSM_B]["nucleotide_sequencing_ids"] == [self.COMP_NTSEQ]
+        assert fetch_nucleotide_sequencing_ids_downstream(alldocs, self.BSM_A) == [
+            self.GEN_NTSEQ,
+            self.COMP_NTSEQ,
+        ]
+
+    def test_check_pooling_for_biosamples_without_alldocs_is_unchanged(self):
+        material_processing_set = MagicMock()
+        material_processing_set.find.return_value = [
+            {
+                "id": self.POOL,
+                "type": "nmdc:Pooling",
+                "has_input": [self.BSM_A],
+                "has_output": [self.POOL_PROCSM],
+            }
+        ]
+        result = check_pooling_for_biosamples(
+            material_processing_set, [{"id": self.BSM_A}]
+        )
+        assert "nucleotide_sequencing_ids" not in result[self.BSM_A]
