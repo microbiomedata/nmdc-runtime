@@ -108,8 +108,9 @@ def get_aggregated_pooled_biosamples(context: OpExecutionContext, biosamples: li
 
     mdb = context.resources.mongo.db
     material_processing_set = mdb["material_processing_set"]
+    alldocs_collection = mdb["alldocs"]
     pooled_biosamples_data = check_pooling_for_biosamples(
-        material_processing_set, biosamples
+        material_processing_set, biosamples, alldocs_collection
     )
 
     # Fetch ProcessedSample names from database
