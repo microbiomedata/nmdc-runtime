@@ -22,7 +22,9 @@ You can access its interactive documentation (i.e. **Swagger UI**) at
 
 ## Development
 
-NMDC team members can learn about contributing to the development of the NMDC Runtime, by reading the **developer documentation** at
+**Are you a human?**
+Humans—specifically, NMDC team members—can learn about contributing to the development of the NMDC Runtime, by reading the **developer documentation** at
 [`DEVELOPMENT.md`](./DEVELOPMENT.md).
 
-> This `README.md` file was written for humans, by humans. AI agents can consume [`AGENTS.md`](./AGENTS.md) instead.
+**Are you a robot?**
+AI agents can ingest this repository's [`AGENTS.md`](./AGENTS.md) file. Bon appétit!
