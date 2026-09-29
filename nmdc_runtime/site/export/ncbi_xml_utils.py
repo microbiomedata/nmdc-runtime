@@ -584,8 +584,48 @@ def aggregate_pooled_values(biosamples: List[dict]) -> Dict[str, str]:
     return aggregated
 
 
+def fetch_nucleotide_sequencing_ids_downstream(
+    all_docs_collection: Collection, start_id: str
+) -> List[str]:
+    """Return the ids of every process downstream of `start_id` that outputs DataObjects.
+
+    Walks `has_input` -> `has_output` edges in the alldocs collection starting from
+    `start_id` (typically the ProcessedSample output of a Pooling process). Any document
+    whose `has_output` contains a DataObject is a data generation process (e.g.
+    `nmdc:NucleotideSequencing`) and its id is collected; DataObjects themselves are not
+    traversed further.
+
+    :param all_docs_collection: reference to the alldocs collection
+    :param start_id: id of the record to start walking downstream from
+    :return: list of data generation process ids, in traversal order
+    """
+    collected: List[str] = []
+    seen_ids = set()
+    current_ids = [start_id]
+
+    while current_ids:
+        new_current_ids = []
+        for current_id in current_ids:
+            for document in all_docs_collection.find({"has_input": current_id}):
+                has_output = document.get("has_output") or []
+                if any(
+                    get_classname_from_typecode(output_id) == "DataObject"
+                    for output_id in has_output
+                ):
+                    if document["id"] not in seen_ids:
+                        collected.append(document["id"])
+                        seen_ids.add(document["id"])
+                    continue
+                new_current_ids.extend(has_output)
+        current_ids = new_current_ids
+
+    return collected
+
+
 def check_pooling_for_biosamples(
-    material_processing_set: Collection, biosamples_list: List[Dict[str, Any]]
+    material_processing_set: Collection,
+    biosamples_list: List[Dict[str, Any]],
+    all_docs_collection: Optional[Collection] = None,
 ) -> Dict[str, Dict[str, Any]]:
     """Check which biosamples are part of pooling processes and return pooling information.
 
@@ -593,8 +633,15 @@ def check_pooling_for_biosamples(
     the biosample id has been asserted on the `has_input` slot/key of an `nmdc:Pooling` process
     instance.
 
+    When `all_docs_collection` is given, the returned pooling information also carries
+    `nucleotide_sequencing_ids`: the ids of the data generation processes downstream of the
+    pooled ProcessedSample. The NCBI exporter uses this to tell a biosample's *pooled*
+    sequencing run apart from a run performed on the biosample individually (a biosample
+    can be sequenced on its own and also as part of a pool).
+
     :param material_processing_set: reference to the material_processing_set collection
     :param biosamples_list: list of all biosamples to check
+    :param all_docs_collection: optional reference to the alldocs collection
     :return: dictionary mapping biosample_id to pooling information (empty dict if not pooled)
     """
     result = {}
@@ -637,6 +684,12 @@ def check_pooling_for_biosamples(
             "pooled_biosample_ids": pooled_biosample_ids,
             "aggregated_values": aggregated_values,
         }
+        if all_docs_collection is not None and processed_sample_id:
+            pooling_info["nucleotide_sequencing_ids"] = (
+                fetch_nucleotide_sequencing_ids_downstream(
+                    all_docs_collection, processed_sample_id
+                )
+            )
 
         for bs_id in pooled_biosample_ids:
             if bs_id in result:

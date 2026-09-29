@@ -190,6 +190,47 @@ class NCBISubmissionXML:
         action.append(add_data)
         self.root.append(action)
 
+    @staticmethod
+    def _split_pooled_and_individual_sequencing(pooling_info, ntseq_records):
+        """Split a pooled biosample's NucleotideSequencing records into the runs that
+        were performed on the pool and the runs performed on the biosample by itself.
+
+        A biosample can be sequenced individually *and* as part of a pool. The
+        traversal that collects NucleotideSequencing records for a biosample reaches
+        both runs, so without this split the individual run's files would be folded
+        into the pooled sample's SRA action and attributed to the wrong BioSample.
+
+        `pooling_info["nucleotide_sequencing_ids"]` (see
+        `check_pooling_for_biosamples`) lists the runs downstream of the pooled
+        ProcessedSample. When it is absent every run is treated as pooled, which
+        preserves the previous behavior.
+        """
+        pooled_ids = pooling_info.get("nucleotide_sequencing_ids")
+        if pooled_ids is None:
+            return list(ntseq_records), []
+        pooled_ids = set(pooled_ids)
+        pooled = [n for n in ntseq_records if n.get("id") in pooled_ids]
+        individual = [n for n in ntseq_records if n.get("id") not in pooled_ids]
+        return pooled, individual
+
+    @classmethod
+    def _individually_sequenced_pooled_biosample_ids(
+        cls, pooling_data, nmdc_nucleotide_sequencing
+    ):
+        """Return the ids of pooled biosamples that also have their own sequencing run."""
+        result = set()
+        for ntseq_dict in nmdc_nucleotide_sequencing:
+            for biosample_id, ntseq_records in ntseq_dict.items():
+                pooling_info = pooling_data.get(biosample_id, {})
+                if not pooling_info or not pooling_info.get("pooling_process_id"):
+                    continue
+                _, individual = cls._split_pooled_and_individual_sequencing(
+                    pooling_info, ntseq_records
+                )
+                if individual:
+                    result.add(biosample_id)
+        return result
+
     def set_biosample(
         self,
         organism_name,
@@ -197,6 +238,7 @@ class NCBISubmissionXML:
         bioproject_id,
         nmdc_biosamples,
         pooled_biosamples_data=None,
+        individually_sequenced_biosample_ids=None,
     ):
         attribute_mappings, slot_range_mappings = load_mappings(
             self.nmdc_ncbi_attribute_mapping_file_url
@@ -205,6 +247,10 @@ class NCBISubmissionXML:
 
         # Use provided pooling data or empty dict
         pooling_data = pooled_biosamples_data or {}
+        # Pooled biosamples that were also sequenced on their own get a BioSample
+        # of their own (SPUID = biosample id) in addition to the pooled BioSample,
+        # so the individual run's SRA action has something to reference.
+        individually_sequenced = set(individually_sequenced_biosample_ids or ())
 
         # Group biosamples by pooling process
         pooling_groups = {}
@@ -220,6 +266,8 @@ class NCBISubmissionXML:
                         "pooling_info": pooling_info,
                     }
                 pooling_groups[pooling_process_id]["biosamples"].append(biosample)
+                if biosample["id"] in individually_sequenced:
+                    individual_biosamples.append(biosample)
             else:
                 individual_biosamples.append(biosample)
 
@@ -253,8 +301,13 @@ class NCBISubmissionXML:
             sample_id_value = None
             env_package = None
 
-            # Get pooling info for this specific biosample
-            pooling_info = pooling_data.get(biosample["id"], {})
+            # Get pooling info for this specific biosample. A pooled biosample that
+            # is listed here because it was also sequenced individually is described
+            # as itself, not as the pool.
+            if biosample["id"] in individually_sequenced:
+                pooling_info = {}
+            else:
+                pooling_info = pooling_data.get(biosample["id"], {})
 
             for json_key, value in biosample.items():
                 if json_key in excluded_slots:
@@ -749,8 +802,15 @@ class NCBISubmissionXML:
         # Use provided pooling data or empty dict
         pooling_data = pooled_biosamples_data or {}
 
+        ntseq_by_biosample = {}
+        for ntseq_dict in nmdc_nucleotide_sequencing:
+            for biosample_id, ntseq_records in ntseq_dict.items():
+                ntseq_by_biosample.setdefault(biosample_id, []).extend(ntseq_records)
+
         # Group data objects by pooling process
         pooling_groups = {}
+        # Each individual entry is paired with the NucleotideSequencing records
+        # its SRA action(s) should be built from.
         individual_entries = []
 
         for entry in biosample_data_objects:
@@ -770,10 +830,49 @@ class NCBISubmissionXML:
                         "processed_sample_name": pooling_info.get(
                             "processed_sample_name", ""
                         ),
+                        "nucleotide_sequencing_ids": pooling_info.get(
+                            "nucleotide_sequencing_ids"
+                        ),
                     }
-                pooling_groups[pooling_process_id]["entries"].append(entry)
+
+                # A biosample sequenced both individually and as part of the pool:
+                # keep only the pooled run's DataObjects in the pooled entry and
+                # emit the individual run as its own entry, attributed to the
+                # biosample itself.
+                pooled_entry = {}
+                for biosample_id, data_objects in entry.items():
+                    _, individual_ntseqs = self._split_pooled_and_individual_sequencing(
+                        pooling_data.get(biosample_id, {}),
+                        ntseq_by_biosample.get(biosample_id, []),
+                    )
+                    if not individual_ntseqs:
+                        pooled_entry[biosample_id] = data_objects
+                        continue
+
+                    individual_dobj_ids = {
+                        dobj_id
+                        for ntseq in individual_ntseqs
+                        for dobj_id in ntseq.get("has_output", [])
+                    }
+                    pooled_entry[biosample_id] = [
+                        d
+                        for d in data_objects
+                        if d.get("id") not in individual_dobj_ids
+                    ]
+                    individual_data_objects = [
+                        d for d in data_objects if d.get("id") in individual_dobj_ids
+                    ]
+                    if individual_data_objects:
+                        individual_entries.append(
+                            (
+                                {biosample_id: individual_data_objects},
+                                [{biosample_id: individual_ntseqs}],
+                            )
+                        )
+
+                pooling_groups[pooling_process_id]["entries"].append(pooled_entry)
             else:
-                individual_entries.append(entry)
+                individual_entries.append((entry, nmdc_nucleotide_sequencing))
 
         # Process pooled entries - create one SRA <Action> block per pooling process
         for pooling_process_id, group_data in pooling_groups.items():
@@ -787,10 +886,13 @@ class NCBISubmissionXML:
                 nmdc_library_preparation,
                 all_instruments,
                 bsm_id_name_dict,
+                pooled_nucleotide_sequencing_ids=group_data[
+                    "nucleotide_sequencing_ids"
+                ],
             )
 
         # Process individual entries
-        for entry in individual_entries:
+        for entry, entry_nucleotide_sequencing in individual_entries:
             fastq_files = []
             biosample_ids = []
             nucleotide_sequencing_ids = {}
@@ -808,7 +910,7 @@ class NCBISubmissionXML:
                         file_path = os.path.basename(url.path)
                         fastq_files.append(file_path)
 
-                for ntseq_dict in nmdc_nucleotide_sequencing:
+                for ntseq_dict in entry_nucleotide_sequencing:
                     if biosample_id in ntseq_dict:
                         for ntseq in ntseq_dict[biosample_id]:
                             nucleotide_sequencing_ids[biosample_id] = ntseq.get(
@@ -1032,9 +1134,19 @@ class NCBISubmissionXML:
         nmdc_library_preparation,
         all_instruments,
         bsm_id_name_dict,
+        pooled_nucleotide_sequencing_ids=None,
     ):
         if not processed_sample_id:
             return
+
+        # When known, restrict the NucleotideSequencing records considered to the
+        # runs performed on the pool, so a biosample's individual run never
+        # becomes the pooled action's identifier or instrument.
+        pooled_ntseq_ids = (
+            set(pooled_nucleotide_sequencing_ids)
+            if pooled_nucleotide_sequencing_ids is not None
+            else None
+        )
 
         # Collect all fastq files from all entries
         all_fastq_files = set()
@@ -1058,6 +1170,11 @@ class NCBISubmissionXML:
                 for ntseq_dict in nmdc_nucleotide_sequencing:
                     if biosample_id in ntseq_dict:
                         for ntseq in ntseq_dict[biosample_id]:
+                            if (
+                                pooled_ntseq_ids is not None
+                                and ntseq.get("id") not in pooled_ntseq_ids
+                            ):
+                                continue
                             nucleotide_sequencing_ids[biosample_id] = ntseq.get(
                                 "id", ""
                             )
@@ -1313,12 +1430,19 @@ class NCBISubmissionXML:
         #         org=self.ncbi_submission_metadata.get("organization", ""),
         #     )
 
+        individually_sequenced_biosample_ids = (
+            self._individually_sequenced_pooled_biosample_ids(
+                pooled_biosamples_data or {}, filtered_nucleotide_sequencing_list
+            )
+        )
+
         self.set_biosample(
             organism_name=self.ncbi_biosample_metadata.get("organism_name", ""),
             org=self.ncbi_submission_metadata.get("organization", ""),
             bioproject_id=self.ncbi_bioproject_id,
             nmdc_biosamples=filtered_biosamples_list,
             pooled_biosamples_data=pooled_biosamples_data,
+            individually_sequenced_biosample_ids=individually_sequenced_biosample_ids,
         )
 
         # Also filter biosample_data_objects_list
