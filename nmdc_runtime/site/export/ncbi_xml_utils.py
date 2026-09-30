@@ -644,6 +644,14 @@ def check_pooling_for_biosamples(
     sequencing run apart from a run performed on the biosample individually (a biosample
     can be sequenced on its own and also as part of a pool).
 
+    A biosample can appear in more than one Pooling process, e.g. when a pool was
+    imported twice and one copy's ProcessedSample was never carried through to
+    sequencing. Only one pooling record can be reported per biosample, so a Pooling
+    process whose ProcessedSample has no downstream sequencing runs never overrides
+    one whose ProcessedSample does. Between records that are otherwise equivalent
+    the last one seen wins, as before. (Runs are only known when `alldocs_collection`
+    is given.)
+
     :param material_processing_set: reference to the material_processing_set collection
     :param biosamples_list: list of all biosamples to check
     :param alldocs_collection: optional reference to the alldocs collection
@@ -697,10 +705,22 @@ def check_pooling_for_biosamples(
             )
 
         for bs_id in pooled_biosample_ids:
-            if bs_id in result:
-                result[bs_id] = pooling_info
+            if bs_id not in result:
+                continue
+            if _pooling_record_has_runs(result[bs_id]) and not _pooling_record_has_runs(
+                pooling_info
+            ):
+                # keep the pooling record whose ProcessedSample actually led to
+                # sequencing; this one is a dead end
+                continue
+            result[bs_id] = pooling_info
 
     return result
+
+
+def _pooling_record_has_runs(pooling_info: Dict[str, Any]) -> bool:
+    """True when the pooling record's ProcessedSample has downstream sequencing runs."""
+    return bool(pooling_info.get("nucleotide_sequencing_ids"))
 
 
 def validate_xml(xml, xsd_url):
