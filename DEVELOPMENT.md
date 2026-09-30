@@ -155,7 +155,7 @@ The official development environment includes a test stack (which is described i
   make test-shell
   ```
 
-- **Delete the Mongo data** in the test stack (useful whenever a failing test does not clean up after itself; as some older tests do not use self-cleaning fixtures; i.e. their fixtures don't follow the [`try/yield/finally`](https://peps.python.org/pep-0342/#new-syntax-yield-allowed-inside-try-finally) pattern).
+- **Delete the Mongo data** in the test stack (useful whenever a failing test does not clean up after itself; as some older tests do not use self-cleaning fixtures or `finally` blocks).
 
   ```sh
   make clear-db-test
