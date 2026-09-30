@@ -29,7 +29,7 @@ Here's how you can spin it up locally.
 1. Clone this repository and enter the clone's root directory.
 
    ```sh
-   git checkout https://github.com/microbiomedata/nmdc-runtime
+   git clone https://github.com/microbiomedata/nmdc-runtime
    cd nmdc-runtime
    ```
 
@@ -59,9 +59,9 @@ Here's how you can spin it up locally.
    1. API base URL: `http://127.0.0.1:8000`
    2. Swagger UI: [`http://127.0.0.1:8000/docs`](http://127.0.0.1:8000/docs)
    3. Dagster UI: [`http://127.0.0.1:3000`](http://127.0.0.1:3000)
-   4. MongoDB [connection string](https://www.mongodb.com/docs/v8.0/reference/connection-string-options/#connection-string-options): `mongodb://admin:root@127.0.0.1:27017/nmdc?authSource=admin`
+   4. MongoDB [connection string](https://www.mongodb.com/docs/v8.0/reference/connection-string-options/#connection-string-options): `mongodb://admin:root@127.0.0.1:27018/nmdc?authSource=admin`
 
-   > Note: The URLs above may differ in your environment, depending upon the contents of your `.env` file.
+   > Note: The port numbers above may differ in your environment, depending upon the contents of your `.env` file.
 
 ### Coding
 
