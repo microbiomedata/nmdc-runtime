@@ -587,17 +587,22 @@ def aggregate_pooled_values(biosamples: List[dict]) -> Dict[str, str]:
 def fetch_nucleotide_sequencing_ids_downstream(
     all_docs_collection: Collection, start_id: str
 ) -> List[str]:
-    """Return the ids of every process downstream of `start_id` that outputs DataObjects.
+    """Return the ids of the DataGeneration records downstream of `start_id`.
 
     Walks `has_input` -> `has_output` edges in the alldocs collection starting from
-    `start_id` (typically the ProcessedSample output of a Pooling process). Any document
-    whose `has_output` contains a DataObject is a data generation process (e.g.
-    `nmdc:NucleotideSequencing`) and its id is collected; DataObjects themselves are not
-    traversed further.
+    `start_id` (typically the ProcessedSample output of a Pooling process). The walk
+    stops at the first process whose `has_output` contains a DataObject, collects that
+    process's id, and never traverses DataObjects themselves.
+
+    Per the schema, both `DataGeneration` (e.g. `nmdc:NucleotideSequencing`) and
+    `WorkflowExecution` records emit DataObjects via `has_output`. A WorkflowExecution,
+    however, only takes DataObjects as `has_input`, so it can never be reached from a
+    sample without passing through a DataObject. Because this walk stops there, the
+    collected ids are always DataGeneration records.
 
     :param all_docs_collection: reference to the alldocs collection
     :param start_id: id of the record to start walking downstream from
-    :return: list of data generation process ids, in traversal order
+    :return: list of DataGeneration record ids, in traversal order
     """
     collected: List[str] = []
     seen_ids = set()
