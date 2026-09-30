@@ -28,7 +28,7 @@ def get_classname_from_typecode(doc_id):
 
 
 def fetch_data_objects_from_biosamples(
-    all_docs_collection: Collection,
+    alldocs_collection: Collection,
     data_object_set: Collection,
     biosamples_list: List[Dict[str, Any]],
 ) -> List[Dict[str, Dict[str, Any]]]:
@@ -37,7 +37,7 @@ def fetch_data_objects_from_biosamples(
     The methods returns a dictionary with biosample ids as keys and the associated list of
     data objects as values.
 
-    :param all_docs_collection: reference to the alldocs collection
+    :param alldocs_collection: reference to the alldocs collection
     :param data_object_set: reference to the data_object_set collection
     :param biosamples_list: list of biosamples as JSON documents
     :return: list of dictionaries with biosample ids as keys and associated data objects as values
@@ -65,7 +65,7 @@ def fetch_data_objects_from_biosamples(
         while current_ids:
             new_current_ids = []
             for current_id in current_ids:
-                for doc in all_docs_collection.find({"has_input": current_id}):
+                for doc in alldocs_collection.find({"has_input": current_id}):
                     has_output = doc.get("has_output", [])
 
                     collect_data_objects(has_output, collected_data_objects, unique_ids)
@@ -84,14 +84,14 @@ def fetch_data_objects_from_biosamples(
 
 
 def fetch_nucleotide_sequencing_from_biosamples(
-    all_docs_collection: Collection,
+    alldocs_collection: Collection,
     data_generation_set: Collection,
     biosamples_list: List[Dict[str, Any]],
 ) -> List[Dict[str, Dict[str, Any]]]:
     """This method fetches the nucleotide sequencing process records that create data objects
     for biosamples by iterating over the alldocs collection recursively.
 
-    :param all_docs_collection: reference to the alldocs collection
+    :param alldocs_collection: reference to the alldocs collection
     :param data_generation_set: reference to the data_generation_set collection
     :param biosamples_list: list of biosamples as JSON documents
     :return: list of dictionaries with biosample ids as keys and associated nucleotide sequencing
@@ -108,7 +108,7 @@ def fetch_nucleotide_sequencing_from_biosamples(
             new_current_ids = []
             for current_id in current_ids:
                 # Find all documents with current_id as input instead of just one
-                for document in all_docs_collection.find({"has_input": current_id}):
+                for document in alldocs_collection.find({"has_input": current_id}):
                     has_output = document.get("has_output")
                     if not has_output:
                         continue
@@ -142,7 +142,7 @@ def fetch_nucleotide_sequencing_from_biosamples(
 
 
 def fetch_library_preparation_from_biosamples(
-    all_docs_collection: Collection,
+    alldocs_collection: Collection,
     material_processing_set: Collection,
     biosamples_list: List[Dict[str, Any]],
 ) -> List[Dict[str, Dict[str, Any]]]:
@@ -150,7 +150,7 @@ def fetch_library_preparation_from_biosamples(
     which are further fed/inputted into (by `has_input` slot) a nucleotide sequencing process
     for biosamples by iterating over the alldocs collection recursively.
 
-    :param all_docs_collection: reference to the alldocs collection
+    :param alldocs_collection: reference to the alldocs collection
     :param material_processing_set: reference to the material_processing_set collection
     :param biosamples_list: list of biosamples as JSON documents
     :return: list of dictionaries with biosample ids as keys and associated library preparation process
@@ -163,7 +163,7 @@ def fetch_library_preparation_from_biosamples(
 
         # Step 1: Find any document with biosample id as has_input
         initial_query = {"has_input": biosample_id}
-        initial_document = all_docs_collection.find_one(initial_query)
+        initial_document = alldocs_collection.find_one(initial_query)
 
         if not initial_document:
             continue
@@ -584,8 +584,53 @@ def aggregate_pooled_values(biosamples: List[dict]) -> Dict[str, str]:
     return aggregated
 
 
+def fetch_nucleotide_sequencing_ids_downstream(
+    alldocs_collection: Collection, start_id: str
+) -> List[str]:
+    """Return the ids of the DataGeneration records downstream of `start_id`.
+
+    Walks `has_input` -> `has_output` edges in the alldocs collection starting from
+    `start_id` (typically the ProcessedSample output of a Pooling process). The walk
+    stops at the first process whose `has_output` contains a DataObject, collects that
+    process's id, and never traverses DataObjects themselves.
+
+    Per the schema, both `DataGeneration` (e.g. `nmdc:NucleotideSequencing`) and
+    `WorkflowExecution` records emit DataObjects via `has_output`. A WorkflowExecution,
+    however, only takes DataObjects as `has_input`, so it can never be reached from a
+    sample without passing through a DataObject. Because this walk stops there, the
+    collected ids are always DataGeneration records.
+
+    :param alldocs_collection: reference to the alldocs collection
+    :param start_id: id of the record to start walking downstream from
+    :return: list of DataGeneration record ids, in traversal order
+    """
+    collected: List[str] = []
+    seen_ids = set()
+    current_ids = [start_id]
+
+    while current_ids:
+        new_current_ids = []
+        for current_id in current_ids:
+            for document in alldocs_collection.find({"has_input": current_id}):
+                has_output = document.get("has_output") or []
+                if any(
+                    get_classname_from_typecode(output_id) == "DataObject"
+                    for output_id in has_output
+                ):
+                    if document["id"] not in seen_ids:
+                        collected.append(document["id"])
+                        seen_ids.add(document["id"])
+                    continue
+                new_current_ids.extend(has_output)
+        current_ids = new_current_ids
+
+    return collected
+
+
 def check_pooling_for_biosamples(
-    material_processing_set: Collection, biosamples_list: List[Dict[str, Any]]
+    material_processing_set: Collection,
+    biosamples_list: List[Dict[str, Any]],
+    alldocs_collection: Optional[Collection] = None,
 ) -> Dict[str, Dict[str, Any]]:
     """Check which biosamples are part of pooling processes and return pooling information.
 
@@ -593,8 +638,15 @@ def check_pooling_for_biosamples(
     the biosample id has been asserted on the `has_input` slot/key of an `nmdc:Pooling` process
     instance.
 
+    When `alldocs_collection` is given, the returned pooling information also carries
+    `nucleotide_sequencing_ids`: the ids of the data generation processes downstream of the
+    pooled ProcessedSample. The NCBI exporter uses this to tell a biosample's *pooled*
+    sequencing run apart from a run performed on the biosample individually (a biosample
+    can be sequenced on its own and also as part of a pool).
+
     :param material_processing_set: reference to the material_processing_set collection
     :param biosamples_list: list of all biosamples to check
+    :param alldocs_collection: optional reference to the alldocs collection
     :return: dictionary mapping biosample_id to pooling information (empty dict if not pooled)
     """
     result = {}
@@ -637,6 +689,12 @@ def check_pooling_for_biosamples(
             "pooled_biosample_ids": pooled_biosample_ids,
             "aggregated_values": aggregated_values,
         }
+        if alldocs_collection is not None and processed_sample_id:
+            pooling_info["nucleotide_sequencing_ids"] = (
+                fetch_nucleotide_sequencing_ids_downstream(
+                    alldocs_collection, processed_sample_id
+                )
+            )
 
         for bs_id in pooled_biosample_ids:
             if bs_id in result:
