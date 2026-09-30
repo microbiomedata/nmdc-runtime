@@ -4,9 +4,9 @@ The NMDC Runtime is a metadata management and workflow orchestration system desi
 
 Microbiome researchers, data scientists, and bioinformaticians use it to:
 
-- retrieve and manage metadata
-- mint and manage persistent identifiers
-- manage workflows and their execution
+- Retrieve and manage metadata
+- Mint and manage persistent identifiers
+- Manage workflows and their execution
 
 ## Usage
 
