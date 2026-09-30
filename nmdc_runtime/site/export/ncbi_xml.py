@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
 from functools import lru_cache
-from typing import Any, List
+from typing import Any, Dict, List, Set, Tuple
 from urllib.parse import urlparse
 from unidecode import unidecode
 from nmdc_runtime.site.export.ncbi_xml_utils import (
@@ -191,7 +191,9 @@ class NCBISubmissionXML:
         self.root.append(action)
 
     @staticmethod
-    def _split_pooled_and_individual_sequencing(pooling_info, ntseq_records):
+    def _split_pooled_and_individual_sequencing(
+        pooling_info: Dict[str, Any], ntseq_records: List[Dict[str, Any]]
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """Split a pooled biosample's NucleotideSequencing records into the runs that
         were performed on the pool and the runs performed on the biosample by itself.
 
@@ -205,18 +207,24 @@ class NCBISubmissionXML:
         ProcessedSample. When it is absent every run is treated as pooled, which
         preserves the previous behavior.
         """
-        pooled_ids = pooling_info.get("nucleotide_sequencing_ids")
-        if pooled_ids is None:
-            return list(ntseq_records), []
-        pooled_ids = set(pooled_ids)
-        pooled = [n for n in ntseq_records if n.get("id") in pooled_ids]
-        individual = [n for n in ntseq_records if n.get("id") not in pooled_ids]
-        return pooled, individual
+        pooled_ntseq_ids = pooling_info.get("nucleotide_sequencing_ids")
+        if pooled_ntseq_ids is None:
+            return ntseq_records, []
+        pooled_ntseq_ids = set(pooled_ntseq_ids)
+        pooled_ntseq_records = [
+            n for n in ntseq_records if n.get("id") in pooled_ntseq_ids
+        ]
+        individual_ntseq_records = [
+            n for n in ntseq_records if n.get("id") not in pooled_ntseq_ids
+        ]
+        return pooled_ntseq_records, individual_ntseq_records
 
     @classmethod
     def _individually_sequenced_pooled_biosample_ids(
-        cls, pooling_data, nmdc_nucleotide_sequencing
-    ):
+        cls,
+        pooling_data: Dict[str, Dict[str, Any]],
+        nmdc_nucleotide_sequencing: List[Dict[str, List[Dict[str, Any]]]],
+    ) -> Set[str]:
         """Return the ids of pooled biosamples that also have their own sequencing run."""
         result = set()
         for ntseq_dict in nmdc_nucleotide_sequencing:
@@ -224,10 +232,12 @@ class NCBISubmissionXML:
                 pooling_info = pooling_data.get(biosample_id, {})
                 if not pooling_info or not pooling_info.get("pooling_process_id"):
                     continue
-                _, individual = cls._split_pooled_and_individual_sequencing(
-                    pooling_info, ntseq_records
+                _, individual_ntseq_records = (
+                    cls._split_pooled_and_individual_sequencing(
+                        pooling_info, ntseq_records
+                    )
                 )
-                if individual:
+                if individual_ntseq_records:
                     result.add(biosample_id)
         return result
 
@@ -841,17 +851,19 @@ class NCBISubmissionXML:
                 # biosample itself.
                 pooled_entry = {}
                 for biosample_id, data_objects in entry.items():
-                    _, individual_ntseqs = self._split_pooled_and_individual_sequencing(
-                        pooling_data.get(biosample_id, {}),
-                        ntseq_by_biosample.get(biosample_id, []),
+                    _, individual_ntseq_records = (
+                        self._split_pooled_and_individual_sequencing(
+                            pooling_data.get(biosample_id, {}),
+                            ntseq_by_biosample.get(biosample_id, []),
+                        )
                     )
-                    if not individual_ntseqs:
+                    if not individual_ntseq_records:
                         pooled_entry[biosample_id] = data_objects
                         continue
 
                     individual_dobj_ids = {
                         dobj_id
-                        for ntseq in individual_ntseqs
+                        for ntseq in individual_ntseq_records
                         for dobj_id in ntseq.get("has_output", [])
                     }
                     pooled_entry[biosample_id] = [
@@ -866,7 +878,7 @@ class NCBISubmissionXML:
                         individual_entries.append(
                             (
                                 {biosample_id: individual_data_objects},
-                                [{biosample_id: individual_ntseqs}],
+                                [{biosample_id: individual_ntseq_records}],
                             )
                         )
 
