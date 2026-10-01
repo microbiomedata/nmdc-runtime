@@ -119,7 +119,7 @@ award_badges_to_biosamples_job = award_badges_to_biosamples.to_job(
 
 award_badges_to_biosamples_daily = ScheduleDefinition(
     name="daily_award_badges_to_biosamples",
-    cron_schedule="0 21 * * *",  #
+    cron_schedule="0 21 * * *",  # daily at 9pm PT
     execution_timezone="America/Los_Angeles",
     default_status=DefaultScheduleStatus.RUNNING,
     job=award_badges_to_biosamples_job,
