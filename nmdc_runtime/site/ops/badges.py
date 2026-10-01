@@ -8,7 +8,7 @@ from logging import Logger
 from numbers import Number
 from typing import Any
 
-from dagster import OpExecutionContext, op
+from dagster import Field, OpExecutionContext, op
 from linkml_runtime import SchemaView
 
 from nmdc_runtime.util import nmdc_schema_view
@@ -520,13 +520,30 @@ def revoke_badges_from_biosamples_op(context: OpExecutionContext) -> None:
     )
 
 
-@op(required_resource_keys={"mongo"})
+@op(
+    required_resource_keys={"mongo"},
+    config_schema={
+        "dry_run": Field(
+            bool,
+            default_value=False,
+            description=(
+                "Whether to do a dry run, which is where the op will log the badges that it _would_"
+                "award to each biosample, but it won't actually award any badges to any biosamples."
+            ),
+        ),
+    },
+)
 def award_badges_to_biosamples_op(context: OpExecutionContext) -> None:
     """
     Award badges to biosamples, without revoking any badges from any biosamples.
+    
+    If the `dry_run` op configuration parameter is set to `True`, the function will log the badges
+    that it _would_ award to each biosample, but the function will not actually award any badges to
+    any biosamples.
     """
 
     logger = context.log
+    is_dry_run = context.op_config["dry_run"]
 
     # Instantiate a badge manager.
     badge_man = BadgeMan(
@@ -536,7 +553,12 @@ def award_badges_to_biosamples_op(context: OpExecutionContext) -> None:
 
     # Award badges to the biosamples that qualify for them.
     # TODO: Consider projecting only the fields that are relevant to badges.
-    logger.info("Evaluating biosamples and awarding badges.")
+    if is_dry_run:
+        logger.info(
+            "[DRY RUN] Evaluating biosamples and logging badges that would have been awarded."
+        )
+    else:
+        logger.info("Evaluating biosamples and awarding badges.")
     num_biosamples_evaluated = 0
     num_biosamples_awarded_badges = 0
     biosample_set = context.resources.mongo.db.get_collection("biosample_set")
@@ -574,14 +596,22 @@ def award_badges_to_biosamples_op(context: OpExecutionContext) -> None:
                         len(newly_earned_badges),
                         ", ".join(sorted(newly_earned_badges)),
                     )
-                    biosample_set.update_one(
-                        {"_id": biosample["_id"]},
-                        badge_man.make_pipeline_that_applies_badges(earned_badges),
-                    )
+                    if not is_dry_run:
+                        biosample_set.update_one(
+                            {"_id": biosample["_id"]},
+                            badge_man.make_pipeline_that_applies_badges(earned_badges),
+                        )
                     num_biosamples_awarded_badges += 1
 
-    logger.info(
-        "Evaluated %d biosamples, %d of which were awarded additional badges.",
-        num_biosamples_evaluated,
-        num_biosamples_awarded_badges,
-    )
+    if is_dry_run:
+        logger.info(
+            "[DRY RUN] Evaluated %d biosamples, %d of which would have been awarded additional badges.",
+            num_biosamples_evaluated,
+            num_biosamples_awarded_badges,
+        )
+    else:
+        logger.info(
+            "Evaluated %d biosamples, %d of which were awarded additional badges.",
+            num_biosamples_evaluated,
+            num_biosamples_awarded_badges,
+        )
