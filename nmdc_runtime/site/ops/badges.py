@@ -536,7 +536,7 @@ def revoke_badges_from_biosamples_op(context: OpExecutionContext) -> None:
 def award_badges_to_biosamples_op(context: OpExecutionContext) -> None:
     """
     Award badges to biosamples, without revoking any badges from any biosamples.
-    
+
     If the `dry_run` op configuration parameter is set to `True`, the function will log the badges
     that it _would_ award to each biosample, but the function will not actually award any badges to
     any biosamples.
