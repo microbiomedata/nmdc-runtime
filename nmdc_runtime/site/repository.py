@@ -112,6 +112,19 @@ preset_normal = {
 
 run_config_frozen__normal_env = freeze(preset_normal["config"])
 
+award_badges_to_biosamples_job = award_badges_to_biosamples.to_job(
+    **preset_normal,
+    description="Award badges to biosamples, based upon schema-defined criteria.",
+)
+
+award_badges_to_biosamples_daily = ScheduleDefinition(
+    name="daily_award_badges_to_biosamples",
+    cron_schedule="0 21 * * *",  # daily at 9pm PT
+    execution_timezone="America/Los_Angeles",
+    default_status=DefaultScheduleStatus.RUNNING,
+    job=award_badges_to_biosamples_job,
+)
+
 synchronize_superseded_by_field_job = synchronize_superseded_by_field_graph.to_job(
     **preset_normal,
     name=synchronize_superseded_by_field_graph.name,
@@ -570,16 +583,12 @@ def repo():
             **preset_normal,
             description="Revoke all badges from all biosamples.",
         ),
-        award_badges_to_biosamples.to_job(
-            **preset_normal,
-            description=(
-                "Award badges to biosamples, based upon schema-defined criteria."
-            ),
-        ),
+        award_badges_to_biosamples_job,
         test_slack_integration_job,
         synchronize_superseded_by_field_job,
     ]
     schedules = [
+        award_badges_to_biosamples_daily,
         housekeeping_weekly,
         synchronize_superseded_by_field_hourly,
         ensure_alldocs_hourly,
