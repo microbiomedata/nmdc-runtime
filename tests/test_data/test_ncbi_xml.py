@@ -2033,3 +2033,469 @@ class TestPooledBiosampleWithIndividualSequencing:
             material_processing_set, [{"id": self.BSM_A}]
         )
         assert "nucleotide_sequencing_ids" not in result[self.BSM_A]
+
+
+class TestBiosampleInMultiplePoolingProcesses:
+    """A core can sit in two Pooling records (e.g. a duplicate import) where only one
+    record's ProcessedSample was carried through to sequencing. The lookup must
+    report the record that leads to runs, whichever order Mongo returns them in."""
+
+    BSM = "nmdc:bsm-11-twopool1"
+    LIVE_POOL = "nmdc:poolp-11-live0001"
+    LIVE_PROCSM = "nmdc:procsm-11-live0001"
+    DEAD_POOL = "nmdc:poolp-11-dead0001"
+    DEAD_PROCSM = "nmdc:procsm-11-dead0001"
+    COMP_NTSEQ = "nmdc:dgns-11-comp0002"
+
+    def _pool(self, pool_id, procsm_id):
+        return {
+            "id": pool_id,
+            "type": "nmdc:Pooling",
+            "has_input": [self.BSM],
+            "has_output": [procsm_id],
+        }
+
+    def _alldocs(self):
+        # only the live pool's ProcessedSample leads to a sequencing run
+        return _alldocs_mock(
+            [
+                {
+                    "id": "nmdc:extrp-11-live001",
+                    "has_input": [self.LIVE_PROCSM],
+                    "has_output": ["nmdc:procsm-11-livelib"],
+                },
+                {
+                    "id": self.COMP_NTSEQ,
+                    "has_input": ["nmdc:procsm-11-livelib"],
+                    "has_output": ["nmdc:dobj-11-comp0002"],
+                },
+            ]
+        )
+
+    @pytest.mark.parametrize("dead_pool_first", [True, False])
+    def test_pool_with_downstream_runs_wins_regardless_of_order(self, dead_pool_first):
+        live, dead = (
+            self._pool(self.LIVE_POOL, self.LIVE_PROCSM),
+            self._pool(self.DEAD_POOL, self.DEAD_PROCSM),
+        )
+        material_processing_set = MagicMock()
+        material_processing_set.find.return_value = (
+            [dead, live] if dead_pool_first else [live, dead]
+        )
+
+        result = check_pooling_for_biosamples(
+            material_processing_set, [{"id": self.BSM}], self._alldocs()
+        )
+
+        info = result[self.BSM]
+        assert info["pooling_process_id"] == self.LIVE_POOL
+        assert info["processed_sample_id"] == self.LIVE_PROCSM
+        assert info["nucleotide_sequencing_ids"] == [self.COMP_NTSEQ]
+
+    def test_without_alldocs_last_pool_still_wins(self):
+        """Runs are unknown without alldocs, so the previous last-wins rule holds."""
+        material_processing_set = MagicMock()
+        material_processing_set.find.return_value = [
+            self._pool(self.LIVE_POOL, self.LIVE_PROCSM),
+            self._pool(self.DEAD_POOL, self.DEAD_PROCSM),
+        ]
+
+        result = check_pooling_for_biosamples(
+            material_processing_set, [{"id": self.BSM}]
+        )
+
+        assert result[self.BSM]["pooling_process_id"] == self.DEAD_POOL
+
+
+class TestExistingInsdcAccessionReferences:
+    """Samples already registered with INSDC (e.g. NEON's ENA ``SAMEA`` samples) must
+    be referenced from SRA actions by accession, not by a SPUID that was never
+    submitted under NMDC's namespace."""
+
+    POOL = "nmdc:poolp-11-acc00001"
+    POOL_PROCSM = "nmdc:procsm-11-acc00001"
+    BSM_A = (
+        "nmdc:bsm-11-acc0000a"  # own accession + pool accession, sequenced both ways
+    )
+    BSM_B = "nmdc:bsm-11-acc0000b"  # pool accession only
+    BSM_C = "nmdc:bsm-11-acc0000c"  # pool accession only, but also sequenced on its own
+    BSM_SOLO = "nmdc:bsm-11-acc0solo"  # not pooled, registered
+    BSM_NEW = "nmdc:bsm-11-acc00new"  # not pooled, not registered
+    POOL_ACC = "SAMEA104200253"
+    A_ACC = "SAMEA104200272"
+    SOLO_ACC = "SAMEA104200999"
+    COMP_NTSEQ = "nmdc:dgns-11-acccomp1"
+    GEN_A_NTSEQ = "nmdc:dgns-11-accgena1"
+    GEN_C_NTSEQ = "nmdc:dgns-11-accgenc1"
+    SOLO_NTSEQ = "nmdc:dgns-11-accsolo1"
+    NEW_NTSEQ = "nmdc:dgns-11-accnew01"
+
+    def _bsm(self, bsm_id, name, accessions):
+        b = {
+            "id": bsm_id,
+            "type": "nmdc:Biosample",
+            "name": name,
+            "env_package": {"has_raw_value": "soil", "type": "nmdc:TextValue"},
+        }
+        if accessions:
+            b["insdc_biosample_identifiers"] = [f"biosample:{a}" for a in accessions]
+        return b
+
+    def _dobj(self, dobj_id, filename, read):
+        return {
+            "id": dobj_id,
+            "type": "nmdc:DataObject",
+            "name": filename,
+            "data_object_type": f"Metagenome Raw Read {read}",
+            "url": f"https://storage.neonscience.org/x/{filename}",
+        }
+
+    def _ntseq(self, ntseq_id, name, has_output):
+        return {
+            "id": ntseq_id,
+            "type": "nmdc:NucleotideSequencing",
+            "name": name,
+            "has_input": ["nmdc:procsm-11-x"],
+            "has_output": has_output,
+            "processing_institution": "ANL",
+            "analyte_category": "metagenome",
+            "instrument_used": ["nmdc:inst-14-xz5tb342"],
+        }
+
+    def _pooling_info(self):
+        return {
+            "pooling_process_id": self.POOL,
+            "processed_sample_id": self.POOL_PROCSM,
+            "processed_sample_name": "CPER_002-M-20130701-COMP",
+            "pooled_biosample_ids": [self.BSM_A, self.BSM_B, self.BSM_C],
+            "aggregated_values": {},
+            "nucleotide_sequencing_ids": [self.COMP_NTSEQ],
+        }
+
+    @pytest.fixture(autouse=True)
+    def _mappings(self, mocker):
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {"id": "", "name": "sample_name"},
+                {"id": "uriorcurie", "name": "string"},
+            ),
+        )
+
+    def test_resolve_existing_biosample_accessions(self):
+        biosamples = [
+            self._bsm(self.BSM_A, "A", [self.A_ACC, self.POOL_ACC]),
+            self._bsm(self.BSM_B, "B", [self.POOL_ACC]),
+            self._bsm(self.BSM_C, "C", [self.POOL_ACC]),
+            self._bsm(self.BSM_SOLO, "solo", [self.SOLO_ACC]),
+            self._bsm(self.BSM_NEW, "new", []),
+        ]
+        pooling = {
+            b: self._pooling_info() for b in (self.BSM_A, self.BSM_B, self.BSM_C)
+        }
+
+        by_biosample, by_pool = (
+            NCBISubmissionXML._resolve_existing_biosample_accessions(
+                biosamples, pooling
+            )
+        )
+
+        # the accession every constituent shares belongs to the composite
+        assert by_pool == {self.POOL_PROCSM: self.POOL_ACC}
+        # only accessions that are the biosample's own remain
+        assert by_biosample == {self.BSM_A: self.A_ACC, self.BSM_SOLO: self.SOLO_ACC}
+
+    def test_resolution_is_conservative_when_ambiguous(self):
+        two_shared = [
+            self._bsm(self.BSM_A, "A", ["SAMEA1", "SAMEA2"]),
+            self._bsm(self.BSM_B, "B", ["SAMEA1", "SAMEA2"]),
+        ]
+        pooling = {b: self._pooling_info() for b in (self.BSM_A, self.BSM_B)}
+        by_biosample, by_pool = (
+            NCBISubmissionXML._resolve_existing_biosample_accessions(
+                two_shared, pooling
+            )
+        )
+        assert by_pool == {} and by_biosample == {}
+
+    @staticmethod
+    def _sra_refs(root):
+        out = {}
+        for add in root.findall(".//Action/AddFiles"):
+            ident = add.find("Identifier/SPUID").text
+            refs = [
+                r.find("RefId")
+                for r in add.findall("AttributeRefId")
+                if r.get("name") == "BioSample"
+            ]
+            assert len(refs) == 1
+            child = list(refs[0])[0]
+            out[ident] = (child.tag, child.get("db"), child.text)
+        return out
+
+    def test_sra_actions_reference_registered_samples_by_accession(
+        self, ncbi_submission_client: NCBISubmissionXML, mocked_instruments
+    ):
+        all_instruments = {
+            i["id"]: {"vendor": i["vendor"], "model": i["model"]}
+            for i in mocked_instruments
+        }
+        comp = [
+            self._dobj("nmdc:dobj-11-acccomp1", "comp_R1.fastq.gz", 1),
+            self._dobj("nmdc:dobj-11-acccomp2", "comp_R2.fastq.gz", 2),
+        ]
+        gen_a = [
+            self._dobj("nmdc:dobj-11-accgena1", "genA_R1.fastq.gz", 1),
+            self._dobj("nmdc:dobj-11-accgena2", "genA_R2.fastq.gz", 2),
+        ]
+        gen_c = [
+            self._dobj("nmdc:dobj-11-accgenc1", "genC_R1.fastq.gz", 1),
+            self._dobj("nmdc:dobj-11-accgenc2", "genC_R2.fastq.gz", 2),
+        ]
+        solo = [
+            self._dobj("nmdc:dobj-11-accsolo1", "solo_R1.fastq.gz", 1),
+            self._dobj("nmdc:dobj-11-accsolo2", "solo_R2.fastq.gz", 2),
+        ]
+        new = [
+            self._dobj("nmdc:dobj-11-accnew01", "new_R1.fastq.gz", 1),
+            self._dobj("nmdc:dobj-11-accnew02", "new_R2.fastq.gz", 2),
+        ]
+        comp_ntseq = self._ntseq(self.COMP_NTSEQ, "COMP", [d["id"] for d in comp])
+        gen_a_ntseq = self._ntseq(self.GEN_A_NTSEQ, "GEN A", [d["id"] for d in gen_a])
+        gen_c_ntseq = self._ntseq(self.GEN_C_NTSEQ, "GEN C", [d["id"] for d in gen_c])
+        solo_ntseq = self._ntseq(self.SOLO_NTSEQ, "SOLO", [d["id"] for d in solo])
+        new_ntseq = self._ntseq(self.NEW_NTSEQ, "NEW", [d["id"] for d in new])
+
+        biosamples = [
+            self._bsm(self.BSM_A, "CPER_002-M-38-5", [self.A_ACC, self.POOL_ACC]),
+            self._bsm(self.BSM_B, "CPER_002-M-9-22", [self.POOL_ACC]),
+            self._bsm(self.BSM_C, "CPER_002-M-22-37", [self.POOL_ACC]),
+            self._bsm(self.BSM_SOLO, "SOLO", [self.SOLO_ACC]),
+            self._bsm(self.BSM_NEW, "NEW", []),
+        ]
+        data_objects = [
+            {self.BSM_A: comp + gen_a},
+            {self.BSM_B: comp},
+            {self.BSM_C: comp + gen_c},
+            {self.BSM_SOLO: solo},
+            {self.BSM_NEW: new},
+        ]
+        ntseq = [
+            {self.BSM_A: [comp_ntseq, gen_a_ntseq]},
+            {self.BSM_B: [comp_ntseq]},
+            {self.BSM_C: [comp_ntseq, gen_c_ntseq]},
+            {self.BSM_SOLO: [solo_ntseq]},
+            {self.BSM_NEW: [new_ntseq]},
+        ]
+        pooling = {
+            b: self._pooling_info() for b in (self.BSM_A, self.BSM_B, self.BSM_C)
+        }
+
+        xml_str = ncbi_submission_client.get_submission_xml(
+            biosamples,
+            ntseq,
+            data_objects,
+            [],
+            all_instruments,
+            pooled_biosamples_data=pooling,
+        )
+        root = ET.fromstring(xml_str)
+        org = "National Microbiome Data Collaborative"
+
+        biosample_blocks = sorted(
+            e.text
+            for e in root.findall(
+                ".//Action/AddData[@target_db='BioSample']/Identifier/SPUID"
+            )
+        )
+        # Registered samples get no BioSample block. C's only accession is the
+        # composite's, so C itself is unregistered and must be submitted.
+        assert biosample_blocks == sorted([self.BSM_C, self.BSM_NEW])
+
+        refs = self._sra_refs(root)
+        assert refs[self.COMP_NTSEQ] == ("PrimaryId", "BioSample", self.POOL_ACC)
+        assert refs[self.GEN_A_NTSEQ] == ("PrimaryId", "BioSample", self.A_ACC)
+        assert refs[self.SOLO_NTSEQ] == ("PrimaryId", "BioSample", self.SOLO_ACC)
+        assert refs[self.GEN_C_NTSEQ] == ("SPUID", None, self.BSM_C)
+        assert refs[self.NEW_NTSEQ] == ("SPUID", None, self.BSM_NEW)
+        # every SPUID reference resolves to a BioSample block in this file
+        for tag, _, value in refs.values():
+            if tag == "SPUID":
+                assert value in biosample_blocks
+        assert org in xml_str
+
+
+class TestAlreadySubmittedRunsAreSkipped:
+    """A NucleotideSequencing record with ``insdc_experiment_identifiers`` already has
+    an SRA experiment, so the exporter must not emit an SRA action (or the files) for
+    it, and a biosample whose only run is such a run needs no BioSample block."""
+
+    POOL = "nmdc:poolp-11-sub00001"
+    POOL_PROCSM = "nmdc:procsm-11-sub00001"
+    BSM_A = (
+        "nmdc:bsm-11-sub0000a"  # pooled; also sequenced on its own (not yet submitted)
+    )
+    BSM_B = "nmdc:bsm-11-sub0000b"  # pooled only
+    BSM_SOLO = "nmdc:bsm-11-sub0solo"  # not pooled, two runs: one submitted, one not
+    POOL_ACC = "SAMEA104200253"
+    COMP_NTSEQ = "nmdc:dgns-11-subcomp1"  # submitted at ENA
+    GEN_A_NTSEQ = "nmdc:dgns-11-subgena1"  # not submitted
+    SOLO_OLD_NTSEQ = "nmdc:dgns-11-subold01"  # submitted
+    SOLO_NEW_NTSEQ = "nmdc:dgns-11-subnew01"  # not submitted
+
+    def _bsm(self, bsm_id, name, accessions=()):
+        b = {
+            "id": bsm_id,
+            "type": "nmdc:Biosample",
+            "name": name,
+            "env_package": {"has_raw_value": "soil", "type": "nmdc:TextValue"},
+        }
+        if accessions:
+            b["insdc_biosample_identifiers"] = [f"biosample:{a}" for a in accessions]
+        return b
+
+    def _dobj(self, dobj_id, filename, read):
+        return {
+            "id": dobj_id,
+            "type": "nmdc:DataObject",
+            "name": filename,
+            "data_object_type": f"Metagenome Raw Read {read}",
+            "url": f"https://storage.neonscience.org/x/{filename}",
+        }
+
+    def _ntseq(self, ntseq_id, name, has_output, submitted=False):
+        n = {
+            "id": ntseq_id,
+            "type": "nmdc:NucleotideSequencing",
+            "name": name,
+            "has_input": ["nmdc:procsm-11-x"],
+            "has_output": has_output,
+            "processing_institution": "Battelle",
+            "analyte_category": "metagenome",
+            "instrument_used": ["nmdc:inst-14-xz5tb342"],
+            # a BioProject alone is NOT evidence that the run was deposited
+            "insdc_bioproject_identifiers": ["bioproject:PRJEB22068"],
+        }
+        if submitted:
+            n["insdc_experiment_identifiers"] = ["insdc.sra:ERX2133930"]
+        return n
+
+    @pytest.fixture(autouse=True)
+    def _mappings(self, mocker):
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {"id": "", "name": "sample_name"},
+                {"id": "uriorcurie", "name": "string"},
+            ),
+        )
+
+    def test_exclude_submitted_runs_helper(self):
+        submitted = self._ntseq("nmdc:dgns-11-s", "s", ["nmdc:dobj-11-s1"], True)
+        kept = self._ntseq("nmdc:dgns-11-k", "k", ["nmdc:dobj-11-k1"])
+        ntseq = [{self.BSM_A: [submitted, kept]}, {self.BSM_B: [submitted]}]
+
+        remaining, output_ids = NCBISubmissionXML._exclude_submitted_runs(ntseq)
+
+        assert remaining == [{self.BSM_A: [kept]}]  # B had nothing left
+        assert output_ids == {"nmdc:dobj-11-s1"}
+
+    def test_submitted_runs_produce_no_sra_action_and_no_files(
+        self, ncbi_submission_client: NCBISubmissionXML, mocked_instruments
+    ):
+        all_instruments = {
+            i["id"]: {"vendor": i["vendor"], "model": i["model"]}
+            for i in mocked_instruments
+        }
+        comp = [
+            self._dobj("nmdc:dobj-11-subcomp1", "comp_R1.fastq.gz", 1),
+            self._dobj("nmdc:dobj-11-subcomp2", "comp_R2.fastq.gz", 2),
+        ]
+        gen_a = [
+            self._dobj("nmdc:dobj-11-subgena1", "genA_R1.fastq.gz", 1),
+            self._dobj("nmdc:dobj-11-subgena2", "genA_R2.fastq.gz", 2),
+        ]
+        old = [
+            self._dobj("nmdc:dobj-11-subold01", "old_R1.fastq.gz", 1),
+            self._dobj("nmdc:dobj-11-subold02", "old_R2.fastq.gz", 2),
+        ]
+        new = [
+            self._dobj("nmdc:dobj-11-subnew01", "new_R1.fastq.gz", 1),
+            self._dobj("nmdc:dobj-11-subnew02", "new_R2.fastq.gz", 2),
+        ]
+        comp_ntseq = self._ntseq(
+            self.COMP_NTSEQ, "COMP", [d["id"] for d in comp], submitted=True
+        )
+        gen_a_ntseq = self._ntseq(self.GEN_A_NTSEQ, "GEN A", [d["id"] for d in gen_a])
+        old_ntseq = self._ntseq(
+            self.SOLO_OLD_NTSEQ, "OLD", [d["id"] for d in old], submitted=True
+        )
+        new_ntseq = self._ntseq(self.SOLO_NEW_NTSEQ, "NEW", [d["id"] for d in new])
+
+        pooling = {
+            b: {
+                "pooling_process_id": self.POOL,
+                "processed_sample_id": self.POOL_PROCSM,
+                "processed_sample_name": "OSBS_006-M-20130726-COMP",
+                "pooled_biosample_ids": [self.BSM_A, self.BSM_B],
+                "aggregated_values": {},
+                "nucleotide_sequencing_ids": [self.COMP_NTSEQ],
+            }
+            for b in (self.BSM_A, self.BSM_B)
+        }
+        # A and B only carry the composite's accession; SOLO has none at all.
+        biosamples = [
+            self._bsm(self.BSM_A, "OSBS_006-M-5-30-20130726", [self.POOL_ACC]),
+            self._bsm(self.BSM_B, "OSBS_006-M-8-12-20130726", [self.POOL_ACC]),
+            self._bsm(self.BSM_SOLO, "SOLO"),
+        ]
+        data_objects = [
+            {self.BSM_A: comp + gen_a},
+            {self.BSM_B: comp},
+            {self.BSM_SOLO: old + new},
+        ]
+        ntseq = [
+            {self.BSM_A: [comp_ntseq, gen_a_ntseq]},
+            {self.BSM_B: [comp_ntseq]},
+            {self.BSM_SOLO: [old_ntseq, new_ntseq]},
+        ]
+
+        xml_str = ncbi_submission_client.get_submission_xml(
+            biosamples,
+            ntseq,
+            data_objects,
+            [],
+            all_instruments,
+            pooled_biosamples_data=pooling,
+        )
+        root = ET.fromstring(xml_str)
+
+        identifiers = sorted(
+            a.find("Identifier/SPUID").text for a in root.findall(".//Action/AddFiles")
+        )
+        # the two ENA-deposited runs are gone; the two unsubmitted ones remain
+        assert identifiers == sorted([self.GEN_A_NTSEQ, self.SOLO_NEW_NTSEQ])
+        files = {f.get("file_path") for f in root.iter("File")}
+        assert files == {
+            "genA_R1.fastq.gz",
+            "genA_R2.fastq.gz",
+            "new_R1.fastq.gz",
+            "new_R2.fastq.gz",
+        }
+
+        blocks = sorted(
+            e.text
+            for e in root.findall(
+                ".//Action/AddData[@target_db='BioSample']/Identifier/SPUID"
+            )
+        )
+        # A needs a BioSample for its individual run; the pool is registered already;
+        # B has no run of its own in this submission; SOLO is unregistered.
+        assert blocks == sorted([self.BSM_A, self.BSM_SOLO])
+        for a in root.findall(".//Action/AddFiles"):
+            ref = next(
+                list(r.find("RefId"))[0]
+                for r in a.findall("AttributeRefId")
+                if r.get("name") == "BioSample"
+            )
+            assert ref.tag == "SPUID" and ref.text in blocks
