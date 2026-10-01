@@ -527,7 +527,7 @@ def revoke_badges_from_biosamples_op(context: OpExecutionContext) -> None:
             bool,
             default_value=False,
             description=(
-                "Whether to do a dry run, which is where the op will log the badges that it _would_"
+                "Whether to do a dry run, which is where the op will log the badges that it _would_ "
                 "award to each biosample, but it won't actually award any badges to any biosamples."
             ),
         ),
