@@ -296,35 +296,44 @@ class NCBISubmissionXML:
         return pooled_ntseq_records, individual_ntseq_records
 
     @staticmethod
-    def _exclude_submitted_runs(
+    def _exclude_unsubmittable_runs(
         nmdc_nucleotide_sequencing: List[Dict[str, List[Dict[str, Any]]]],
     ) -> Tuple[List[Dict[str, List[Dict[str, Any]]]], Set[str]]:
-        """Drop sequencing runs that are already in SRA/ENA.
+        """Drop sequencing runs that must not be submitted, for either reason:
 
-        A NucleotideSequencing record carrying ``insdc_experiment_identifiers`` has
-        an SRA experiment already (for NEON soil, NEON deposited those runs at ENA
-        under PRJEB22068), so submitting it again would create a duplicate. Those
-        records are removed from the per-biosample list and the ids of their output
-        DataObjects are returned so the caller can keep their files out of the
-        submission too. Only the experiment identifier counts as evidence that the
-        run itself exists; a BioProject identifier says nothing about the run.
+        * the run is already in SRA/ENA: a NucleotideSequencing record carrying
+          ``insdc_experiment_identifiers`` has an SRA experiment already (for NEON
+          soil, NEON deposited those runs at ENA under PRJEB22068), so submitting it
+          again would create a duplicate. Only the experiment identifier counts as
+          evidence that the run itself exists; a BioProject identifier says nothing
+          about the run.
+        * the run failed QC: ``qc_status`` is ``fail`` (e.g. an unsorted flowcell or
+          truncated reads). The Runtime API already hides such records from
+          collection listings, and their reads should not be deposited.
+
+        Those records are removed from the per-biosample list and the ids of their
+        output DataObjects are returned so the caller can keep their files out of
+        the submission too.
         """
         kept: List[Dict[str, List[Dict[str, Any]]]] = []
-        submitted_output_ids: Set[str] = set()
+        excluded_output_ids: Set[str] = set()
         for ntseq_dict in nmdc_nucleotide_sequencing:
             kept_dict = {}
             for biosample_id, ntseq_records in ntseq_dict.items():
                 remaining = []
                 for ntseq in ntseq_records:
-                    if ntseq.get("insdc_experiment_identifiers"):
-                        submitted_output_ids.update(ntseq.get("has_output") or [])
+                    if (
+                        ntseq.get("insdc_experiment_identifiers")
+                        or ntseq.get("qc_status") == "fail"
+                    ):
+                        excluded_output_ids.update(ntseq.get("has_output") or [])
                     else:
                         remaining.append(ntseq)
                 if remaining:
                     kept_dict[biosample_id] = remaining
             if kept_dict:
                 kept.append(kept_dict)
-        return kept, submitted_output_ids
+        return kept, excluded_output_ids
 
     @classmethod
     def _individually_sequenced_pooled_biosample_ids(
@@ -1548,10 +1557,11 @@ class NCBISubmissionXML:
         #         org=self.ncbi_submission_metadata.get("organization", ""),
         #     )
 
-        # Runs already deposited in SRA/ENA are not submitted again, and a
-        # biosample whose only run is such a run needs no BioSample of its own.
-        filtered_nucleotide_sequencing_list, submitted_run_output_ids = (
-            self._exclude_submitted_runs(filtered_nucleotide_sequencing_list)
+        # Runs already deposited in SRA/ENA, and runs that failed QC, are not
+        # submitted; a biosample whose only run is such a run needs no BioSample
+        # of its own.
+        filtered_nucleotide_sequencing_list, excluded_run_output_ids = (
+            self._exclude_unsubmittable_runs(filtered_nucleotide_sequencing_list)
         )
 
         individually_sequenced_biosample_ids = (
@@ -1587,8 +1597,8 @@ class NCBISubmissionXML:
                     # for "url" key in data_object
                     filtered_objects = []
                     for data_object in data_objects:
-                        if data_object.get("id") in submitted_run_output_ids:
-                            continue  # output of a run already in SRA/ENA
+                        if data_object.get("id") in excluded_run_output_ids:
+                            continue  # output of a deposited or QC-failed run
                         if "url" in data_object:
                             url = urlparse(data_object["url"])
                             file_path = os.path.basename(url.path)

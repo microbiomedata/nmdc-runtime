@@ -2325,10 +2325,11 @@ class TestExistingInsdcAccessionReferences:
         assert org in xml_str
 
 
-class TestAlreadySubmittedRunsAreSkipped:
+class TestUnsubmittableRunsAreSkipped:
     """A NucleotideSequencing record with ``insdc_experiment_identifiers`` already has
-    an SRA experiment, so the exporter must not emit an SRA action (or the files) for
-    it, and a biosample whose only run is such a run needs no BioSample block."""
+    an SRA experiment, and one with ``qc_status: fail`` must not be deposited. In
+    both cases the exporter must not emit an SRA action (or the files) for it, and a
+    biosample whose only run is such a run needs no BioSample block."""
 
     POOL = "nmdc:poolp-11-sub00001"
     POOL_PROCSM = "nmdc:procsm-11-sub00001"
@@ -2342,6 +2343,7 @@ class TestAlreadySubmittedRunsAreSkipped:
     GEN_A_NTSEQ = "nmdc:dgns-11-subgena1"  # not submitted
     SOLO_OLD_NTSEQ = "nmdc:dgns-11-subold01"  # submitted
     SOLO_NEW_NTSEQ = "nmdc:dgns-11-subnew01"  # not submitted
+    SOLO_BAD_NTSEQ = "nmdc:dgns-11-subbad01"  # failed QC
 
     def _bsm(self, bsm_id, name, accessions=()):
         b = {
@@ -2363,7 +2365,7 @@ class TestAlreadySubmittedRunsAreSkipped:
             "url": f"https://storage.neonscience.org/x/{filename}",
         }
 
-    def _ntseq(self, ntseq_id, name, has_output, submitted=False):
+    def _ntseq(self, ntseq_id, name, has_output, submitted=False, qc_status=None):
         n = {
             "id": ntseq_id,
             "type": "nmdc:NucleotideSequencing",
@@ -2378,6 +2380,8 @@ class TestAlreadySubmittedRunsAreSkipped:
         }
         if submitted:
             n["insdc_experiment_identifiers"] = ["insdc.sra:ERX2133930"]
+        if qc_status:
+            n["qc_status"] = qc_status
         return n
 
     @pytest.fixture(autouse=True)
@@ -2390,15 +2394,25 @@ class TestAlreadySubmittedRunsAreSkipped:
             ),
         )
 
-    def test_exclude_submitted_runs_helper(self):
+    def test_exclude_unsubmittable_runs_helper(self):
         submitted = self._ntseq("nmdc:dgns-11-s", "s", ["nmdc:dobj-11-s1"], True)
+        failed = self._ntseq(
+            "nmdc:dgns-11-f", "f", ["nmdc:dobj-11-f1"], qc_status="fail"
+        )
+        passed = self._ntseq(
+            "nmdc:dgns-11-p", "p", ["nmdc:dobj-11-p1"], qc_status="pass"
+        )
         kept = self._ntseq("nmdc:dgns-11-k", "k", ["nmdc:dobj-11-k1"])
-        ntseq = [{self.BSM_A: [submitted, kept]}, {self.BSM_B: [submitted]}]
+        ntseq = [
+            {self.BSM_A: [submitted, failed, passed, kept]},
+            {self.BSM_B: [submitted, failed]},
+        ]
 
-        remaining, output_ids = NCBISubmissionXML._exclude_submitted_runs(ntseq)
+        remaining, output_ids = NCBISubmissionXML._exclude_unsubmittable_runs(ntseq)
 
-        assert remaining == [{self.BSM_A: [kept]}]  # B had nothing left
-        assert output_ids == {"nmdc:dobj-11-s1"}
+        # only "fail" is excluded; "pass" and an unset qc_status are kept
+        assert remaining == [{self.BSM_A: [passed, kept]}]  # B had nothing left
+        assert output_ids == {"nmdc:dobj-11-s1", "nmdc:dobj-11-f1"}
 
     def test_submitted_runs_produce_no_sra_action_and_no_files(
         self, ncbi_submission_client: NCBISubmissionXML, mocked_instruments
@@ -2423,6 +2437,10 @@ class TestAlreadySubmittedRunsAreSkipped:
             self._dobj("nmdc:dobj-11-subnew01", "new_R1.fastq.gz", 1),
             self._dobj("nmdc:dobj-11-subnew02", "new_R2.fastq.gz", 2),
         ]
+        bad = [
+            self._dobj("nmdc:dobj-11-subbad01", "bad_R1.fastq.gz", 1),
+            self._dobj("nmdc:dobj-11-subbad02", "bad_R2.fastq.gz", 2),
+        ]
         comp_ntseq = self._ntseq(
             self.COMP_NTSEQ, "COMP", [d["id"] for d in comp], submitted=True
         )
@@ -2431,6 +2449,9 @@ class TestAlreadySubmittedRunsAreSkipped:
             self.SOLO_OLD_NTSEQ, "OLD", [d["id"] for d in old], submitted=True
         )
         new_ntseq = self._ntseq(self.SOLO_NEW_NTSEQ, "NEW", [d["id"] for d in new])
+        bad_ntseq = self._ntseq(
+            self.SOLO_BAD_NTSEQ, "BAD", [d["id"] for d in bad], qc_status="fail"
+        )
 
         pooling = {
             b: {
@@ -2452,12 +2473,12 @@ class TestAlreadySubmittedRunsAreSkipped:
         data_objects = [
             {self.BSM_A: comp + gen_a},
             {self.BSM_B: comp},
-            {self.BSM_SOLO: old + new},
+            {self.BSM_SOLO: old + new + bad},
         ]
         ntseq = [
             {self.BSM_A: [comp_ntseq, gen_a_ntseq]},
             {self.BSM_B: [comp_ntseq]},
-            {self.BSM_SOLO: [old_ntseq, new_ntseq]},
+            {self.BSM_SOLO: [old_ntseq, new_ntseq, bad_ntseq]},
         ]
 
         xml_str = ncbi_submission_client.get_submission_xml(
@@ -2473,7 +2494,8 @@ class TestAlreadySubmittedRunsAreSkipped:
         identifiers = sorted(
             a.find("Identifier/SPUID").text for a in root.findall(".//Action/AddFiles")
         )
-        # the two ENA-deposited runs are gone; the two unsubmitted ones remain
+        # the two ENA-deposited runs and the QC-failed run are gone; the two
+        # unsubmitted, passing ones remain
         assert identifiers == sorted([self.GEN_A_NTSEQ, self.SOLO_NEW_NTSEQ])
         files = {f.get("file_path") for f in root.iter("File")}
         assert files == {
