@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
 from functools import lru_cache
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 from urllib.parse import urlparse
 from unidecode import unidecode
 from nmdc_runtime.site.export.ncbi_xml_utils import (
@@ -296,6 +296,31 @@ class NCBISubmissionXML:
         return pooled_ntseq_records, individual_ntseq_records
 
     @staticmethod
+    def _shared_manifest_id(data_objects: List[Dict[str, Any]]) -> Optional[str]:
+        """Return the one ``nmdc:Manifest`` that every file in an SRA action belongs to.
+
+        When the same library is sequenced more than once (e.g. on a second
+        flowcell) NMDC links the runs' DataObjects through a Manifest with
+        ``manifest_category: poolable_replicates``, via the DataObjects' ``in_manifest``
+        slot. NCBI wants those files in a single run, so the exporter merges them
+        into one SRA action. Labelling that action with one of the run ids would be
+        arbitrary; the Manifest id names the group as a whole. The DataObjects are
+        already in hand, so no extra lookup is needed.
+
+        Returns ``None`` unless every file-bearing DataObject carries exactly the
+        same single manifest, in which case the caller falls back to a run id.
+        """
+        manifest_sets = [
+            set(d.get("in_manifest") or []) for d in data_objects if "url" in d
+        ]
+        if not manifest_sets:
+            return None
+        shared = set.intersection(*manifest_sets)
+        if len(shared) == 1 and all(m == shared for m in manifest_sets):
+            return next(iter(shared))
+        return None
+
+    @staticmethod
     def _exclude_unsubmittable_runs(
         nmdc_nucleotide_sequencing: List[Dict[str, List[Dict[str, Any]]]],
     ) -> Tuple[List[Dict[str, List[Dict[str, Any]]]], Set[str]]:
@@ -310,6 +335,10 @@ class NCBISubmissionXML:
         * the run failed QC: ``qc_status`` is ``fail`` (e.g. an unsorted flowcell or
           truncated reads). The Runtime API already hides such records from
           collection listings, and their reads should not be deposited.
+        * the run was performed by JGI, which deposits its own data at NCBI. A
+          biosample whose *every* run is JGI is dropped wholesale upstream (see
+          `get_submission_xml`); this handles a biosample sequenced both by JGI and
+          by another lab, where only the other lab's run is NMDC's to submit.
 
         Those records are removed from the per-biosample list and the ids of their
         output DataObjects are returned so the caller can keep their files out of
@@ -325,6 +354,7 @@ class NCBISubmissionXML:
                     if (
                         ntseq.get("insdc_experiment_identifiers")
                         or ntseq.get("qc_status") == "fail"
+                        or ntseq.get("processing_institution") == "JGI"
                     ):
                         excluded_output_ids.update(ntseq.get("has_output") or [])
                     else:
@@ -1040,6 +1070,7 @@ class NCBISubmissionXML:
         # Process individual entries
         for entry, entry_nucleotide_sequencing in individual_entries:
             fastq_files = []
+            entry_data_objects = []
             biosample_ids = []
             nucleotide_sequencing_ids = {}
             lib_prep_protocol_names = {}
@@ -1050,6 +1081,7 @@ class NCBISubmissionXML:
 
             for biosample_id, data_objects in entry.items():
                 biosample_ids.append(biosample_id)
+                entry_data_objects.extend(data_objects)
                 for data_object in data_objects:
                     if "url" in data_object:
                         url = urlparse(data_object["url"])
@@ -1230,6 +1262,9 @@ class NCBISubmissionXML:
                         )
                     )
 
+                # Replicate runs of one library share a Manifest; name the action
+                # after it rather than after one of the runs.
+                shared_manifest_id = self._shared_manifest_id(entry_data_objects)
                 for (
                     biosample_id,
                     omics_processing_id,
@@ -1238,7 +1273,9 @@ class NCBISubmissionXML:
                         "Identifier",
                         children=[
                             self.set_element(
-                                "SPUID", omics_processing_id, {"spuid_namespace": org}
+                                "SPUID",
+                                shared_manifest_id or omics_processing_id,
+                                {"spuid_namespace": org},
                             )
                         ],
                     )
@@ -1294,9 +1331,11 @@ class NCBISubmissionXML:
         instrument_vendor = ""
         instrument_model = ""
 
+        all_data_objects = []
         for entry in entries:
             for biosample_id, data_objects in entry.items():
                 all_biosample_ids.add(biosample_id)
+                all_data_objects.extend(data_objects)
                 for data_object in data_objects:
                     if "url" in data_object:
                         url = urlparse(data_object["url"])
@@ -1459,12 +1498,14 @@ class NCBISubmissionXML:
                     )
                     break  # Only add one protocol name
 
-            # Use the first nucleotide sequencing ID as the identifier
-            omics_processing_id = None
-            for biosample_id, seq_id in nucleotide_sequencing_ids.items():
-                if seq_id:
-                    omics_processing_id = seq_id
-                    break
+            # Identify the action by the Manifest when all its files are replicate
+            # runs of one library; otherwise by the first nucleotide sequencing ID.
+            omics_processing_id = self._shared_manifest_id(all_data_objects)
+            if not omics_processing_id:
+                for biosample_id, seq_id in nucleotide_sequencing_ids.items():
+                    if seq_id:
+                        omics_processing_id = seq_id
+                        break
 
             if omics_processing_id:
                 identifier_element = self.set_element(
@@ -1503,17 +1544,18 @@ class NCBISubmissionXML:
     ):
         # data_type = None
 
+        # JGI deposits its own samples and runs at NCBI, so a biosample whose every
+        # sequencing run is JGI's is not ours to submit and is dropped wholesale.
+        # A biosample sequenced by JGI *and* by another lab is kept: its JGI run is
+        # removed per run in `_exclude_unsubmittable_runs` and the other lab's run
+        # is submitted against the (JGI-registered) BioSample accession.
         biosamples_to_exclude = set()
         for bsm_ntseq in biosample_nucleotide_sequencing_list:
             for bsm_id, ntseq_list in bsm_ntseq.items():
-                # Check if any processing_institution is "JGI"
-                for ntseq in ntseq_list:
-                    if (
-                        "processing_institution" in ntseq
-                        and ntseq["processing_institution"] == "JGI"
-                    ):
-                        biosamples_to_exclude.add(bsm_id)
-                        break
+                if ntseq_list and all(
+                    ntseq.get("processing_institution") == "JGI" for ntseq in ntseq_list
+                ):
+                    biosamples_to_exclude.add(bsm_id)
 
         # Filter biosample_nucleotide_sequencing_list to exclude JGI records
         filtered_nucleotide_sequencing_list = []
