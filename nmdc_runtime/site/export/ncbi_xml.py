@@ -104,6 +104,82 @@ class NCBISubmissionXML:
         insdc_ids = biosample.get("insdc_biosample_identifiers", [])
         return isinstance(insdc_ids, list) and len(insdc_ids) > 0
 
+    @staticmethod
+    def _biosample_accessions(biosample: dict) -> Set[str]:
+        """Return the bare INSDC BioSample accessions asserted on a biosample.
+
+        NMDC stores them as CURIEs such as ``biosample:SAMEA104200253``; NCBI wants
+        the accession alone (``SAMEA104200253``).
+        """
+        insdc_ids = biosample.get("insdc_biosample_identifiers") or []
+        if not isinstance(insdc_ids, list):
+            return set()
+        return {str(i).split(":", 1)[1] if ":" in str(i) else str(i) for i in insdc_ids}
+
+    @classmethod
+    def _resolve_existing_biosample_accessions(
+        cls,
+        nmdc_biosamples: List[Dict[str, Any]],
+        pooling_data: Dict[str, Dict[str, Any]],
+    ) -> Tuple[Dict[str, str], Dict[str, str]]:
+        """Work out which samples already exist at NCBI/ENA and under which accession.
+
+        Some samples in a study were registered with INSDC before NMDC got involved
+        (for NEON soil, NEON registered them at ENA, hence ``SAMEA...``). An SRA
+        action for such a sample must reference that accession with a
+        ``<PrimaryId db="BioSample">``; a ``<SPUID>`` only resolves against BioSamples
+        submitted under NMDC's own namespace, which these never were.
+
+        Accessions are asserted on biosamples, but a pooled run belongs to the
+        composite sample, so the composite's accession is inferred as the one shared
+        by every constituent biosample. A biosample's *own* accession is whatever is
+        left after removing the composite's.
+
+        :return: ``(biosample_accessions, pooled_sample_accessions)`` where the first
+            maps a biosample id to its own accession and the second maps a pooled
+            ProcessedSample id to the composite's accession. A sample whose accession
+            cannot be pinned down to exactly one value is left out, in which case the
+            exporter falls back to referencing it by SPUID as before.
+        """
+        accessions = {b["id"]: cls._biosample_accessions(b) for b in nmdc_biosamples}
+
+        pooled_sample_accessions: Dict[str, str] = {}
+        members_by_pool: Dict[str, List[str]] = {}
+        for biosample_id, pooling_info in pooling_data.items():
+            if biosample_id in accessions and pooling_info.get("processed_sample_id"):
+                members_by_pool.setdefault(
+                    pooling_info["processed_sample_id"], []
+                ).append(biosample_id)
+        for processed_sample_id, members in members_by_pool.items():
+            shared = set.intersection(*(accessions[m] for m in members))
+            if len(shared) == 1:
+                pooled_sample_accessions[processed_sample_id] = next(iter(shared))
+
+        biosample_accessions: Dict[str, str] = {}
+        for biosample_id, own in accessions.items():
+            pool_accession = pooled_sample_accessions.get(
+                pooling_data.get(biosample_id, {}).get("processed_sample_id")
+            )
+            own = own - {pool_accession}
+            if len(own) == 1:
+                biosample_accessions[biosample_id] = next(iter(own))
+
+        return biosample_accessions, pooled_sample_accessions
+
+    @staticmethod
+    def _biosample_ref_element(set_element, spuid, org, accession=None):
+        """``<AttributeRefId name="BioSample">`` pointing at an existing accession when
+        one is known, otherwise at the SPUID of a BioSample in this submission."""
+        if accession:
+            ref = set_element("PrimaryId", accession, {"db": "BioSample"})
+        else:
+            ref = set_element("SPUID", spuid, {"spuid_namespace": org})
+        return set_element(
+            "AttributeRefId",
+            attrib={"name": "BioSample"},
+            children=[set_element("RefId", children=[ref])],
+        )
+
     def set_description(self, email, first, last, org, date=None):
         date = date or datetime.datetime.now().strftime("%Y-%m-%d")
         description = self.set_element(
@@ -219,6 +295,46 @@ class NCBISubmissionXML:
         ]
         return pooled_ntseq_records, individual_ntseq_records
 
+    @staticmethod
+    def _exclude_unsubmittable_runs(
+        nmdc_nucleotide_sequencing: List[Dict[str, List[Dict[str, Any]]]],
+    ) -> Tuple[List[Dict[str, List[Dict[str, Any]]]], Set[str]]:
+        """Drop sequencing runs that must not be submitted, for either reason:
+
+        * the run is already in SRA/ENA: a NucleotideSequencing record carrying
+          ``insdc_experiment_identifiers`` has an SRA experiment already (for NEON
+          soil, NEON deposited those runs at ENA under PRJEB22068), so submitting it
+          again would create a duplicate. Only the experiment identifier counts as
+          evidence that the run itself exists; a BioProject identifier says nothing
+          about the run.
+        * the run failed QC: ``qc_status`` is ``fail`` (e.g. an unsorted flowcell or
+          truncated reads). The Runtime API already hides such records from
+          collection listings, and their reads should not be deposited.
+
+        Those records are removed from the per-biosample list and the ids of their
+        output DataObjects are returned so the caller can keep their files out of
+        the submission too.
+        """
+        kept: List[Dict[str, List[Dict[str, Any]]]] = []
+        excluded_output_ids: Set[str] = set()
+        for ntseq_dict in nmdc_nucleotide_sequencing:
+            kept_dict = {}
+            for biosample_id, ntseq_records in ntseq_dict.items():
+                remaining = []
+                for ntseq in ntseq_records:
+                    if (
+                        ntseq.get("insdc_experiment_identifiers")
+                        or ntseq.get("qc_status") == "fail"
+                    ):
+                        excluded_output_ids.update(ntseq.get("has_output") or [])
+                    else:
+                        remaining.append(ntseq)
+                if remaining:
+                    kept_dict[biosample_id] = remaining
+            if kept_dict:
+                kept.append(kept_dict)
+        return kept, excluded_output_ids
+
     @classmethod
     def _individually_sequenced_pooled_biosample_ids(
         cls,
@@ -249,6 +365,7 @@ class NCBISubmissionXML:
         nmdc_biosamples,
         pooled_biosamples_data=None,
         individually_sequenced_biosample_ids=None,
+        pooled_sample_accessions=None,
     ):
         attribute_mappings, slot_range_mappings = load_mappings(
             self.nmdc_ncbi_attribute_mapping_file_url
@@ -257,6 +374,9 @@ class NCBISubmissionXML:
 
         # Use provided pooling data or empty dict
         pooling_data = pooled_biosamples_data or {}
+        # Composite accessions already registered with INSDC, keyed by pooled
+        # ProcessedSample id (see `_resolve_existing_biosample_accessions`).
+        pooled_sample_accessions = pooled_sample_accessions or {}
         # Pooled biosamples that were also sequenced on their own get a BioSample
         # of their own (SPUID = biosample id) in addition to the pooled BioSample,
         # so the individual run's SRA action has something to reference.
@@ -303,8 +423,13 @@ class NCBISubmissionXML:
 
         # Process individual biosamples
         for biosample in individual_biosamples:
-            # Skip if biosample has INSDC identifiers
-            if self._has_insdc_biosample_identifier(biosample):
+            # Skip if the biosample itself is already registered with INSDC. An
+            # accession it merely shares with its pool mates belongs to the
+            # composite sample, not to this biosample, so it does not count.
+            pool_accession = pooled_sample_accessions.get(
+                pooling_data.get(biosample["id"], {}).get("processed_sample_id")
+            )
+            if self._biosample_accessions(biosample) - {pool_accession}:
                 continue
 
             attributes = {}
@@ -804,6 +929,8 @@ class NCBISubmissionXML:
         nmdc_library_preparation: list,
         all_instruments: dict,
         pooled_biosamples_data=None,
+        biosample_accessions=None,
+        pooled_sample_accessions=None,
     ):
         bsm_id_name_dict = {
             biosample["id"]: biosample["name"] for biosample in nmdc_biosamples
@@ -811,6 +938,10 @@ class NCBISubmissionXML:
 
         # Use provided pooling data or empty dict
         pooling_data = pooled_biosamples_data or {}
+        # Samples already registered with INSDC are referenced by accession rather
+        # than by SPUID (see `_resolve_existing_biosample_accessions`).
+        biosample_accessions = biosample_accessions or {}
+        pooled_sample_accessions = pooled_sample_accessions or {}
 
         ntseq_by_biosample = {}
         for ntseq_dict in nmdc_nucleotide_sequencing:
@@ -901,6 +1032,9 @@ class NCBISubmissionXML:
                 pooled_nucleotide_sequencing_ids=group_data[
                     "nucleotide_sequencing_ids"
                 ],
+                processed_sample_accession=pooled_sample_accessions.get(
+                    group_data["processed_sample_id"]
+                ),
             )
 
         # Process individual entries
@@ -990,21 +1124,11 @@ class NCBISubmissionXML:
 
                 for biosample_id in biosample_ids:
                     attribute_elements.append(
-                        self.set_element(
-                            "AttributeRefId",
-                            attrib={"name": "BioSample"},
-                            children=[
-                                self.set_element(
-                                    "RefId",
-                                    children=[
-                                        self.set_element(
-                                            "SPUID",
-                                            biosample_id,
-                                            {"spuid_namespace": org},
-                                        )
-                                    ],
-                                )
-                            ],
+                        self._biosample_ref_element(
+                            self.set_element,
+                            biosample_id,
+                            org,
+                            accession=biosample_accessions.get(biosample_id),
                         )
                     )
 
@@ -1147,6 +1271,7 @@ class NCBISubmissionXML:
         all_instruments,
         bsm_id_name_dict,
         pooled_nucleotide_sequencing_ids=None,
+        processed_sample_accession=None,
     ):
         if not processed_sample_id:
             return
@@ -1241,21 +1366,11 @@ class NCBISubmissionXML:
                     ],
                 ),
                 # Reference the processed sample, not individual biosamples
-                self.set_element(
-                    "AttributeRefId",
-                    attrib={"name": "BioSample"},
-                    children=[
-                        self.set_element(
-                            "RefId",
-                            children=[
-                                self.set_element(
-                                    "SPUID",
-                                    processed_sample_id,
-                                    {"spuid_namespace": org},
-                                )
-                            ],
-                        )
-                    ],
+                self._biosample_ref_element(
+                    self.set_element,
+                    processed_sample_id,
+                    org,
+                    accession=processed_sample_accession,
                 ),
             ]
 
@@ -1442,9 +1557,21 @@ class NCBISubmissionXML:
         #         org=self.ncbi_submission_metadata.get("organization", ""),
         #     )
 
+        # Runs already deposited in SRA/ENA, and runs that failed QC, are not
+        # submitted; a biosample whose only run is such a run needs no BioSample
+        # of its own.
+        filtered_nucleotide_sequencing_list, excluded_run_output_ids = (
+            self._exclude_unsubmittable_runs(filtered_nucleotide_sequencing_list)
+        )
+
         individually_sequenced_biosample_ids = (
             self._individually_sequenced_pooled_biosample_ids(
                 pooled_biosamples_data or {}, filtered_nucleotide_sequencing_list
+            )
+        )
+        biosample_accessions, pooled_sample_accessions = (
+            self._resolve_existing_biosample_accessions(
+                filtered_biosamples_list, pooled_biosamples_data or {}
             )
         )
 
@@ -1455,6 +1582,7 @@ class NCBISubmissionXML:
             nmdc_biosamples=filtered_biosamples_list,
             pooled_biosamples_data=pooled_biosamples_data,
             individually_sequenced_biosample_ids=individually_sequenced_biosample_ids,
+            pooled_sample_accessions=pooled_sample_accessions,
         )
 
         # Also filter biosample_data_objects_list
@@ -1469,6 +1597,8 @@ class NCBISubmissionXML:
                     # for "url" key in data_object
                     filtered_objects = []
                     for data_object in data_objects:
+                        if data_object.get("id") in excluded_run_output_ids:
+                            continue  # output of a deposited or QC-failed run
                         if "url" in data_object:
                             url = urlparse(data_object["url"])
                             file_path = os.path.basename(url.path)
@@ -1502,6 +1632,8 @@ class NCBISubmissionXML:
             nmdc_library_preparation=filtered_library_preparation_list,
             all_instruments=instruments_dict,
             pooled_biosamples_data=pooled_biosamples_data,
+            biosample_accessions=biosample_accessions,
+            pooled_sample_accessions=pooled_sample_accessions,
         )
 
         rough_string = ET.tostring(self.root, "unicode")
