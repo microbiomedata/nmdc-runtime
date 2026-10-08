@@ -705,7 +705,7 @@ class TestNCBISubmissionXML:
         # Biosample 2 should be filtered out (JGI processing)
         assert "nmdc:bsm-12-jgitest" not in submission_xml
 
-    def test_get_submission_xml_filters_biosamples_with_any_jgi_sequencing(
+    def test_get_submission_xml_keeps_mixed_jgi_biosample_but_drops_jgi_run(
         self,
         mocker: Callable[..., Generator[MockerFixture, None, None]],
         ncbi_submission_client: NCBISubmissionXML,
@@ -746,9 +746,15 @@ class TestNCBISubmissionXML:
 
         ntseq2 = nucleotide_sequencing_list[0].copy()
         ntseq2["id"] = "nmdc:ntseq-2"
-        ntseq2["processing_institution"] = (
-            "JGI"  # One JGI activity should exclude the biosample
-        )
+        ntseq2["processing_institution"] = "JGI"  # JGI deposits this run itself
+        ntseq2["has_output"] = ["nmdc:dobj-11-jgi00001"]
+        jgi_data_object = {
+            "id": "nmdc:dobj-11-jgi00001",
+            "type": "nmdc:DataObject",
+            "name": "52834.4.466476.fastq.gz",
+            "data_object_type": "Metagenome Raw Reads",
+            "url": "https://data.microbiomedata.org/data/x/52834.4.466476.fastq.gz",
+        }
 
         ntseq3 = nucleotide_sequencing_list[0].copy()
         ntseq3["id"] = "nmdc:ntseq-3"
@@ -761,7 +767,7 @@ class TestNCBISubmissionXML:
 
         # Setup data objects and library prep
         biosample_data_objects = [
-            {biosample1["id"]: data_objects_list},
+            {biosample1["id"]: data_objects_list + [jgi_data_object]},
         ]
 
         biosample_library_preparation = [
@@ -785,8 +791,12 @@ class TestNCBISubmissionXML:
             all_instruments,
         )
 
-        # Biosample should be excluded because it has at least one JGI sequencing activity
-        assert "nmdc:bsm-12-mixed" not in submission_xml
+        # The biosample was also sequenced by another lab, so it stays in the
+        # submission; only JGI's run and its file are left out.
+        assert "nmdc:bsm-12-mixed" in submission_xml
+        assert "nmdc:ntseq-2" not in submission_xml
+        assert "52834.4.466476.fastq.gz" not in submission_xml
+        assert "BMI_HVKNKBGX5_Tube347_srt_R1.fastq.gz" in submission_xml
 
     def test_geo_loc_name_ascii_conversion(
         self,
@@ -2521,3 +2531,328 @@ class TestUnsubmittableRunsAreSkipped:
                 if r.get("name") == "BioSample"
             )
             assert ref.tag == "SPUID" and ref.text in blocks
+
+
+class TestManifestAsSraIdentifier:
+    """Replicate runs of one library (linked by a ``poolable_replicates`` Manifest on
+    their DataObjects) are merged into one SRA action, which must be identified by
+    the Manifest rather than by an arbitrary one of the run ids."""
+
+    MANIFEST = "nmdc:manif-11-test0001"
+    SOLO_MANIFEST = "nmdc:manif-11-test0002"
+    POOL = "nmdc:poolp-11-mani0001"
+    POOL_PROCSM = "nmdc:procsm-11-mani0001"
+    BSM_A = "nmdc:bsm-11-mani000a"
+    BSM_B = "nmdc:bsm-11-mani000b"
+    RUN1 = "nmdc:dgns-11-manirun1"
+    RUN2 = "nmdc:dgns-11-manirun2"
+    SOLO = "nmdc:bsm-11-manisolo"
+    SOLO_RUN1 = "nmdc:dgns-11-solorun1"
+    SOLO_RUN2 = "nmdc:dgns-11-solorun2"
+
+    def _dobj(self, dobj_id, filename, read, manifest=None):
+        d = {
+            "id": dobj_id,
+            "type": "nmdc:DataObject",
+            "name": filename,
+            "data_object_type": f"Metagenome Raw Read {read}",
+            "url": f"https://storage.neonscience.org/x/{filename}",
+        }
+        if manifest:
+            d["in_manifest"] = [manifest]
+        return d
+
+    def _ntseq(self, ntseq_id, has_output):
+        return {
+            "id": ntseq_id,
+            "type": "nmdc:NucleotideSequencing",
+            "name": ntseq_id,
+            "has_input": ["nmdc:procsm-11-x"],
+            "has_output": has_output,
+            "processing_institution": "Battelle",
+            "analyte_category": "metagenome",
+            "instrument_used": ["nmdc:inst-14-xz5tb342"],
+        }
+
+    def _bsm(self, bsm_id):
+        return {
+            "id": bsm_id,
+            "type": "nmdc:Biosample",
+            "name": bsm_id,
+            "env_package": {"has_raw_value": "soil", "type": "nmdc:TextValue"},
+        }
+
+    @pytest.fixture(autouse=True)
+    def _mappings(self, mocker):
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {"id": "", "name": "sample_name"},
+                {"id": "uriorcurie", "name": "string"},
+            ),
+        )
+
+    def test_shared_manifest_id_helper(self):
+        f = NCBISubmissionXML._shared_manifest_id
+        a = self._dobj("d1", "a_R1.fastq.gz", 1, self.MANIFEST)
+        b = self._dobj("d2", "b_R1.fastq.gz", 1, self.MANIFEST)
+        c = self._dobj("d3", "c_R1.fastq.gz", 1)  # no manifest
+        d = self._dobj("d4", "d_R1.fastq.gz", 1, "nmdc:manif-11-other001")
+        assert f([a, b]) == self.MANIFEST
+        assert f([a]) == self.MANIFEST
+        assert f([a, c]) is None  # not every file is in the manifest
+        assert f([a, d]) is None  # two different manifests
+        assert f([c]) is None
+        assert f([]) is None
+
+    def _run(self, client, mocked_instruments, with_manifest):
+        all_instruments = {
+            i["id"]: {"vendor": i["vendor"], "model": i["model"]}
+            for i in mocked_instruments
+        }
+        m = self.MANIFEST if with_manifest else None
+        sm = self.SOLO_MANIFEST if with_manifest else None
+        run1 = [
+            self._dobj("nmdc:dobj-11-m1r1", "fc1_R1.fastq.gz", 1, m),
+            self._dobj("nmdc:dobj-11-m1r2", "fc1_R2.fastq.gz", 2, m),
+        ]
+        run2 = [
+            self._dobj("nmdc:dobj-11-m2r1", "fc2_R1.fastq.gz", 1, m),
+            self._dobj("nmdc:dobj-11-m2r2", "fc2_R2.fastq.gz", 2, m),
+        ]
+        solo1 = [
+            self._dobj("nmdc:dobj-11-s1r1", "s1_R1.fastq.gz", 1, sm),
+            self._dobj("nmdc:dobj-11-s1r2", "s1_R2.fastq.gz", 2, sm),
+        ]
+        solo2 = [
+            self._dobj("nmdc:dobj-11-s2r1", "s2_R1.fastq.gz", 1, sm),
+            self._dobj("nmdc:dobj-11-s2r2", "s2_R2.fastq.gz", 2, sm),
+        ]
+        pooling = {
+            b: {
+                "pooling_process_id": self.POOL,
+                "processed_sample_id": self.POOL_PROCSM,
+                "processed_sample_name": "POOL",
+                "pooled_biosample_ids": [self.BSM_A, self.BSM_B],
+                "aggregated_values": {},
+                "nucleotide_sequencing_ids": [self.RUN1, self.RUN2],
+            }
+            for b in (self.BSM_A, self.BSM_B)
+        }
+        biosamples = [
+            self._bsm(self.BSM_A),
+            self._bsm(self.BSM_B),
+            self._bsm(self.SOLO),
+        ]
+        data_objects = [
+            {self.BSM_A: run1 + run2},
+            {self.BSM_B: run1 + run2},
+            {self.SOLO: solo1 + solo2},
+        ]
+        ntseq = [
+            {
+                self.BSM_A: [
+                    self._ntseq(self.RUN1, [d["id"] for d in run1]),
+                    self._ntseq(self.RUN2, [d["id"] for d in run2]),
+                ]
+            },
+            {
+                self.BSM_B: [
+                    self._ntseq(self.RUN1, [d["id"] for d in run1]),
+                    self._ntseq(self.RUN2, [d["id"] for d in run2]),
+                ]
+            },
+            {
+                self.SOLO: [
+                    self._ntseq(self.SOLO_RUN1, [d["id"] for d in solo1]),
+                    self._ntseq(self.SOLO_RUN2, [d["id"] for d in solo2]),
+                ]
+            },
+        ]
+        xml_str = client.get_submission_xml(
+            biosamples,
+            ntseq,
+            data_objects,
+            [],
+            all_instruments,
+            pooled_biosamples_data=pooling,
+        )
+        root = ET.fromstring(xml_str)
+        return {
+            a.find("Identifier/SPUID").text: sorted(
+                f.get("file_path") for f in a.findall("File")
+            )
+            for a in root.findall(".//Action/AddFiles")
+        }
+
+    def test_replicate_runs_are_identified_by_their_manifest(
+        self, ncbi_submission_client: NCBISubmissionXML, mocked_instruments
+    ):
+        actions = self._run(
+            ncbi_submission_client, mocked_instruments, with_manifest=True
+        )
+        # pooled: both flowcells in one action named after the manifest
+        assert actions[self.MANIFEST] == [
+            "fc1_R1.fastq.gz",
+            "fc1_R2.fastq.gz",
+            "fc2_R1.fastq.gz",
+            "fc2_R2.fastq.gz",
+        ]
+        assert self.RUN1 not in actions and self.RUN2 not in actions
+        # the non-pooled biosample's replicate runs behave the same way
+        assert actions[self.SOLO_MANIFEST] == [
+            "s1_R1.fastq.gz",
+            "s1_R2.fastq.gz",
+            "s2_R1.fastq.gz",
+            "s2_R2.fastq.gz",
+        ]
+        assert set(actions) == {self.MANIFEST, self.SOLO_MANIFEST}
+
+    def test_without_a_manifest_the_first_run_id_is_used(
+        self, ncbi_submission_client: NCBISubmissionXML, mocked_instruments
+    ):
+        actions = self._run(
+            ncbi_submission_client, mocked_instruments, with_manifest=False
+        )
+        assert self.MANIFEST not in actions and self.SOLO_MANIFEST not in actions
+        # falls back to one of the run ids (which one is the existing behaviour)
+        (pooled_id,) = set(actions) & {self.RUN1, self.RUN2}
+        assert actions[pooled_id] == [
+            "fc1_R1.fastq.gz",
+            "fc1_R2.fastq.gz",
+            "fc2_R1.fastq.gz",
+            "fc2_R2.fastq.gz",
+        ]
+        assert set(actions) & {self.SOLO_RUN1, self.SOLO_RUN2}
+
+
+class TestPoolSequencedByJgiAndAnotherLab:
+    """A pool sequenced by JGI *and* by another lab (NEON soil ONAQ 2021): JGI
+    registered the BioSample and deposited its own run, so the other lab's run is
+    submitted against JGI's BioSample accession and JGI's run is left out."""
+
+    POOL = "nmdc:poolp-11-onaq0001"
+    POOL_PROCSM = "nmdc:procsm-11-onaq0001"
+    CORES = ["nmdc:bsm-11-onaq000a", "nmdc:bsm-11-onaq000b", "nmdc:bsm-11-onaq000c"]
+    ACC = "SAMN37862670"
+    BATTELLE_RUN = "nmdc:omprc-11-onaqbat1"
+    JGI_RUN = "nmdc:omprc-11-onaqjgi1"
+
+    @pytest.fixture(autouse=True)
+    def _mappings(self, mocker):
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {"id": "", "name": "sample_name"},
+                {"id": "uriorcurie", "name": "string"},
+            ),
+        )
+
+    def test_other_labs_run_is_submitted_against_jgis_biosample(
+        self, ncbi_submission_client: NCBISubmissionXML, mocked_instruments
+    ):
+        all_instruments = {
+            i["id"]: {"vendor": i["vendor"], "model": i["model"]}
+            for i in mocked_instruments
+        }
+
+        def dobj(i, name, t):
+            return {
+                "id": i,
+                "type": "nmdc:DataObject",
+                "name": name,
+                "data_object_type": t,
+                "url": f"https://x/{name}",
+            }
+
+        bat = [
+            dobj(
+                "nmdc:dobj-11-bat00r1",
+                "BMI_21S_23_2075_mms_HHM55BGXM_R1.fastq.gz",
+                "Metagenome Raw Read 1",
+            ),
+            dobj(
+                "nmdc:dobj-11-bat00r2",
+                "BMI_21S_23_2075_mms_HHM55BGXM_R2.fastq.gz",
+                "Metagenome Raw Read 2",
+            ),
+        ]
+        jgi = [
+            dobj(
+                "nmdc:dobj-11-jgi00001",
+                "52834.4.466476.fastq.gz",
+                "Metagenome Raw Reads",
+            )
+        ]
+
+        def ntseq(i, inst, outs, **extra):
+            return {
+                "id": i,
+                "type": "nmdc:NucleotideSequencing",
+                "name": i,
+                "has_input": ["nmdc:procsm-11-x"],
+                "has_output": [d["id"] for d in outs],
+                "processing_institution": inst,
+                "analyte_category": "metagenome",
+                "instrument_used": ["nmdc:inst-14-xz5tb342"],
+                **extra,
+            }
+
+        bat_run = ntseq(self.BATTELLE_RUN, "Battelle", bat)
+        jgi_run = ntseq(
+            self.JGI_RUN, "JGI", jgi
+        )  # no experiment id: institution alone must exclude it
+        biosamples = [
+            {
+                "id": c,
+                "type": "nmdc:Biosample",
+                "name": c,
+                "insdc_biosample_identifiers": [f"biosample:{self.ACC}"],
+                "env_package": {"has_raw_value": "soil", "type": "nmdc:TextValue"},
+            }
+            for c in self.CORES
+        ]
+        pooling = {
+            c: {
+                "pooling_process_id": self.POOL,
+                "processed_sample_id": self.POOL_PROCSM,
+                "processed_sample_name": "ONAQ_002-M-20210524-COMP",
+                "pooled_biosample_ids": self.CORES,
+                "aggregated_values": {},
+                "nucleotide_sequencing_ids": [self.BATTELLE_RUN, self.JGI_RUN],
+            }
+            for c in self.CORES
+        }
+        data_objects = [{c: bat + jgi} for c in self.CORES]
+        ntseqs = [{c: [bat_run, jgi_run]} for c in self.CORES]
+
+        xml_str = ncbi_submission_client.get_submission_xml(
+            biosamples,
+            ntseqs,
+            data_objects,
+            [],
+            all_instruments,
+            pooled_biosamples_data=pooling,
+        )
+        root = ET.fromstring(xml_str)
+
+        # JGI registered the pool, so no BioSample block is written for it
+        assert root.findall(".//Action/AddData[@target_db='BioSample']") == []
+        actions = root.findall(".//Action/AddFiles")
+        assert [a.find("Identifier/SPUID").text for a in actions] == [self.BATTELLE_RUN]
+        (action,) = actions
+        assert sorted(f.get("file_path") for f in action.findall("File")) == [
+            "BMI_21S_23_2075_mms_HHM55BGXM_R1.fastq.gz",
+            "BMI_21S_23_2075_mms_HHM55BGXM_R2.fastq.gz",
+        ]
+        ref = next(
+            list(r.find("RefId"))[0]
+            for r in action.findall("AttributeRefId")
+            if r.get("name") == "BioSample"
+        )
+        assert (ref.tag, ref.get("db"), ref.text) == (
+            "PrimaryId",
+            "BioSample",
+            self.ACC,
+        )
+        assert "52834.4.466476.fastq.gz" not in xml_str
