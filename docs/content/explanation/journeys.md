@@ -3,6 +3,9 @@
 Re: "do workflows need to know NMDC specifics", I've drafted a set of user journey diagrams with
 "Workflow" and "NMDC" as actors.
 
+!!! tip "Viewing diagrams in dark mode"
+    If you're having trouble viewing the diagrams below in dark mode, you can switch to light mode using the theme toggle in the top navigation bar.
+
 
 The first, "Keep NMDC in the know", is the current intended Workflow executioner journey, and is
 implemented by the NMDC Runtime:
