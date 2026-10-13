@@ -36,6 +36,7 @@ def test_nmdc_jsonschema_using_new_id_scheme():
             if "pattern" in defn["properties"]["id"]:
                 valid_prefix_patterns: tuple = (
                     r"^(nmdc):",
+                    r"^(?:^(nmdc):",  # LinkML 1.12 wraps patterns as `^(?:...)$`
                     r"^NCBITaxon:",
                     r"^[a-zA-Z0-9][a-zA-Z0-9_\.]+:",
                 )
