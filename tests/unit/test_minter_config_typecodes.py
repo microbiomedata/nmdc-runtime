@@ -11,7 +11,7 @@ WRAPPED_STUDY_PATTERN = r"^(?:^(nmdc):sty-([0-9][a-z]{0,6}[0-9])-([A-Za-z0-9]{1,
     get_typecode_for_future_ids(WRAPPED_STUDY_PATTERN) is None,
     reason="installed nmdc-schema does not yet read wrapped id patterns (nmdc-schema PR 3511)",
 )
-def test_typecodes_reads_wrapped_id_patterns(monkeypatch):
+def test_typecodes_reads_wrapped_id_patterns(monkeypatch: pytest.MonkeyPatch) -> None:
     schema_dict = {
         "$defs": {
             "Study": {"properties": {"id": {"pattern": WRAPPED_STUDY_PATTERN}}},
