@@ -3,8 +3,8 @@ from nmdc_schema.id_helpers import get_typecode_for_future_ids
 
 from nmdc_runtime.minter import config
 
-# LinkML 1.12 wraps an already-anchored `id` pattern as `^(?:...)$`.
-WRAPPED_STUDY_PATTERN = r"^(?:^(nmdc):sty-([0-9][a-z]{0,6}[0-9])-([A-Za-z0-9]{1,})$)$"
+# The form of an `id` pattern from nmdc-schema 11.25.0, built with LinkML 1.12.
+WRAPPED_STUDY_PATTERN = r"^(?:(nmdc):sty-([0-9][a-z]{0,6}[0-9])-([A-Za-z0-9]{1,}))$"
 
 
 @pytest.mark.skipif(

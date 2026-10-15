@@ -40,8 +40,8 @@ def typecodes() -> List[dict]:
         match defn.get("properties"):
             case {"id": {"pattern": p}}:
                 # Extract the typecode from the pattern. This returns None for patterns that are not
-                # NMDC id patterns. We don't check the prefix here, because LinkML 1.12 wraps patterns
-                # as `^(?:...)$`, and `nmdc-schema` handles both forms.
+                # NMDC id patterns. We don't check the prefix here: from nmdc-schema 11.25.0, id patterns
+                # look like `^(?:(nmdc):sty-...)$`, and `nmdc-schema` reads that form.
                 typecode_for_future_ids = get_typecode_for_future_ids(slot_pattern=p)
                 if typecode_for_future_ids is None:
                     continue
