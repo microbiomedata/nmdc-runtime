@@ -34,15 +34,17 @@ def typecodes() -> List[dict]:
     >>> any((td["name"] == "omprc" and td["schema_class"] == "nmdc:MassSpectrometry") for td in typecode_descriptors)
     False
     """
-    id_pattern_prefix = r"^(nmdc):"
-
     rv = []
     schema_dict = get_nmdc_jsonschema_dict()
     for cls_name, defn in schema_dict["$defs"].items():
         match defn.get("properties"):
-            case {"id": {"pattern": p}} if p.startswith(id_pattern_prefix):
-                # Extract the typecode from the pattern.
+            case {"id": {"pattern": p}}:
+                # Extract the typecode from the pattern. This returns None for patterns that are not
+                # NMDC id patterns. We don't check the prefix here: from nmdc-schema 11.25.0, id patterns
+                # look like `^(?:(nmdc):sty-...)$`, and `nmdc-schema` reads that form.
                 typecode_for_future_ids = get_typecode_for_future_ids(slot_pattern=p)
+                if typecode_for_future_ids is None:
+                    continue
 
                 rv.append(
                     {
