@@ -440,6 +440,12 @@ def validate_mongo_data_op(
     #       total number of validation errors across all documents, as opposed to just the number of
     #       documents that had errors.
     #
+    # Note: To tell Slack we want part of the message to be bold, we wrap that part in single
+    #       asterisks (i.e. "*") instead of double asterisks (i.e. "**"). That's because we're
+    #       using Slack's `chat.postMessage` API (which uses Slack's custom `mrkdwn` syntax,
+    #       as opposed to standard Markdown syntax).
+    #       Docs: https://docs.slack.dev/messaging/formatting-message-text/#visual-styles
+    #
     total_validation_errors = sum(
         validation_summary.num_violations
         for validation_summary in validation_summaries_by_collection_name.values()
@@ -448,7 +454,7 @@ def validate_mongo_data_op(
         context,
         text=(
             f"{'✅' if total_validation_errors == 0 else '⚠️'} Finished validating "
-            f"MongoDB database. **{total_validation_errors} violations** found."
+            f"MongoDB database. *{total_validation_errors} violations* found."
         ),
     )
     if total_validation_errors > 0:
