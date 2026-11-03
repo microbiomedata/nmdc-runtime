@@ -554,7 +554,7 @@ def on_run_fail(context: RunStatusSensorContext):
 
 @run_failure_sensor(
     description="Sends a Slack notification whenever a Dagster run fails.",
-    default_status=DefaultSensorStatus.RUNNING,  # enable this sensor by default
+    default_status=DefaultSensorStatus.STOPPED,  # disable this sensor by default
     monitor_all_code_locations=True,  # monitor all repositories in the Dagster instance
 )
 def send_slack_message_when_run_fails(context: RunStatusSensorContext) -> None:
