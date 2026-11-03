@@ -829,7 +829,7 @@ class SlackMessageSender:
 
 
 @resource
-def slack_message_sender_resource(_: InitResourceContext | None) -> SlackMessageSender:
+def slack_message_sender_resource(_: InitResourceContext | None = None) -> SlackMessageSender:
     """
     Returns a `SlackMessageSender` instance.
 
@@ -841,6 +841,7 @@ def slack_message_sender_resource(_: InitResourceContext | None) -> SlackMessage
     Otherwise, returns a `SlackMessageSender` whose `send_message` method is a "no op".
 
     References:
+    - https://dagster.io/docs/api/dagster/resources#legacy-resource-system
     - https://docs.dagster.io/api/dagster/resources#dagster.EnvVar
     - https://docs.dagster.io/guides/operate/configuration/using-environment-variables-and-secrets#handling-secrets
     """
