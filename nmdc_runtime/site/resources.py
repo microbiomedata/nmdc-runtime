@@ -13,6 +13,7 @@ from dagster import (
     StringSource,
     InitResourceContext,
     OpExecutionContext,
+    RunStatusSensorContext,
     EnvVar,
 )
 from dagster_slack import SlackResource
@@ -796,7 +797,12 @@ class SlackMessageSender:
     environment_name: str | None
     """Environment name that may be included in messages sent by this instance."""
 
-    def send_message(self, context: OpExecutionContext, *, text: str) -> bool:
+    def send_message(
+        self,
+        context: OpExecutionContext | RunStatusSensorContext,
+        *,
+        text: str,
+    ) -> bool:
         """Send a Slack message and return whether it was sent successfully."""
         if not (
             isinstance(self.slack_resource, SlackResource)
@@ -823,7 +829,7 @@ class SlackMessageSender:
 
 
 @resource
-def slack_message_sender_resource(_: InitResourceContext) -> SlackMessageSender:
+def slack_message_sender_resource(_: InitResourceContext | None) -> SlackMessageSender:
     """
     Returns a `SlackMessageSender` instance.
 
