@@ -829,7 +829,7 @@ class SlackMessageSender:
 
 
 @resource
-def slack_message_sender_resource(_: InitResourceContext | None = None) -> SlackMessageSender:
+def slack_message_sender_resource(_: InitResourceContext | None) -> SlackMessageSender:
     """
     Returns a `SlackMessageSender` instance.
 

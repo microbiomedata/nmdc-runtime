@@ -563,14 +563,14 @@ def send_slack_message_when_run_fails(context: RunStatusSensorContext) -> None:
 
     Docs: https://dagster.io/docs/api/dagster/schedules-sensors#dagster.run_failure_sensor
     """
-    slack_message_sender = slack_message_sender_resource()
+    slack_message_sender = slack_message_sender_resource(None)
     job_name = context.dagster_run.job_name
     run_id = context.dagster_run.run_id
     event_message = context.dagster_event.message
     text = f"🔴 Dagster job `{job_name}` run `{run_id}` *failed*."
     if isinstance(event_message, str) and event_message.strip() != "":
         details: str = event_message.strip()
-        text += f" Details: `{details}`"
+        text += f" Details: {details}"
     _ = slack_message_sender.send_message(context, text=text)
     return None
 
