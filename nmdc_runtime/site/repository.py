@@ -8,6 +8,7 @@ from dagster import (
     SkipReason,
     RunRequest,
     sensor,
+    run_failure_sensor,
     run_status_sensor,
     DagsterRunStatus,
     RunStatusSensorContext,
@@ -551,6 +552,29 @@ def on_run_fail(context: RunStatusSensorContext):
         return nmdc_run_id
 
 
+@run_failure_sensor(
+    description="Sends a Slack notification whenever a Dagster run fails.",
+    default_status=DefaultSensorStatus.STOPPED,  # disable this sensor by default
+    monitor_all_code_locations=True,  # monitor all repositories in the Dagster instance
+)
+def send_slack_message_when_run_fails(context: RunStatusSensorContext) -> None:
+    """
+    Sends a Slack notification when a Dagster run fails.
+
+    Docs: https://dagster.io/docs/api/dagster/schedules-sensors#dagster.run_failure_sensor
+    """
+    slack_message_sender = slack_message_sender_resource(None)
+    job_name = context.dagster_run.job_name
+    run_id = context.dagster_run.run_id
+    event_message = context.dagster_event.message
+    text = f"🔴 Dagster job `{job_name}` run `{run_id}` *failed*."
+    if isinstance(event_message, str) and event_message.strip() != "":
+        details: str = event_message.strip()
+        text += f" Details: {details}"
+    _ = slack_message_sender.send_message(context, text=text)
+    return None
+
+
 @repository
 def repo():
     graph_jobs = [
@@ -603,6 +627,7 @@ def repo():
         claim_and_run_apply_changesheet_jobs,
         claim_and_run_metadata_in_jobs,
         on_run_fail,
+        send_slack_message_when_run_fails,
     ]
 
     return graph_jobs + schedules + sensors
