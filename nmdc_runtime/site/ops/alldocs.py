@@ -12,7 +12,12 @@ from dagster import Failure, OpExecutionContext, op, In, Nothing
 from pymongo import InsertOne, UpdateOne
 from pymongo.collection import Collection as MongoCollection
 from pymongo.database import Database as MongoDatabase
-from refscan.lib.helpers import get_names_of_classes_in_effective_range_of_slot
+from refscan.lib.helpers import (
+    get_collection_names_from_schema,
+    get_names_of_classes_eligible_for_collection,
+    get_names_of_classes_in_effective_range_of_slot,
+    translate_schema_class_name_into_class_uri,
+)
 from toolz.dicttoolz import keyfilter
 
 from nmdc_runtime.util import (
@@ -382,3 +387,255 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
         f"Rebuilt `alldocs` collection with {n_alldocs_documents} documents."
     )
     return n_alldocs_documents
+
+
+@op(required_resource_keys={"mongo"}, ins={"waits_for": In(dagster_type=Nothing)})
+def derive_alldocs_variant_lacking_superseded_and_failed_docs(
+    context: OpExecutionContext,
+) -> int:
+    """
+    Materialize a collection named `alldocs_no_superseded_no_failed` (using the `alldocs`
+    collection as a starting point) which does not include any `PlannedProcess` (or descendant
+    class) documents having `qc_status: "fail"` and which does not include any `WorkflowExecution`
+    (or descendant class) or `DataObject` documents having a `superseded_by` field whose value is
+    not `null`, and whose `_upstream` and `_downstream` arrays omit references to those excluded
+    documents.
+    """
+    mdb = context.resources.mongo.db
+    schema_view = nmdc_schema_view()
+    alldocs = mdb.get_collection("alldocs")
+
+    document_class_names = set(
+        chain.from_iterable(collection_name_to_class_names.values())
+    )
+
+    cls_slot_map = {
+        cls_name: {
+            slot.name: slot for slot in schema_view.class_induced_slots(cls_name)
+        }
+        for cls_name in document_class_names
+    }
+    document_referenceable_ranges = set(
+        chain.from_iterable(
+            schema_view.class_ancestors(cls_name) for cls_name in document_class_names
+        )
+    )
+    document_reference_ranged_slots_by_type = defaultdict(list)
+    for cls_name, slot_map in cls_slot_map.items():
+        for slot_name, slot in slot_map.items():
+            if (
+                set(get_names_of_classes_in_effective_range_of_slot(schema_view, slot))
+                & document_referenceable_ranges
+            ):
+                document_reference_ranged_slots_by_type[f"nmdc:{cls_name}"].append(
+                    slot_name
+                )
+    slots_to_index = {"_type_and_ancestors"} | {
+        slot
+        for slots in document_reference_ranged_slots_by_type.values()
+        for slot in slots
+    }
+
+    temp_collection_name_prefix = "_runtime.tmp.alldocs_no_superseded_no_failed."
+    _, num_dropped = drop_temporary_alldocs_collections(
+        mdb=mdb,
+        temporary_alldocs_collection_name_prefix=temp_collection_name_prefix,
+    )
+    context.log.info(f"Dropped {num_dropped} collections from past attempts")
+
+    temp_collection_name = f"{temp_collection_name_prefix}{ObjectId()}"
+    temp_collection = mdb[temp_collection_name]
+    context.log.info(f"Populating `{temp_collection.name}` collection")
+
+    # Determine the names of all MongoDB collections that can contain documents whose class is—or
+    # descends from—the `PlannedProcess` class.
+    planned_process_collection_names = []
+    planned_process_class_names = set(schema_view.class_descendants("PlannedProcess"))
+    for collection_name in get_collection_names_from_schema(schema_view=schema_view):
+        eligible_class_names = set(
+            get_names_of_classes_eligible_for_collection(
+                schema_view=schema_view,
+                collection_name=collection_name,
+            )
+        )
+        eligible_planned_process_class_names = planned_process_class_names & eligible_class_names
+        if len(eligible_planned_process_class_names) > 0:
+            planned_process_collection_names.append(collection_name)
+
+    # Make a list of all the class URIs of `PlannedProcess` self/descendant classes; including,
+    # `"nmdc:PlannedProcess", "nmdc:DataEmitterProcess", "nmdc:WorkflowExecution"`, etc.
+    planned_process_class_uris = [
+        translate_schema_class_name_into_class_uri(
+            schema_view=schema_view,
+            schema_class_name=class_name,
+        )
+        for class_name in planned_process_class_names
+    ]
+
+    # Create a pymongo query filter that matches all documents whose class is—or descends from—the
+    # `PlannedProcess` class and who have a `qc_status` field containing "fail". Note: Since the
+    # `qc_status` field is not present in "alldocs", we will use this with the upstream collections.
+    # Docs: https://www.mongodb.com/docs/v7.0/tutorial/query-arrays/#query-an-array-for-an-element
+    filter_that_matches_failed_planned_processes = {
+        "type": {"$in": planned_process_class_uris},
+        "qc_status": "fail",
+    }
+
+    # Query each of the upstream (source of truth) collections, to get the `id` values of documents
+    # that match that filter.
+    ids_of_matching_documents: set[str] = set()
+    for collection_name in planned_process_collection_names:
+        collection = mdb.get_collection(collection_name)
+        num_matching_documents_in_collection = 0
+        for document in collection.find(
+            filter=filter_that_matches_failed_planned_processes,
+            projection={"_id": 0, "id": 1},
+        ):
+            num_matching_documents_in_collection += 1
+            ids_of_matching_documents.add(document["id"])
+        context.log.info(
+            "Will exclude %d failed PlannedProcess documents originating in collection %s.",
+            num_matching_documents_in_collection,
+            collection_name,
+        )
+    context.log.info(
+        "Will exclude %d failed PlannedProcess documents in total.",
+        len(ids_of_matching_documents),
+    )
+
+    # Create a pymongo query filter that matches all documents whose class is—or descends from—the
+    # `WorkflowExecution` class or the `DataObject` class, and who have a `superseded_by` field
+    # containing anything other than `null`. Note: We will use this with the "alldocs" collection.
+    filter_that_matches_superseded_wfes_and_dobjs = {
+        "$or": [
+            {"_type_and_ancestors": "nmdc:WorkflowExecution"},
+            {"_type_and_ancestors": "nmdc:DataObject"}
+        ],
+        "superseded_by": {"$ne": None},
+    }
+
+    # Get the `id` values of all of the superseded WorkflowExecutions and DataObjects, so that we can
+    # remove their descriptors from the `_upstream` and `_downstream` arrays in the new collection.
+    for document in alldocs.find(
+        filter=filter_that_matches_superseded_wfes_and_dobjs,
+        projection={"_id": 0, "id": 1},
+    ):
+        ids_of_matching_documents.add(document["id"])
+    context.log.info(
+        "Will exclude %d documents in total.",
+        len(ids_of_matching_documents),
+    )
+
+    # Stream a copy of the "alldocs" collection to a new, temporary collection; excluding the
+    # matching documents and excluding the descriptors of those documents in the `_upstream` and
+    # `_downstream` fields.
+    #
+    # Note: When we run the aggregation, we use `let` to set a variable within the pipeline. This
+    #       allows us to include the list of `id`s in the pipeline only _once_, instead of twice,
+    #       making it less likely that the pipeline, itself, reaches MongoDB's 16 MiB size limit.
+    #       Docs: https://www.mongodb.com/docs/manual/reference/operator/aggregation/let/
+    #
+    context.log.info("Populating collection %s.", temp_collection_name)
+    pipeline_that_selectively_copies_documents = [
+        # Filter out the documents that we identified above.
+        # Note: "$$ids_of_matching_documents" refers to the list passed to `alldocs.aggregate(let=...)`.
+        # Docs: https://www.mongodb.com/docs/manual/reference/operator/query/expr/
+        {
+            "$match": {
+                "$expr": {
+                    "$not": {"$in": ["$id", "$$ids_of_matching_documents"]}
+                }
+            },
+        },
+        {
+            "$set": {
+                # Filter out the `_upstream` items whose `id` values are in the `ids_of_matching_documents`
+                # list, removing the `_upstream` field if it ends up being an empty list.
+                # Note: "$$ids_of_matching_documents" refers to the list passed to `alldocs.aggregate(let=...)`.
+                "_upstream": {
+                    "$let": {
+                        "vars": {
+                            "remaining_items": {
+                                "$filter": {
+                                    "input": {"$ifNull": ["$_upstream", []]},
+                                    "as": "item",
+                                    "cond": {"$not": {"$in": ["$$item.id", "$$ids_of_matching_documents"]}},
+                                }
+                            },
+                        },
+                        "in": {
+                            "$cond": {
+                                "if": {"$eq": ["$$remaining_items", []]},
+                                "then": "$$REMOVE",
+                                "else": "$$remaining_items",
+                            },
+                        },
+                    },
+                },
+                # Filter out the `_downstream` items whose `id` values are in the `ids_of_matching_documents`
+                # list, removing the `_downstream` field if it ends up being an empty list.
+                # Note: "$$ids_of_matching_documents" refers to the list passed to `alldocs.aggregate(let=...)`.
+                "_downstream": {
+                    "$let": {
+                        "vars": {
+                            "remaining_items": {
+                                "$filter": {
+                                    "input": {"$ifNull": ["$_downstream", []]},
+                                    "as": "item",
+                                    "cond": {"$not": {"$in": ["$$item.id", "$$ids_of_matching_documents"]}},
+                                }
+                            },
+                        },
+                        "in": {
+                            "$cond": {
+                                "if": {"$eq": ["$$remaining_items", []]},
+                                "then": "$$REMOVE",
+                                "else": "$$remaining_items",
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        # Write the resulting documents to the new, derived collection.
+        {"$out": temp_collection_name},
+    ]
+    alldocs.aggregate(
+        pipeline=pipeline_that_selectively_copies_documents,
+        let={"ids_of_matching_documents": list(ids_of_matching_documents)}
+    )
+
+    context.log.info(
+        f"produced `{temp_collection_name}` collection with"
+        f" {temp_collection.estimated_document_count()} docs."
+    )
+
+    context.log.info(f"Creating indexes on `{temp_collection_name}` collection.")
+    temp_collection.create_index("id", unique=True)
+    [temp_collection.create_index(slot) for slot in slots_to_index]
+    context.log.info(f"created indexes on 'id' and on each of {slots_to_index=}.")
+
+    context.log.info("Creating {`_upstream`,`_downstream`} indexes.")
+    temp_collection.create_index("_upstream.id")
+    temp_collection.create_index("_downstream.id")
+    temp_collection.create_index(
+        [("_upstream.type", 1), ("_upstream.id", 1)]
+    )
+    temp_collection.create_index(
+        [("_downstream.type", 1), ("_downstream.id", 1)]
+    )
+    context.log.info("Successfully created {`_upstream`,`_downstream`} indexes")
+
+    context.log.info(
+        f"renaming `{temp_collection_name}` to `alldocs_no_superseded_no_failed`..."
+    )
+    temp_collection.rename(
+        "alldocs_no_superseded_no_failed", dropTarget=True
+    )
+    n_filtered_alldocs_documents = mdb[
+        "alldocs_no_superseded_no_failed"
+    ].estimated_document_count()
+    context.log.info(
+        f"Rebuilt `alldocs_no_superseded_no_failed` collection with {n_filtered_alldocs_documents} documents."
+    )
+    return n_filtered_alldocs_documents

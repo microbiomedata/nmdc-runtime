@@ -430,6 +430,7 @@ def specialize_activity_set_docs(docs):
 
 
 # Define a mapping from collection name to a list of class names allowable for that collection's documents.
+# TODO: Remove or replace this with an invocation of the tested `get_collection_name_to_class_names_map` function from the `refscan` library.
 collection_name_to_class_names: Dict[str, List[str]] = {
     collection_name: list(
         set(
