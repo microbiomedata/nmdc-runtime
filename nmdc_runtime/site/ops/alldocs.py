@@ -526,96 +526,37 @@ def derive_alldocs_variant_lacking_superseded_and_failed_docs(
         len(ids_of_matching_documents),
     )
 
-    # Stream a copy of the "alldocs" collection to a new, temporary collection; excluding the
-    # matching documents and excluding the descriptors of those documents in the `_upstream` and
-    # `_downstream` fields.
-    #
-    # Note: When we run the aggregation, we use `let` to set a variable within the pipeline. This
-    #       allows us to include the list of `id`s in the pipeline only _once_, instead of twice,
-    #       making it less likely that the pipeline, itself, reaches MongoDB's 16 MiB size limit.
-    #       Docs: https://www.mongodb.com/docs/manual/reference/operator/aggregation/let/
-    #
-    context.log.info("Populating collection %s.", temp_collection_name)
-    pipeline_that_selectively_copies_documents = [
-        # Filter out the documents that we identified above.
-        # Note: "$$ids_of_matching_documents" refers to the list passed to `alldocs.aggregate(let=...)`.
-        # Docs: https://www.mongodb.com/docs/manual/reference/operator/query/expr/
-        {
-            "$match": {
-                "$expr": {
-                    "$not": {"$in": ["$id", "$$ids_of_matching_documents"]}
-                }
-            },
-        },
-        {
-            "$set": {
-                # Filter out the `_upstream` items whose `id` values are in the `ids_of_matching_documents`
-                # list, removing the `_upstream` field if it ends up being an empty list.
-                # Note: "$$ids_of_matching_documents" refers to the list passed to `alldocs.aggregate(let=...)`.
-                "_upstream": {
-                    "$let": {
-                        "vars": {
-                            "remaining_items": {
-                                "$filter": {
-                                    "input": {"$ifNull": ["$_upstream", []]},
-                                    "as": "item",
-                                    "cond": {"$not": {"$in": ["$$item.id", "$$ids_of_matching_documents"]}},
-                                }
-                            },
-                        },
-                        "in": {
-                            "$cond": {
-                                "if": {"$eq": ["$$remaining_items", []]},
-                                "then": "$$REMOVE",
-                                "else": "$$remaining_items",
-                            },
-                        },
-                    },
-                },
-                # Filter out the `_downstream` items whose `id` values are in the `ids_of_matching_documents`
-                # list, removing the `_downstream` field if it ends up being an empty list.
-                # Note: "$$ids_of_matching_documents" refers to the list passed to `alldocs.aggregate(let=...)`.
-                "_downstream": {
-                    "$let": {
-                        "vars": {
-                            "remaining_items": {
-                                "$filter": {
-                                    "input": {"$ifNull": ["$_downstream", []]},
-                                    "as": "item",
-                                    "cond": {"$not": {"$in": ["$$item.id", "$$ids_of_matching_documents"]}},
-                                }
-                            },
-                        },
-                        "in": {
-                            "$cond": {
-                                "if": {"$eq": ["$$remaining_items", []]},
-                                "then": "$$REMOVE",
-                                "else": "$$remaining_items",
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        # Write the resulting documents to the new, derived collection.
-        {"$out": temp_collection_name},
-    ]
-    alldocs.aggregate(
-        pipeline=pipeline_that_selectively_copies_documents,
-        let={"ids_of_matching_documents": list(ids_of_matching_documents)}
-    )
+    # Make a `list` (as opposed to a `set`) of the `id` values of the documents we want to exclude
+    # from the new collection. PyMongo requires a `list` (BSON array) in order to use `$nin`.
+    # Docs: https://www.mongodb.com/docs/manual/reference/bson-types/
+    ids_to_exclude = list(ids_of_matching_documents)
 
+    # Copy all of the "included" (i.e. the non-excluded) documents into a temporary collection.
+    # Note: We intentionally don't manipulate `_upstream` and `_downstream` yet, because, if we do
+    #       it _after_ we create indexes on the collection, we can do it more efficiently.
     context.log.info(
-        f"produced `{temp_collection_name}` collection with"
-        f" {temp_collection.estimated_document_count()} docs."
+        "Populating temporary collection %s with documents.",
+        temp_collection_name,
+    )
+    alldocs.aggregate(pipeline=[
+        {"$match": {"id": {"$nin": ids_to_exclude}}},
+        {"$out": temp_collection_name},
+    ])
+    context.log.info(
+        "Populated temporary collection %s collection with %d documents.",
+        temp_collection_name,
+        temp_collection.estimated_document_count(),
     )
 
+    # Create indexes on the temporary collection.
+    # Note: We do this _before_ manipulating `_upstream` and `_downstream` so that we can leverage
+    #       these indexes when we filter on—and manipulate—those fields later (below).
     context.log.info(f"Creating indexes on `{temp_collection_name}` collection.")
     temp_collection.create_index("id", unique=True)
     [temp_collection.create_index(slot) for slot in slots_to_index]
     context.log.info(f"created indexes on 'id' and on each of {slots_to_index=}.")
 
-    context.log.info("Creating {`_upstream`,`_downstream`} indexes.")
+    context.log.info("Creating {`_upstream`, `_downstream`} indexes.")
     temp_collection.create_index("_upstream.id")
     temp_collection.create_index("_downstream.id")
     temp_collection.create_index(
@@ -624,18 +565,41 @@ def derive_alldocs_variant_lacking_superseded_and_failed_docs(
     temp_collection.create_index(
         [("_downstream.type", 1), ("_downstream.id", 1)]
     )
-    context.log.info("Successfully created {`_upstream`,`_downstream`} indexes")
+    context.log.info("Created {`_upstream`, `_downstream`} indexes.")
+
+    # Remove the `id` values of all "excluded" documents from the `_upstream` and `_downstream`
+    # arrays of all documents that contain them, removing the fields entirely if they end up being
+    # empty arrays. Remember that those arrays contain "id"-and-"type" objects, not just "id" values.
+    # Docs: https://www.mongodb.com/docs/manual/reference/operator/update/pull/#examples
+    for field_name in ("_upstream", "_downstream"):
+        context.log.info(
+            f"Pruning excluded document `id`s from `{field_name}` field in `{temp_collection_name}`."
+        )
+        result_of_pull_update = temp_collection.update_many(
+            filter={f"{field_name}.id": {"$in": ids_to_exclude}},
+            update={"$pull": {field_name: {"id": {"$in": ids_to_exclude}}}},
+        )
+        context.log.info(
+            f"Pruned `{field_name}` in {result_of_pull_update.modified_count} documents."
+        )
+
+        result_of_unset_update = temp_collection.update_many(
+            filter={field_name: []},
+            update={"$unset": {field_name: ""}},
+        )
+        context.log.info(
+            f"Removed empty `{field_name}` field from {result_of_unset_update.modified_count} documents."
+        )
 
     context.log.info(
-        f"renaming `{temp_collection_name}` to `alldocs_no_superseded_no_failed`..."
+        f"Renaming `{temp_collection_name}` to `alldocs_no_superseded_no_failed`."
     )
     temp_collection.rename(
         "alldocs_no_superseded_no_failed", dropTarget=True
     )
-    n_filtered_alldocs_documents = mdb[
-        "alldocs_no_superseded_no_failed"
-    ].estimated_document_count()
+    alldocs_no_superseded_no_failed = mdb.get_collection("alldocs_no_superseded_no_failed")
+    num_documents = alldocs_no_superseded_no_failed.count_documents({})
     context.log.info(
-        f"Rebuilt `alldocs_no_superseded_no_failed` collection with {n_filtered_alldocs_documents} documents."
+        f"Rebuilt `alldocs_no_superseded_no_failed` collection having {num_documents} documents."
     )
-    return n_filtered_alldocs_documents
+    return num_documents
