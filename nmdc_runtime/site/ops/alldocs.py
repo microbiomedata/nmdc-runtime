@@ -314,7 +314,7 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
     # document in any given collection, while omitting all the fields that could _not_. This is a
     # performance optimization that saves us from having to load the latter fields from Mongo into
     # the application unnecessarily (they would be discarded by the `keyfilter` below anyway).
-    distinct_referring_field_names = set(document_reference_ranged_slots_by_type.values())
+    distinct_referring_field_names = set(list(document_reference_ranged_slots_by_type.values()))
     projection = {"id": 1, "type": 1}
     for name in distinct_referring_field_names:
         assert isinstance(name, str)
