@@ -67,21 +67,21 @@ def _add_linked_instances_to_alldocs(
     for doc in temp_collection.find():
         doc_id = doc["id"]
         # Store the full type with prefix intact
+        # Example: "nmdc:Study"
         doc_type = doc["type"]
 
         # Record ID to type mapping - preserve the original type with prefix
+        # Example: array["nmdc:sty-00-000001"] = "nmdc:Study"
         id_to_type_map[doc_id] = doc_type
 
         # Find all document references from this document
+        # Example: ["part_of"]
         reference_slots = document_reference_ranged_slots_by_type.get(doc_type, [])
         for slot in reference_slots:
             if slot in doc:
                 # Handle both single-value and array references
+                # Example: refs = ["nmdc:sty-00-parent", "nmdc:sty-00-otherparent"]
                 refs = doc[slot] if isinstance(doc[slot], list) else [doc[slot]]
-                for ref_doc in temp_collection.find(
-                    {"id": {"$in": refs}}, ["id", "type"]
-                ):
-                    id_to_type_map[ref_doc["id"]] = ref_doc["type"]
                 for ref_id in refs:
                     relationship_triples.add((doc_id, slot, ref_id))
 
