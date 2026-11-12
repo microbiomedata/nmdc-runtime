@@ -470,7 +470,9 @@ def derive_alldocs_variant_lacking_superseded_and_failed_docs(
                 collection_name=collection_name,
             )
         )
-        eligible_planned_process_class_names = planned_process_class_names & eligible_class_names
+        eligible_planned_process_class_names = (
+            planned_process_class_names & eligible_class_names
+        )
         if len(eligible_planned_process_class_names) > 0:
             planned_process_collection_names.append(collection_name)
 
@@ -521,7 +523,7 @@ def derive_alldocs_variant_lacking_superseded_and_failed_docs(
     filter_that_matches_superseded_wfes_and_dobjs = {
         "$or": [
             {"_type_and_ancestors": "nmdc:WorkflowExecution"},
-            {"_type_and_ancestors": "nmdc:DataObject"}
+            {"_type_and_ancestors": "nmdc:DataObject"},
         ],
         "superseded_by": {"$ne": None},
     }
@@ -550,10 +552,12 @@ def derive_alldocs_variant_lacking_superseded_and_failed_docs(
         "Populating temporary collection %s with documents.",
         temp_collection_name,
     )
-    alldocs.aggregate(pipeline=[
-        {"$match": {"id": {"$nin": ids_to_exclude}}},
-        {"$out": temp_collection_name},
-    ])
+    alldocs.aggregate(
+        pipeline=[
+            {"$match": {"id": {"$nin": ids_to_exclude}}},
+            {"$out": temp_collection_name},
+        ]
+    )
     context.log.info(
         "Populated temporary collection %s collection with %d documents.",
         temp_collection_name,
@@ -571,12 +575,8 @@ def derive_alldocs_variant_lacking_superseded_and_failed_docs(
     context.log.info("Creating {`_upstream`, `_downstream`} indexes.")
     temp_collection.create_index("_upstream.id")
     temp_collection.create_index("_downstream.id")
-    temp_collection.create_index(
-        [("_upstream.type", 1), ("_upstream.id", 1)]
-    )
-    temp_collection.create_index(
-        [("_downstream.type", 1), ("_downstream.id", 1)]
-    )
+    temp_collection.create_index([("_upstream.type", 1), ("_upstream.id", 1)])
+    temp_collection.create_index([("_downstream.type", 1), ("_downstream.id", 1)])
     context.log.info("Created {`_upstream`, `_downstream`} indexes.")
 
     # Remove the `id` values of all "excluded" documents from the `_upstream` and `_downstream`
@@ -606,10 +606,10 @@ def derive_alldocs_variant_lacking_superseded_and_failed_docs(
     context.log.info(
         f"Renaming `{temp_collection_name}` to `alldocs_no_superseded_no_failed`."
     )
-    temp_collection.rename(
-        "alldocs_no_superseded_no_failed", dropTarget=True
+    temp_collection.rename("alldocs_no_superseded_no_failed", dropTarget=True)
+    alldocs_no_superseded_no_failed = mdb.get_collection(
+        "alldocs_no_superseded_no_failed"
     )
-    alldocs_no_superseded_no_failed = mdb.get_collection("alldocs_no_superseded_no_failed")
     num_documents = alldocs_no_superseded_no_failed.count_documents({})
     context.log.info(
         f"Rebuilt `alldocs_no_superseded_no_failed` collection having {num_documents} documents."
