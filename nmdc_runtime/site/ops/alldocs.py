@@ -310,11 +310,21 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
     temp_alldocs_collection = mdb[temp_alldocs_collection_name]
     context.log.info(f"constructing `{temp_alldocs_collection.name}` collection")
 
+    # Make a generic Mongo projection that includes all the fields that _could_ be relevant for any
+    # document in any given collection, while omitting all the fields that could _not_. This is a
+    # performance optimization that saves us from having to load the latter fields from Mongo into
+    # the application unnecessarily (they would be discarded by the `keyfilter` below anyway).
+    distinct_referring_field_names = set(document_reference_ranged_slots_by_type.values())
+    projection = {"id": 1, "type": 1}
+    for name in distinct_referring_field_names:
+        assert isinstance(name, str)
+        projection[name] = 1
+
     for coll_name in collection_names:
         context.log.info(f"{coll_name=}")
         write_operations = []
         documents_processed_counter = 0
-        for doc in mdb[coll_name].find():
+        for doc in mdb[coll_name].find({}, projection):
             try:
                 # Keep the full type with prefix for document
                 doc_type_full = doc["type"]
