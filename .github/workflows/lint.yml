@@ -24,8 +24,11 @@ jobs:
         #       Here, we make it so the cache gets invalidated whenever the `uv.lock` file changes.
         #       Reference: https://github.com/astral-sh/setup-uv/blob/main/README.md#cache-dependency-glob
         cache-dependency-glob: "uv.lock"
+        # Note: We pin the Python version to 3.12 because some of the packages we use don't yet
+        #       offer a version compatible with newer versions of Python.
+        python-version: "3.12"
     - name: Set up Python virtual environment
-      run: uv sync
+      run: uv sync --locked --only-group dev
     - name: Lint with flake8 and Reformat with black
       run: |
         make lint
