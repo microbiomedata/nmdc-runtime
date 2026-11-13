@@ -324,7 +324,6 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
         projection[name] = 1
 
     for coll_name in collection_names:
-        context.log.info(f"{coll_name=}")
         write_operations = []
         documents_processed_counter = 0
         for doc in mdb[coll_name].find({}, projection):
@@ -362,7 +361,7 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
             f"📄 Added {documents_processed_counter} documents from collection '{coll_name}'."
         )
     context.log.info(
-        f"✅ Finished adding a total of {temp_alldocs_collection.count_documents()} "
+        f"✅ Finished adding a total of {temp_alldocs_collection.count_documents({})} "
         f"documents to collection '{temp_alldocs_collection.name}'."
     )
 
@@ -402,8 +401,7 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
         f"🪪 Renaming collection '{temp_alldocs_collection.name}' to 'alldocs'."
     )
     temp_alldocs_collection.rename("alldocs", dropTarget=True)
-    n_alldocs_documents = mdb.alldocs.count_documents()
-
+    n_alldocs_documents = mdb.alldocs.count_documents({})
     context.log.info(
         "✅ Done materializing the `alldocs` collection, "
         f"which contains {n_alldocs_documents} documents."
