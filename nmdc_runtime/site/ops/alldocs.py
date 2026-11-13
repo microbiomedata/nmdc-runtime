@@ -81,8 +81,8 @@ def _add_linked_instances_to_alldocs(
                     relationship_triples.add((doc_id, slot, ref_id))
 
     context.log.info(
-        f"Found {len(id_to_type_map)} documents, with "
-        f"{len({d for (d, _, _) in relationship_triples})} containing references"
+        f"Found {len(id_to_type_map)} documents, "
+        f"{len({d for (d, _, _) in relationship_triples})} of which contain references."
     )
 
     # The bifurcation of document-reference-ranged slots as "upstream" and "downstream" is essential
@@ -123,7 +123,7 @@ def _add_linked_instances_to_alldocs(
     for slot_names in document_reference_ranged_slots_by_type.values():
         for slot_name in slot_names:
             unique_document_reference_ranged_slot_names.add(slot_name)
-    context.log.info(f"{unique_document_reference_ranged_slot_names=}")
+    context.log.debug(f"{unique_document_reference_ranged_slot_names=}")
     unclassified_slot_names = (
         unique_document_reference_ranged_slot_names
         - set(upstream_document_reference_ranged_slots)
@@ -210,7 +210,7 @@ def _add_linked_instances_to_alldocs(
             update_count += len(bulk_operations)
             context.log.info(
                 f"Updated {update_count / total_updates:.1%} of the "
-                f" {total_updates} referring documents so far."
+                f"{total_updates} referring documents so far."
             )
             bulk_operations = []
 
