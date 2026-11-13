@@ -135,63 +135,85 @@ def _add_linked_instances_to_alldocs(
             f"classification: {sorted(unclassified_slot_names)}"
         )
 
-    # Construct, and update documents with, `_upstream` and `_downstream` field values.
-    #
-    # manage batching of MongoDB `bulk_write` operations
-    bulk_operations, update_count = [], 0
-    for doc_id, slot, ref_id in relationship_triples:
+    # Note: We use `set` so the membership checks below are more efficient (than with `list`).
+    upstream_slots = set(upstream_document_reference_ranged_slots)
+    downstream_slots = set(downstream_document_reference_ranged_slots)
 
-        # Determine in which respective fields to push this relationship
-        # for the subject (doc) and object (ref) of this triple.
-        if slot in upstream_document_reference_ranged_slots:
-            field_for_doc, field_for_ref = "_upstream", "_downstream"
-        elif slot in downstream_document_reference_ranged_slots:
-            field_for_doc, field_for_ref = "_downstream", "_upstream"
+    # Populate the `links_by_doc_id` dictionary, whose first-level key is the `id` of the referring
+    # document and whose second-level key if the name of the referring field of that document,
+    # and whose second-level value is a list of dictionaries; each of which indicates the `id` and
+    # `type` of the referenced document.
+    links_by_doc_id: dict[str, dict[str, list[dict[str, str]]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
+    for source_document_id, slot_name, target_document_id in relationship_triples:
+        # Determine which fields to record this relationship in, on the "subject" (i.e. source document)
+        # and the "object" (i.e. target document) of this relationship triple.
+        if slot_name in upstream_slots:
+            # Example: WorkflowExecution ("_upstream" ->) --has_input--> (<- "_downstream") DataObject
+            source_document_field_name, target_document_field_name = "_upstream", "_downstream"
+        elif slot_name in downstream_slots:
+            # Example: WorkflowExecution ("_downstream" ->) --has_output--> (<- "_upstream") DataObject
+            source_document_field_name, target_document_field_name = "_downstream", "_upstream"
         else:
-            raise Failure(f"Unknown slot {slot} for document {doc_id}")
+            raise Failure(f"Unknown slot {slot_name} for document {source_document_id}")
 
-        updates = [
+        # Note: If we encounter a target document whose `id` is not a key in the `id_to_type_map`
+        #       dictionary, we raise an error. This implies a referential integrity violation.
+        if target_document_id not in id_to_type_map.keys():
+            raise Failure(
+                f"'id_to_type_map' lacks key '{target_document_id}' "
+                f"(encountered in field '{slot_name}' of document '{source_document_id}')."
+            )
+        links_by_doc_id[source_document_id][source_document_field_name].append(
             {
-                "filter": {"id": doc_id},
-                "update": {
-                    "$push": {
-                        field_for_doc: {
-                            "id": ref_id,
-                            # TODO existing tests are failing due to `KeyError`s for `id_to_type_map.get[ref_id]` here,
-                            #   which acts as an implicit referential integrity checker (!). Using `.get` with
-                            #   "nmdc:NamedThing" as default in order to (for now) allow such tests to continue to pass.
-                            "type": id_to_type_map.get(ref_id, "nmdc:NamedThing"),
-                        }
-                    }
-                },
-            },
+                "id": target_document_id,
+                "type": id_to_type_map[target_document_id],
+            }
+        )
+        links_by_doc_id[target_document_id][target_document_field_name].append(
             {
-                "filter": {"id": ref_id},
-                "update": {
-                    "$push": {
-                        field_for_ref: {"id": doc_id, "type": id_to_type_map[doc_id]}
-                    }
-                },
-            },
-        ]
-        for update in updates:
-            bulk_operations.append(UpdateOne(**update))
+                "id": source_document_id,
+                "type": id_to_type_map[source_document_id],
+            }
+        )
 
-        # Execute in batches for efficiency
+    # Count the total number of referring documents.
+    total_updates = len(links_by_doc_id.keys())
+    context.log.info(f"✅ Prepared to update {total_updates} referring documents.")
+
+    # Submit one `UpdateOne` operation per referring document (a.k.a. "source" document).
+    bulk_operations, update_count = [], 0
+    for source_document_id, fields_and_values in links_by_doc_id.items():
+        bulk_operations.append(
+            UpdateOne(
+                filter={"id": source_document_id},
+                update={"$set": dict(fields_and_values)},
+            )
+        )
+
+        # If the number of operations we've prepared exceeds our threshold, write the batch to Mongo.
+        #
+        # Note: Since each source documents is only targeted by a single `UpdateOne` statement, we
+        #       set `ordered=False` so Mongo doesn't waste any resources or sacrifice parallelization
+        #       in order to perform the writes in any particular order.
+        #       Docs: https://www.mongodb.com/docs/manual/core/bulk-write-operations/#ordered-vs-unordered-operations
+        #
         if len(bulk_operations) >= BULK_WRITE_BATCH_SIZE:
-            temp_collection.bulk_write(bulk_operations)
+            temp_collection.bulk_write(bulk_operations, ordered=False)
             update_count += len(bulk_operations)
             context.log.info(
-                f"Pushed {update_count/(2*len(relationship_triples)):.1%} of updates so far..."
+                f"Updated {update_count / total_updates:.1%} of the "
+                f" {total_updates} referring documents so far."
             )
             bulk_operations = []
 
-    # Execute any remaining operations
+    # Execute any remaining operations.
     if bulk_operations:
-        temp_collection.bulk_write(bulk_operations)
+        temp_collection.bulk_write(bulk_operations, ordered=False)
         update_count += len(bulk_operations)
 
-    context.log.info(f"Pushed {update_count} updates in total")
+    context.log.info(f"✅ Updated {update_count} documents in total.")
 
 
 def drop_temporary_alldocs_collections(
@@ -324,6 +346,7 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
         projection[name] = 1
 
     for coll_name in collection_names:
+        context.log.debug(f"Reading collection: {coll_name}")
         write_operations = []
         documents_processed_counter = 0
         for doc in mdb[coll_name].find({}, projection):
