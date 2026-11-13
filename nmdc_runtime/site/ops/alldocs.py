@@ -12,12 +12,7 @@ from dagster import Failure, OpExecutionContext, op, In, Nothing
 from pymongo import InsertOne, UpdateOne
 from pymongo.collection import Collection as MongoCollection
 from pymongo.database import Database as MongoDatabase
-from refscan.lib.helpers import (
-    get_collection_names_from_schema,
-    get_names_of_classes_eligible_for_collection,
-    get_names_of_classes_in_effective_range_of_slot,
-    translate_schema_class_name_into_class_uri,
-)
+from refscan.lib.helpers import get_names_of_classes_in_effective_range_of_slot
 from toolz.dicttoolz import keyfilter
 
 from nmdc_runtime.util import (
@@ -237,10 +232,10 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
 
     1. Getting all populated schema collection names with an `id` field.
     2. Create a temporary collection to build the new alldocs collection.
-    3. For each document in schema collections, extract `id`, `type`, and document-reference-ranged slot values.
+    3. For each document in schema collections, extract `id`, `type`, `qc_status`, and document-reference-ranged slot values.
     4. Add a special `_type_and_ancestors` field that contains the class hierarchy for the document's type.
     5. Add special `_upstream` and `_downstream` fields with subdocuments containing ID and type of related entities.
-    6. Add indexes for `id`, relationship fields, and `{_upstream,_downstream}{.id,(.type, .id)}` (compound) indexes.
+    6. Add indexes for `id`, `qc_status`, relationship fields, and `{_upstream,_downstream}{.id,(.type, .id)}` (compound) indexes.
     7. Finally, atomically replace the existing `alldocs` collection with the temporary one.
 
     The `alldocs` collection is scheduled to be updated hourly via a scheduled job defined as
@@ -260,7 +255,6 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
     # TODO include functional_annotation_agg  for "real-time" ref integrity checking.
     #   For now, production use cases for materialized `alldocs` are limited to `id`-having collections.
     collection_names = populated_schema_collection_names_with_id_field(mdb)
-    context.log.info(f"constructing `alldocs` collection using {collection_names=}")
 
     document_class_names = set(
         chain.from_iterable(collection_name_to_class_names.values())
@@ -300,7 +294,9 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
         mdb=mdb,
         temporary_alldocs_collection_name_prefix=temporary_alldocs_collection_name_prefix,
     )
-    context.log.info(f"Dropped {num_dropped} collections from past attempts")
+    context.log.info(
+        f"🧹 Dropped {num_dropped} collections from unfinished generation attempts.",
+    )
 
     # Build `alldocs` to a temporary collection for atomic replacement
     # https://www.mongodb.com/docs/v6.0/reference/method/db.collection.renameCollection/#resource-locking-in-replica-sets
@@ -308,7 +304,12 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
         f"{temporary_alldocs_collection_name_prefix}{ObjectId()}"
     )
     temp_alldocs_collection = mdb[temp_alldocs_collection_name]
-    context.log.info(f"constructing `{temp_alldocs_collection.name}` collection")
+    context.log.info(
+        f"🗂️ Source collections ({len(collection_names)}): {collection_names}"
+    )
+    context.log.info(
+        f"📂 Generating collection '{temp_alldocs_collection.name}' from source collections."
+    )
 
     # Make a generic Mongo projection that includes all the fields that _could_ be relevant for any
     # document in any given collection, while omitting all the fields that could _not_. This is a
@@ -317,7 +318,7 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
     distinct_referring_field_names = set(
         chain.from_iterable(document_reference_ranged_slots_by_type.values())
     )
-    projection = {"id": 1, "type": 1}
+    projection = {"id": 1, "type": 1, "qc_status": 1}
     for name in distinct_referring_field_names:
         assert isinstance(name, str)
         projection[name] = 1
@@ -336,9 +337,11 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
                 raise Exception(
                     f"doc {doc['id']} in collection {coll_name} has no 'type'!"
                 )
-            slots_to_include = ["id", "type"] + document_reference_ranged_slots_by_type[
-                doc_type_full
-            ]
+            slots_to_include = [
+                "id",
+                "type",
+                "qc_status",
+            ] + document_reference_ranged_slots_by_type[doc_type_full]
             new_doc = keyfilter(lambda slot: slot in slots_to_include, doc)
 
             # Get ancestors without the prefix, but add prefix to each one in the output
@@ -356,33 +359,33 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
             _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
             documents_processed_counter += len(write_operations)
         context.log.info(
-            f"Inserted {documents_processed_counter} documents from {coll_name=} "
+            f"📄 Added {documents_processed_counter} documents from collection '{coll_name}'."
         )
-
     context.log.info(
-        f"produced `{temp_alldocs_collection.name}` collection with"
-        f" {temp_alldocs_collection.estimated_document_count()} docs."
+        f"✅ Finished adding a total of {temp_alldocs_collection.count_documents()} "
+        f"documents to collection '{temp_alldocs_collection.name}'."
     )
 
-    context.log.info(f"creating indexes on `{temp_alldocs_collection.name}` ...")
+    # Index the newly-populated collection.
+    context.log.info(f"📖 Creating indexes on collection '{temp_alldocs_collection.name}'.")
     # Ensure unique index on "id". Index creation here is blocking (i.e. background=False),
     # so that `temp_alldocs_collection` will be "good to go" on renaming.
     temp_alldocs_collection.create_index("id", unique=True)
-    # Add indexes to improve performance of `GET /data_objects/study/{study_id}`:
-    slots_to_index = {"_type_and_ancestors"} | {
+    slots_to_index = {"_type_and_ancestors", "qc_status"} | {
         slot
         for slots in document_reference_ranged_slots_by_type.values()
         for slot in slots
     }
     [temp_alldocs_collection.create_index(slot) for slot in slots_to_index]
-    context.log.info(f"created indexes on id and on each of {slots_to_index=}.")
+    context.log.info("✅ Created unique index on field: 'id'")
+    context.log.info(f"✅ Created indexes on fields: {slots_to_index}")
 
-    # Add related-ids fields to enable efficient relationship traversal
-    context.log.info("Adding fields for related ids to documents...")
+    # Add "_upstream" and "_downstream" fields to documents.
+    context.log.info("🌊 Adding upstream/downstream traversal fields.")
     _add_linked_instances_to_alldocs(
         temp_alldocs_collection, context, document_reference_ranged_slots_by_type
     )
-    context.log.info("Creating {`_upstream`,`_downstream`} indexes...")
+    context.log.info("📖 Creating indexes on upstream/downstream traversal fields.")
     temp_alldocs_collection.create_index("_upstream.id")
     temp_alldocs_collection.create_index("_downstream.id")
     # Create compound indexes to ensure index-covered queries
@@ -390,228 +393,17 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
     temp_alldocs_collection.create_index(
         [("_downstream.type", 1), ("_downstream.id", 1)]
     )
-    context.log.info("Successfully created {`_upstream`,`_downstream`} indexes")
+    context.log.info("✅ Created indexes on upstream/downstream traversal fields.")
 
-    context.log.info(f"renaming `{temp_alldocs_collection.name}` to `alldocs`...")
-    temp_alldocs_collection.rename("alldocs", dropTarget=True)
-    n_alldocs_documents = mdb.alldocs.estimated_document_count()
+    # Rename the temporary collection to "alldocs".
     context.log.info(
-        f"Rebuilt `alldocs` collection with {n_alldocs_documents} documents."
+        f"🪪 Renaming collection '{temp_alldocs_collection.name}' to 'alldocs'."
+    )
+    temp_alldocs_collection.rename("alldocs", dropTarget=True)
+    n_alldocs_documents = mdb.alldocs.count_documents()
+    
+    context.log.info(
+        "✅ Done materializing the `alldocs` collection, "
+        f"which contains {n_alldocs_documents} documents."
     )
     return n_alldocs_documents
-
-
-@op(required_resource_keys={"mongo"}, ins={"waits_for": In(dagster_type=Nothing)})
-def derive_alldocs_variant_lacking_superseded_and_failed_docs(
-    context: OpExecutionContext,
-) -> int:
-    """
-    Materialize a collection named `alldocs_no_superseded_no_failed` (using the `alldocs`
-    collection as a starting point) which does not include any `PlannedProcess` (or descendant
-    class) documents having `qc_status: "fail"` and which does not include any `WorkflowExecution`
-    (or descendant class) or `DataObject` documents having a `superseded_by` field whose value is
-    not `null`, and whose `_upstream` and `_downstream` arrays omit references to those excluded
-    documents.
-    """
-    mdb = context.resources.mongo.db
-    schema_view = nmdc_schema_view()
-    alldocs = mdb.get_collection("alldocs")
-
-    document_class_names = set(
-        chain.from_iterable(collection_name_to_class_names.values())
-    )
-
-    cls_slot_map = {
-        cls_name: {
-            slot.name: slot for slot in schema_view.class_induced_slots(cls_name)
-        }
-        for cls_name in document_class_names
-    }
-    document_referenceable_ranges = set(
-        chain.from_iterable(
-            schema_view.class_ancestors(cls_name) for cls_name in document_class_names
-        )
-    )
-    document_reference_ranged_slots_by_type = defaultdict(list)
-    for cls_name, slot_map in cls_slot_map.items():
-        for slot_name, slot in slot_map.items():
-            if (
-                set(get_names_of_classes_in_effective_range_of_slot(schema_view, slot))
-                & document_referenceable_ranges
-            ):
-                document_reference_ranged_slots_by_type[f"nmdc:{cls_name}"].append(
-                    slot_name
-                )
-    slots_to_index = {"_type_and_ancestors"} | {
-        slot
-        for slots in document_reference_ranged_slots_by_type.values()
-        for slot in slots
-    }
-
-    temp_collection_name_prefix = "_runtime.tmp.alldocs_no_superseded_no_failed."
-    _, num_dropped = drop_temporary_alldocs_collections(
-        mdb=mdb,
-        temporary_alldocs_collection_name_prefix=temp_collection_name_prefix,
-    )
-    context.log.info(f"Dropped {num_dropped} collections from past attempts")
-
-    temp_collection_name = f"{temp_collection_name_prefix}{ObjectId()}"
-    temp_collection = mdb[temp_collection_name]
-    context.log.info(f"Populating `{temp_collection.name}` collection")
-
-    # Determine the names of all MongoDB collections that can contain documents whose class is—or
-    # descends from—the `PlannedProcess` class.
-    planned_process_collection_names = []
-    planned_process_class_names = set(schema_view.class_descendants("PlannedProcess"))
-    for collection_name in get_collection_names_from_schema(schema_view=schema_view):
-        eligible_class_names = set(
-            get_names_of_classes_eligible_for_collection(
-                schema_view=schema_view,
-                collection_name=collection_name,
-            )
-        )
-        eligible_planned_process_class_names = (
-            planned_process_class_names & eligible_class_names
-        )
-        if len(eligible_planned_process_class_names) > 0:
-            planned_process_collection_names.append(collection_name)
-
-    # Make a list of all the class URIs of `PlannedProcess` self/descendant classes; including,
-    # `"nmdc:PlannedProcess", "nmdc:DataEmitterProcess", "nmdc:WorkflowExecution"`, etc.
-    planned_process_class_uris = [
-        translate_schema_class_name_into_class_uri(
-            schema_view=schema_view,
-            schema_class_name=class_name,
-        )
-        for class_name in planned_process_class_names
-    ]
-
-    # Create a pymongo query filter that matches all documents whose class is—or descends from—the
-    # `PlannedProcess` class and who have a `qc_status` field containing "fail". Note: Since the
-    # `qc_status` field is not present in "alldocs", we will use this with the upstream collections.
-    # Docs: https://www.mongodb.com/docs/v7.0/tutorial/query-arrays/#query-an-array-for-an-element
-    filter_that_matches_failed_planned_processes = {
-        "type": {"$in": planned_process_class_uris},
-        "qc_status": "fail",
-    }
-
-    # Query each of the upstream (source of truth) collections, to get the `id` values of documents
-    # that match that filter.
-    ids_of_matching_documents: set[str] = set()
-    for collection_name in planned_process_collection_names:
-        collection = mdb.get_collection(collection_name)
-        num_matching_documents_in_collection = 0
-        for document in collection.find(
-            filter=filter_that_matches_failed_planned_processes,
-            projection={"_id": 0, "id": 1},
-        ):
-            num_matching_documents_in_collection += 1
-            ids_of_matching_documents.add(document["id"])
-        context.log.info(
-            "Will exclude %d failed PlannedProcess documents originating in collection %s.",
-            num_matching_documents_in_collection,
-            collection_name,
-        )
-    context.log.info(
-        "Will exclude %d failed PlannedProcess documents in total.",
-        len(ids_of_matching_documents),
-    )
-
-    # Create a pymongo query filter that matches all documents whose class is—or descends from—the
-    # `WorkflowExecution` class or the `DataObject` class, and who have a `superseded_by` field
-    # containing anything other than `null`. Note: We will use this with the "alldocs" collection.
-    filter_that_matches_superseded_wfes_and_dobjs = {
-        "$or": [
-            {"_type_and_ancestors": "nmdc:WorkflowExecution"},
-            {"_type_and_ancestors": "nmdc:DataObject"},
-        ],
-        "superseded_by": {"$ne": None},
-    }
-
-    # Get the `id` values of all of the superseded WorkflowExecutions and DataObjects, so that we can
-    # remove their descriptors from the `_upstream` and `_downstream` arrays in the new collection.
-    for document in alldocs.find(
-        filter=filter_that_matches_superseded_wfes_and_dobjs,
-        projection={"_id": 0, "id": 1},
-    ):
-        ids_of_matching_documents.add(document["id"])
-    context.log.info(
-        "Will exclude %d documents in total.",
-        len(ids_of_matching_documents),
-    )
-
-    # Make a `list` (as opposed to a `set`) of the `id` values of the documents we want to exclude
-    # from the new collection. PyMongo requires a `list` (BSON array) in order to use `$nin`.
-    # Docs: https://www.mongodb.com/docs/manual/reference/bson-types/
-    ids_to_exclude = list(ids_of_matching_documents)
-
-    # Copy all of the "included" (i.e. the non-excluded) documents into a temporary collection.
-    # Note: We intentionally don't manipulate `_upstream` and `_downstream` yet, because, if we do
-    #       it _after_ we create indexes on the collection, we can do it more efficiently.
-    context.log.info(
-        "Populating temporary collection %s with documents.",
-        temp_collection_name,
-    )
-    alldocs.aggregate(
-        pipeline=[
-            {"$match": {"id": {"$nin": ids_to_exclude}}},
-            {"$out": temp_collection_name},
-        ]
-    )
-    context.log.info(
-        "Populated temporary collection %s collection with %d documents.",
-        temp_collection_name,
-        temp_collection.estimated_document_count(),
-    )
-
-    # Create indexes on the temporary collection.
-    # Note: We do this _before_ manipulating `_upstream` and `_downstream` so that we can leverage
-    #       these indexes when we filter on—and manipulate—those fields later (below).
-    context.log.info(f"Creating indexes on `{temp_collection_name}` collection.")
-    temp_collection.create_index("id", unique=True)
-    [temp_collection.create_index(slot) for slot in slots_to_index]
-    context.log.info(f"created indexes on 'id' and on each of {slots_to_index=}.")
-
-    context.log.info("Creating {`_upstream`, `_downstream`} indexes.")
-    temp_collection.create_index("_upstream.id")
-    temp_collection.create_index("_downstream.id")
-    temp_collection.create_index([("_upstream.type", 1), ("_upstream.id", 1)])
-    temp_collection.create_index([("_downstream.type", 1), ("_downstream.id", 1)])
-    context.log.info("Created {`_upstream`, `_downstream`} indexes.")
-
-    # Remove the `id` values of all "excluded" documents from the `_upstream` and `_downstream`
-    # arrays of all documents that contain them, removing the fields entirely if they end up being
-    # empty arrays. Remember that those arrays contain "id"-and-"type" objects, not just "id" values.
-    # Docs: https://www.mongodb.com/docs/manual/reference/operator/update/pull/#examples
-    for field_name in ("_upstream", "_downstream"):
-        context.log.info(
-            f"Pruning excluded document `id`s from `{field_name}` field in `{temp_collection_name}`."
-        )
-        result_of_pull_update = temp_collection.update_many(
-            filter={f"{field_name}.id": {"$in": ids_to_exclude}},
-            update={"$pull": {field_name: {"id": {"$in": ids_to_exclude}}}},
-        )
-        context.log.info(
-            f"Pruned `{field_name}` in {result_of_pull_update.modified_count} documents."
-        )
-
-        result_of_unset_update = temp_collection.update_many(
-            filter={field_name: []},
-            update={"$unset": {field_name: ""}},
-        )
-        context.log.info(
-            f"Removed empty `{field_name}` field from {result_of_unset_update.modified_count} documents."
-        )
-
-    context.log.info(
-        f"Renaming `{temp_collection_name}` to `alldocs_no_superseded_no_failed`."
-    )
-    temp_collection.rename("alldocs_no_superseded_no_failed", dropTarget=True)
-    alldocs_no_superseded_no_failed = mdb.get_collection(
-        "alldocs_no_superseded_no_failed"
-    )
-    num_documents = alldocs_no_superseded_no_failed.count_documents({})
-    context.log.info(
-        f"Rebuilt `alldocs_no_superseded_no_failed` collection having {num_documents} documents."
-    )
-    return num_documents

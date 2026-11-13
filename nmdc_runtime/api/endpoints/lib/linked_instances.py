@@ -17,11 +17,41 @@ from toolz import merge
 
 from nmdc_runtime.api.core.util import hash_from_str, now
 from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.endpoints.lib.workflow_executions import (
+    make_filter_to_omit_qc_failed_documents,
+    make_filter_to_omit_superseded_documents,
+)
 from nmdc_runtime.util import (
     duration_logger,
     get_class_name_to_collection_names_map,
     nmdc_schema_view,
 )
+
+
+def make_omission_filter(
+    include_superseded: bool = False,
+    include_failed: bool = False,
+) -> dict[str, None | dict[str, str]]:
+    """
+    Helper function that returns a pymongo filter that omits documents that meet certain criteria;
+    depending upon the flags passed in.
+
+    If both flags are `True`, the filter will be empty (no documents will be omitted by it).
+
+    If `include_superseded` is `False`, the resulting filter will omit documents having a
+    `superseded_by` field whose value is anything other than `null`. This is designed to
+    target documents representing `WorkflowExecution` and `DataObject` instances.
+
+    If `include_failed` is `False`, the resulting filter will omit documents having a
+    `qc_status` field whose value is `"fail"`. This is designed to target documents
+    representing `PlannedProcess` instances.
+    """
+    filter_ = {}
+    if not include_superseded:
+        filter_.update(make_filter_to_omit_superseded_documents())
+    if not include_failed:
+        filter_.update(make_filter_to_omit_qc_failed_documents())
+    return filter_
 
 
 def hash_from_ids_and_types(ids: list[str], types: list[str]) -> str:
@@ -71,6 +101,8 @@ def gather_linked_instances(
     alldocs_collection: MongoCollection,
     ids: list[str],
     types: list[str],
+    include_superseded: bool = False,
+    include_failed: bool = False,
 ) -> str:
     """Collect linked instances and stores them in a new temporary collection.
 
@@ -89,6 +121,9 @@ def gather_linked_instances(
                         types=types,
                         direction=direction,
                         name_of_collection_to_merge_into=temp_linked_instances_collection_name,
+                        alldocs_collection_name=alldocs_collection.name,
+                        include_superseded=include_superseded,
+                        include_failed=include_failed,
                     ),
                     allowDiskUse=True,
                 )
@@ -102,6 +137,8 @@ def pipeline_for_direction(
     direction: Literal["downstream", "upstream"],
     name_of_collection_to_merge_into: str,
     alldocs_collection_name: str = "alldocs",
+    include_superseded: bool = False,
+    include_failed: bool = False,
 ) -> list:
     """A pure function that returns the aggregation pipeline for `direction`.
 
@@ -115,6 +152,8 @@ def pipeline_for_direction(
         types=types,
         direction=direction,
         alldocs_collection_name=alldocs_collection_name,
+        include_superseded=include_superseded,
+        include_failed=include_failed,
     ) + [
         {"$project": {"id": 1, "type": 1, f"_{direction}_of": 1}},
         pipeline_stage_for_merging_instances_and_grouping_link_provenance_by_direction(
@@ -130,6 +169,8 @@ def pipeline_for_instances_linked_to_ids_by_direction(
     direction: Literal["downstream", "upstream"],
     alldocs_collection_name: str = "alldocs",
     slim: bool = True,
+    include_superseded: bool = False,
+    include_failed: bool = False,
 ) -> list[dict[str, Any]]:
     """
     Returns an aggregation pipeline that:
@@ -139,18 +180,27 @@ def pipeline_for_instances_linked_to_ids_by_direction(
     - filters them by given `types` of interest,
      - adds bookkeeping information about `direction`ality, and
      - (optionally) projects only essential fields to reduce response latency and size.
+
+    # Docs: https://www.mongodb.com/docs/manual/reference/operator/aggregation/graphlookup/
     """
+    omission_filter = make_omission_filter(
+        include_superseded=include_superseded,
+        include_failed=include_failed,
+    )
+    initial_match = merge({"id": {"$in": ids}}, omission_filter)
+    graph_lookup_stage: dict[str, Any] = {
+        "from": alldocs_collection_name,
+        "startWith": f"$_{direction}.id",
+        "connectFromField": f"_{direction}.id",
+        "connectToField": "id",
+        "as": f"{direction}_docs",
+    }
+    if omission_filter:
+        graph_lookup_stage["restrictSearchWithMatch"] = omission_filter
+
     return [
-        {"$match": {"id": {"$in": ids}}},
-        {
-            "$graphLookup": {
-                "from": alldocs_collection_name,
-                "startWith": f"$_{direction}.id",
-                "connectFromField": f"_{direction}.id",
-                "connectToField": "id",
-                "as": f"{direction}_docs",
-            }
-        },
+        {"$match": initial_match},
+        {"$graphLookup": graph_lookup_stage},
         {"$unwind": {"path": f"${direction}_docs"}},
         {"$match": {f"{direction}_docs._type_and_ancestors": {"$in": types}}},
         {"$addFields": {f"{direction}_docs._{direction}_of": ["$id"]}},

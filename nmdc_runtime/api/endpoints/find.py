@@ -42,6 +42,8 @@ from nmdc_runtime.api.models.util import (
     FindRequestWithInclusionFlags,
     FindResponse,
     FindRequest,
+    IncludeFailedQuery,
+    IncludeSupersededQuery,
 )
 from nmdc_runtime.util import duration_logger
 
@@ -256,6 +258,10 @@ def get_data_object_report(
     #
     description=(
         "Gets all `DataObject`s related to all `Biosample`s associated with the specified `Study`."
+        "<br /><br />"
+        "By default, superseded `WorkflowExecution`s, superseded `DataObject`s, and failed `PlannedProcess`es "
+        "are excluded from graph traversal and results. You can include them by setting `include_superseded` "
+        "and/or `include_failed` to `true`."
         "<br /><br />"  # newlines
         "**Note:** The data returned by this API endpoint can be up to 60 minutes out of date "
         "with respect to the NMDC database. That's because the cache that underlies this API "
@@ -273,6 +279,8 @@ def find_data_objects_for_study(
         ),
     ],
     background_tasks: BackgroundTasks,
+    include_superseded: IncludeSupersededQuery = False,
+    include_failed: IncludeFailedQuery = False,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """This API endpoint is used to retrieve data objects associated with
@@ -280,6 +288,9 @@ def find_data_objects_for_study(
     use of the `alldocs` collection for its implementation.
 
     :param study_id: NMDC study id for which data objects are to be retrieved
+    :param background_tasks: FastAPI background tasks handler
+    :param include_superseded: Whether to include superseded `WorkflowExecution`s and `DataObject`s
+    :param include_failed: Whether to include failed `PlannedProcess`es
     :param mdb: PyMongo connection, defaults to Depends(get_mongo_db)
     :return: List of dictionaries, each of which has a `biosample_id` entry
         and a `data_objects` entry. The value of the `biosample_id` entry
@@ -356,6 +367,8 @@ def find_data_objects_for_study(
             alldocs_collection=mdb.get_collection("alldocs"),
             ids=biosample_id_batch,
             types=["nmdc:DataObject"],
+            include_superseded=include_superseded,
+            include_failed=include_failed,
         )
         linked_data_objects_dehydrated = list(
             mdb.get_collection(temp_linked_instances_collection_name).find({})

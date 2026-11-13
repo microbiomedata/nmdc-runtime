@@ -15,6 +15,7 @@ from nmdc_runtime.api.endpoints.lib.linked_instances import (
     gather_linked_instances,
     hydrated,
     drop_stale_temp_linked_instances_collections,
+    make_omission_filter,
 )
 from nmdc_runtime.config import IS_LINKED_INSTANCES_ENDPOINT_ENABLED
 from nmdc_runtime.minter.config import typecodes
@@ -40,6 +41,8 @@ from nmdc_runtime.api.endpoints.util import (
 )
 from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.util import (
+    IncludeFailedQuery,
+    IncludeSupersededQuery,
     ListRequest,
     ListRequestWithInclusionFlags,
     ListResponse,
@@ -202,6 +205,8 @@ def get_linked_instances(
             examples=[20],
         ),
     ] = 20,
+    include_superseded: IncludeSupersededQuery = False,
+    include_failed: IncludeFailedQuery = False,
     mdb: MongoDatabase = Depends(get_mongo_db),
     # FastAPI will inject this `background_tasks` argument, to which we can add background tasks
     # for FastAPI to run after it returns the HTTP response.
@@ -251,6 +256,10 @@ def get_linked_instances(
     [nmdc:InformationObject](https://w3id.org/nmdc/InformationObject),
     [nmdc:Sample](https://w3id.org/nmdc/Sample), etc. -- may be given.
     If no value for `types` is given, then all [nmdc:NamedThing](https://w3id.org/nmdc/NamedThing)s are returned.
+
+    By default, superseded `WorkflowExecution`s, superseded `DataObject`s, and failed `PlannedProcess`es are omitted
+    both from the results and from graph traversal (including as starting `ids`). You can include them by setting
+    `include_superseded` and/or `include_failed` to `true`.
     """
     background_tasks.add_task(drop_stale_temp_linked_instances_collections)
     if page_token is not None:
@@ -261,7 +270,14 @@ def get_linked_instances(
         rv["resources"] = [strip_oid(d) for d in rv["resources"]]
         return rv
 
-    ids_found = [d["id"] for d in mdb.alldocs.find({"id": {"$in": ids}}, {"id": 1})]
+    ids_filter = {
+        "id": {"$in": ids},
+        **make_omission_filter(
+            include_superseded=include_superseded,
+            include_failed=include_failed,
+        ),
+    }
+    ids_found = [d["id"] for d in mdb.alldocs.find(ids_filter, {"id": 1})]
     ids_not_found = list(set(ids) - set(ids_found))
     if ids_not_found:
         raise HTTPException(
@@ -285,7 +301,11 @@ def get_linked_instances(
 
     with duration_logger(logging.debug, "Gathering linked instances"):
         temp_linked_instances_collection_name = gather_linked_instances(
-            alldocs_collection=mdb.alldocs, ids=ids, types=types
+            alldocs_collection=mdb.alldocs,
+            ids=ids,
+            types=types,
+            include_superseded=include_superseded,
+            include_failed=include_failed,
         )
 
     with duration_logger(logging.debug, "Listing linked instances"):

@@ -1,9 +1,6 @@
 from dagster import graph
 
-from nmdc_runtime.site.ops.alldocs import (
-    derive_alldocs_variant_lacking_superseded_and_failed_docs,
-    materialize_alldocs,
-)
+from nmdc_runtime.site.ops.alldocs import materialize_alldocs
 from nmdc_runtime.site.ops.badges import (
     award_badges_to_biosamples_op,
     revoke_badges_from_biosamples_op,
@@ -135,9 +132,7 @@ def housekeeping():
 
 @graph
 def ensure_alldocs():
-    # Note: We use `num_docs` as a "baton" (in the "relay race" sense) to control when each op runs.
-    num_docs = materialize_alldocs()
-    derive_alldocs_variant_lacking_superseded_and_failed_docs(waits_for=num_docs)
+    materialize_alldocs()
 
 
 @graph
