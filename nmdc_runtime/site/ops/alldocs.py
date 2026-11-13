@@ -367,7 +367,9 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
     )
 
     # Index the newly-populated collection.
-    context.log.info(f"📖 Creating indexes on collection '{temp_alldocs_collection.name}'.")
+    context.log.info(
+        f"📖 Creating indexes on collection '{temp_alldocs_collection.name}'."
+    )
     # Ensure unique index on "id". Index creation here is blocking (i.e. background=False),
     # so that `temp_alldocs_collection` will be "good to go" on renaming.
     temp_alldocs_collection.create_index("id", unique=True)
@@ -401,7 +403,7 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
     )
     temp_alldocs_collection.rename("alldocs", dropTarget=True)
     n_alldocs_documents = mdb.alldocs.count_documents()
-    
+
     context.log.info(
         "✅ Done materializing the `alldocs` collection, "
         f"which contains {n_alldocs_documents} documents."
