@@ -151,10 +151,16 @@ def _add_linked_instances_to_alldocs(
         # and the "object" (i.e. target document) of this relationship triple.
         if slot_name in upstream_slots:
             # Example: WorkflowExecution ("_upstream" ->) --has_input--> (<- "_downstream") DataObject
-            source_document_field_name, target_document_field_name = "_upstream", "_downstream"
+            source_document_field_name, target_document_field_name = (
+                "_upstream",
+                "_downstream",
+            )
         elif slot_name in downstream_slots:
             # Example: WorkflowExecution ("_downstream" ->) --has_output--> (<- "_upstream") DataObject
-            source_document_field_name, target_document_field_name = "_downstream", "_upstream"
+            source_document_field_name, target_document_field_name = (
+                "_downstream",
+                "_upstream",
+            )
         else:
             raise Failure(f"Unknown slot {slot_name} for document {source_document_id}")
 
