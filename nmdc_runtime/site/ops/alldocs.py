@@ -189,6 +189,12 @@ def _add_linked_instances_to_alldocs(
     context.log.info(f"✅ Prepared to update {total_updates} referring documents.")
 
     # Submit one `UpdateOne` operation per referring document (a.k.a. "source" document).
+    #
+    # Note: In order to reduce the noise in the Dagster logs (e.g. "0.1%...", "0.8%..."), we only
+    #       log progress when the progress reaches a new increment of 5% (e.g. "5%...", "10%...").
+    #
+    log_step_size: float = 0.05  # decimal representation of a percent (i.e. 5% -> 0.05)
+    next_log_step: float = log_step_size
     bulk_operations, update_count = [], 0
     for source_document_id, fields_and_values in links_by_doc_id.items():
         bulk_operations.append(
@@ -208,10 +214,14 @@ def _add_linked_instances_to_alldocs(
         if len(bulk_operations) >= BULK_WRITE_BATCH_SIZE:
             temp_collection.bulk_write(bulk_operations, ordered=False)
             update_count += len(bulk_operations)
-            context.log.info(
-                f"Updated {update_count / total_updates:.1%} of the "
-                f"{total_updates} referring documents so far."
-            )
+            portion_updates_done = update_count / total_updates
+            if portion_updates_done >= next_log_step:
+                context.log.info(
+                    f"Updated {portion_updates_done:.1%} of the "
+                    f"{total_updates} referring documents so far."
+                )
+                while next_log_step <= portion_updates_done:
+                    next_log_step = round(next_log_step + log_step_size, ndigits=3)
             bulk_operations = []
 
     # Execute any remaining operations.
