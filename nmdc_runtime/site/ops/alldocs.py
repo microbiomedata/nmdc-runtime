@@ -62,27 +62,27 @@ def _add_linked_instances_to_alldocs(
     for doc in temp_collection.find():
         doc_id = doc["id"]
         # Store the full type with prefix intact
+        # Example: "nmdc:Study"
         doc_type = doc["type"]
 
         # Record ID to type mapping - preserve the original type with prefix
+        # Example: array["nmdc:sty-00-000001"] = "nmdc:Study"
         id_to_type_map[doc_id] = doc_type
 
         # Find all document references from this document
+        # Example: ["part_of"]
         reference_slots = document_reference_ranged_slots_by_type.get(doc_type, [])
         for slot in reference_slots:
             if slot in doc:
                 # Handle both single-value and array references
+                # Example: refs = ["nmdc:sty-00-parent", "nmdc:sty-00-otherparent"]
                 refs = doc[slot] if isinstance(doc[slot], list) else [doc[slot]]
-                for ref_doc in temp_collection.find(
-                    {"id": {"$in": refs}}, ["id", "type"]
-                ):
-                    id_to_type_map[ref_doc["id"]] = ref_doc["type"]
                 for ref_id in refs:
                     relationship_triples.add((doc_id, slot, ref_id))
 
     context.log.info(
-        f"Found {len(id_to_type_map)} documents, with "
-        f"{len({d for (d, _, _) in relationship_triples})} containing references"
+        f"Found {len(id_to_type_map)} documents, "
+        f"{len({d for (d, _, _) in relationship_triples})} of which contain references."
     )
 
     # The bifurcation of document-reference-ranged slots as "upstream" and "downstream" is essential
@@ -123,7 +123,7 @@ def _add_linked_instances_to_alldocs(
     for slot_names in document_reference_ranged_slots_by_type.values():
         for slot_name in slot_names:
             unique_document_reference_ranged_slot_names.add(slot_name)
-    context.log.info(f"{unique_document_reference_ranged_slot_names=}")
+    context.log.debug(f"{unique_document_reference_ranged_slot_names=}")
     unclassified_slot_names = (
         unique_document_reference_ranged_slot_names
         - set(upstream_document_reference_ranged_slots)
@@ -135,63 +135,129 @@ def _add_linked_instances_to_alldocs(
             f"classification: {sorted(unclassified_slot_names)}"
         )
 
-    # Construct, and update documents with, `_upstream` and `_downstream` field values.
-    #
-    # manage batching of MongoDB `bulk_write` operations
-    bulk_operations, update_count = [], 0
-    for doc_id, slot, ref_id in relationship_triples:
+    # Note: We use `set` so the membership checks below are more efficient (than with `list`).
+    upstream_slots = set(upstream_document_reference_ranged_slots)
+    downstream_slots = set(downstream_document_reference_ranged_slots)
 
-        # Determine in which respective fields to push this relationship
-        # for the subject (doc) and object (ref) of this triple.
-        if slot in upstream_document_reference_ranged_slots:
-            field_for_doc, field_for_ref = "_upstream", "_downstream"
-        elif slot in downstream_document_reference_ranged_slots:
-            field_for_doc, field_for_ref = "_downstream", "_upstream"
-        else:
-            raise Failure(f"Unknown slot {slot} for document {doc_id}")
-
-        updates = [
-            {
-                "filter": {"id": doc_id},
-                "update": {
-                    "$push": {
-                        field_for_doc: {
-                            "id": ref_id,
-                            # TODO existing tests are failing due to `KeyError`s for `id_to_type_map.get[ref_id]` here,
-                            #   which acts as an implicit referential integrity checker (!). Using `.get` with
-                            #   "nmdc:NamedThing" as default in order to (for now) allow such tests to continue to pass.
-                            "type": id_to_type_map.get(ref_id, "nmdc:NamedThing"),
-                        }
-                    }
-                },
-            },
-            {
-                "filter": {"id": ref_id},
-                "update": {
-                    "$push": {
-                        field_for_ref: {"id": doc_id, "type": id_to_type_map[doc_id]}
-                    }
-                },
-            },
-        ]
-        for update in updates:
-            bulk_operations.append(UpdateOne(**update))
-
-        # Execute in batches for efficiency
-        if len(bulk_operations) >= BULK_WRITE_BATCH_SIZE:
-            temp_collection.bulk_write(bulk_operations)
-            update_count += len(bulk_operations)
-            context.log.info(
-                f"Pushed {update_count/(2*len(relationship_triples)):.1%} of updates so far..."
+    # Populate the `links_by_doc_id` dictionary, whose first-level key is the `id` of the referring
+    # document and whose second-level key if the name of the referring field of that document,
+    # and whose second-level value is a list of dictionaries; each of which indicates the `id` and
+    # `type` of the referenced document.
+    links_by_doc_id: dict[str, dict[str, list[dict[str, str]]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
+    for source_document_id, slot_name, target_document_id in relationship_triples:
+        # Determine which fields to record this relationship in, on the "subject" (i.e. source document)
+        # and the "object" (i.e. target document) of this relationship triple.
+        if slot_name in upstream_slots:
+            # Example: WorkflowExecution ("_upstream" ->) --has_input--> (<- "_downstream") DataObject
+            source_document_field_name, target_document_field_name = (
+                "_upstream",
+                "_downstream",
             )
-            bulk_operations = []
+        elif slot_name in downstream_slots:
+            # Example: WorkflowExecution ("_downstream" ->) --has_output--> (<- "_upstream") DataObject
+            source_document_field_name, target_document_field_name = (
+                "_downstream",
+                "_upstream",
+            )
+        else:
+            raise Failure(f"Unknown slot {slot_name} for document {source_document_id}")
 
-    # Execute any remaining operations
-    if bulk_operations:
-        temp_collection.bulk_write(bulk_operations)
-        update_count += len(bulk_operations)
+        # Get the `type` value to which our map maps the target document's `id` value.
+        #
+        # Note: If our map does not have the target document's `id` value as a key, it means that
+        #       the source document (i.e. the "referring" document) has a referential integrity
+        #       violation (i.e. a dangling reference). Long term, I want this function to raise
+        #       a `Failure` exception in that scenario. However, many of the tests in this codebase
+        #       currently do create dangling references, and I don't want to complicate the current
+        #       feature branch with fixes to all those, so I'll just log a warning (new) in that
+        #       scenario, and leave the long term fix as a "TODO" (as it was before).
+        #
+        # TODO: If we encounter a target document whose `id` is not a key in the `id_to_type_map`
+        #       dictionary, raise a `Failure` exception because it means there is a referential
+        #       integrity violation. We would need to update some tests in the test suite accordingly.
+        #
+        target_document_type = "nmdc:NamedThing"
+        if target_document_id in id_to_type_map.keys():
+            target_document_type = id_to_type_map[target_document_id]
+        else:
+            context.log.warning(
+                f"Referential integrity violation: 'id_to_type_map' lacks key "
+                f"'{target_document_id}' (encountered in field '{slot_name}' "
+                f"of document '{source_document_id}')."
+            )
 
-    context.log.info(f"Pushed {update_count} updates in total")
+        links_by_doc_id[source_document_id][source_document_field_name].append(
+            {
+                "id": target_document_id,
+                "type": target_document_type,
+            }
+        )
+        links_by_doc_id[target_document_id][target_document_field_name].append(
+            {
+                "id": source_document_id,
+                "type": id_to_type_map[source_document_id],
+            }
+        )
+
+    # Count the total number of referring documents.
+    total_num_referring_documents = len(links_by_doc_id.keys())
+    context.log.info(
+        f"✅ Prepared to update {total_num_referring_documents} referring documents."
+    )
+
+    # Submit one `UpdateOne` operation per referring document (a.k.a. "source" document).
+    #
+    # Note: In order to reduce the noise in the Dagster logs (e.g. "0.1%...", "0.8%..."), we only
+    #       log progress when the progress reaches a new increment of 5% (e.g. "5%...", "10%...").
+    #
+    log_step_size: float = 0.05  # decimal representation of a percent (i.e. 5% -> 0.05)
+    next_log_threshold: float = log_step_size
+    bulk_write_requests, num_submitted_bulk_write_requests = [], 0
+    for source_document_id, fields_and_values in links_by_doc_id.items():
+        bulk_write_requests.append(
+            UpdateOne(
+                filter={"id": source_document_id},
+                update={"$set": dict(fields_and_values)},
+            )
+        )
+
+        # If the number of operations we've prepared exceeds our threshold, write the batch to Mongo.
+        #
+        # Note: Since each source documents is only targeted by a single `UpdateOne` statement, we
+        #       set `ordered=False` so Mongo doesn't waste any resources or sacrifice parallelization
+        #       in order to perform the writes in any particular order.
+        #       Docs: https://www.mongodb.com/docs/manual/core/bulk-write-operations/#ordered-vs-unordered-operations
+        #
+        if len(bulk_write_requests) >= BULK_WRITE_BATCH_SIZE:
+            temp_collection.bulk_write(bulk_write_requests, ordered=False)
+            num_submitted_bulk_write_requests += len(bulk_write_requests)
+            portion_updates_done = (
+                num_submitted_bulk_write_requests / total_num_referring_documents
+            )
+            if portion_updates_done >= next_log_threshold:
+                context.log.info(
+                    f"Updated {portion_updates_done:.0%} of "
+                    f"{total_num_referring_documents} referring documents so far."
+                )
+                while next_log_threshold <= portion_updates_done:
+                    next_log_threshold = round(
+                        next_log_threshold + log_step_size, ndigits=2
+                    )
+            bulk_write_requests = []
+
+    # Execute any remaining operations.
+    if len(bulk_write_requests) > 0:
+        temp_collection.bulk_write(bulk_write_requests, ordered=False)
+        num_submitted_bulk_write_requests += len(bulk_write_requests)
+
+    context.log.debug(
+        f"Submitted a total of {num_submitted_bulk_write_requests} bulk write requests."
+    )
+    context.log.info(
+        f"✅ Finished updating all {total_num_referring_documents} of the referring documents."
+    )
 
 
 def drop_temporary_alldocs_collections(
@@ -232,10 +298,10 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
 
     1. Getting all populated schema collection names with an `id` field.
     2. Create a temporary collection to build the new alldocs collection.
-    3. For each document in schema collections, extract `id`, `type`, and document-reference-ranged slot values.
+    3. For each document in schema collections, extract `id`, `type`, `qc_status`, and document-reference-ranged slot values.
     4. Add a special `_type_and_ancestors` field that contains the class hierarchy for the document's type.
     5. Add special `_upstream` and `_downstream` fields with subdocuments containing ID and type of related entities.
-    6. Add indexes for `id`, relationship fields, and `{_upstream,_downstream}{.id,(.type, .id)}` (compound) indexes.
+    6. Add indexes for `id`, `qc_status`, relationship fields, and `{_upstream,_downstream}{.id,(.type, .id)}` (compound) indexes.
     7. Finally, atomically replace the existing `alldocs` collection with the temporary one.
 
     The `alldocs` collection is scheduled to be updated hourly via a scheduled job defined as
@@ -255,7 +321,6 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
     # TODO include functional_annotation_agg  for "real-time" ref integrity checking.
     #   For now, production use cases for materialized `alldocs` are limited to `id`-having collections.
     collection_names = populated_schema_collection_names_with_id_field(mdb)
-    context.log.info(f"constructing `alldocs` collection using {collection_names=}")
 
     document_class_names = set(
         chain.from_iterable(collection_name_to_class_names.values())
@@ -295,7 +360,9 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
         mdb=mdb,
         temporary_alldocs_collection_name_prefix=temporary_alldocs_collection_name_prefix,
     )
-    context.log.info(f"Dropped {num_dropped} collections from past attempts")
+    context.log.info(
+        f"🧹 Dropped {num_dropped} collections from unfinished generation attempts.",
+    )
 
     # Build `alldocs` to a temporary collection for atomic replacement
     # https://www.mongodb.com/docs/v6.0/reference/method/db.collection.renameCollection/#resource-locking-in-replica-sets
@@ -303,13 +370,30 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
         f"{temporary_alldocs_collection_name_prefix}{ObjectId()}"
     )
     temp_alldocs_collection = mdb[temp_alldocs_collection_name]
-    context.log.info(f"constructing `{temp_alldocs_collection.name}` collection")
+    context.log.info(
+        f"🗂️ Source collections ({len(collection_names)}): {collection_names}"
+    )
+    context.log.info(
+        f"📂 Generating collection '{temp_alldocs_collection.name}' from source collections."
+    )
+
+    # Make a generic Mongo projection that includes all the fields that _could_ be relevant for any
+    # document in any given collection, while omitting all the fields that could _not_. This is a
+    # performance optimization that saves us from having to load the latter fields from Mongo into
+    # the application unnecessarily (they would be discarded by the `keyfilter` below anyway).
+    distinct_referring_field_names = set(
+        chain.from_iterable(document_reference_ranged_slots_by_type.values())
+    )
+    projection = {"id": 1, "type": 1, "qc_status": 1}
+    for name in distinct_referring_field_names:
+        assert isinstance(name, str)
+        projection[name] = 1
 
     for coll_name in collection_names:
-        context.log.info(f"{coll_name=}")
+        context.log.debug(f"Reading collection: {coll_name}")
         write_operations = []
         documents_processed_counter = 0
-        for doc in mdb[coll_name].find():
+        for doc in mdb[coll_name].find({}, projection):
             try:
                 # Keep the full type with prefix for document
                 doc_type_full = doc["type"]
@@ -319,9 +403,11 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
                 raise Exception(
                     f"doc {doc['id']} in collection {coll_name} has no 'type'!"
                 )
-            slots_to_include = ["id", "type"] + document_reference_ranged_slots_by_type[
-                doc_type_full
-            ]
+            slots_to_include = [
+                "id",
+                "type",
+                "qc_status",
+            ] + document_reference_ranged_slots_by_type[doc_type_full]
             new_doc = keyfilter(lambda slot: slot in slots_to_include, doc)
 
             # Get ancestors without the prefix, but add prefix to each one in the output
@@ -339,33 +425,35 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
             _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
             documents_processed_counter += len(write_operations)
         context.log.info(
-            f"Inserted {documents_processed_counter} documents from {coll_name=} "
+            f"📄 Added {documents_processed_counter} documents from collection '{coll_name}'."
         )
-
     context.log.info(
-        f"produced `{temp_alldocs_collection.name}` collection with"
-        f" {temp_alldocs_collection.estimated_document_count()} docs."
+        f"✅ Finished adding a total of {temp_alldocs_collection.count_documents({})} "
+        f"documents to collection '{temp_alldocs_collection.name}'."
     )
 
-    context.log.info(f"creating indexes on `{temp_alldocs_collection.name}` ...")
+    # Index the newly-populated collection.
+    context.log.info(
+        f"📖 Creating indexes on collection '{temp_alldocs_collection.name}'."
+    )
     # Ensure unique index on "id". Index creation here is blocking (i.e. background=False),
     # so that `temp_alldocs_collection` will be "good to go" on renaming.
     temp_alldocs_collection.create_index("id", unique=True)
-    # Add indexes to improve performance of `GET /data_objects/study/{study_id}`:
-    slots_to_index = {"_type_and_ancestors"} | {
+    slots_to_index = {"_type_and_ancestors", "qc_status"} | {
         slot
         for slots in document_reference_ranged_slots_by_type.values()
         for slot in slots
     }
     [temp_alldocs_collection.create_index(slot) for slot in slots_to_index]
-    context.log.info(f"created indexes on id and on each of {slots_to_index=}.")
+    context.log.info("✅ Created unique index on field: 'id'")
+    context.log.info(f"✅ Created indexes on fields: {slots_to_index}")
 
-    # Add related-ids fields to enable efficient relationship traversal
-    context.log.info("Adding fields for related ids to documents...")
+    # Add "_upstream" and "_downstream" fields to documents.
+    context.log.info("🌊 Adding upstream/downstream traversal fields.")
     _add_linked_instances_to_alldocs(
         temp_alldocs_collection, context, document_reference_ranged_slots_by_type
     )
-    context.log.info("Creating {`_upstream`,`_downstream`} indexes...")
+    context.log.info("📖 Creating indexes on upstream/downstream traversal fields.")
     temp_alldocs_collection.create_index("_upstream.id")
     temp_alldocs_collection.create_index("_downstream.id")
     # Create compound indexes to ensure index-covered queries
@@ -373,12 +461,16 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
     temp_alldocs_collection.create_index(
         [("_downstream.type", 1), ("_downstream.id", 1)]
     )
-    context.log.info("Successfully created {`_upstream`,`_downstream`} indexes")
+    context.log.info("✅ Created indexes on upstream/downstream traversal fields.")
 
-    context.log.info(f"renaming `{temp_alldocs_collection.name}` to `alldocs`...")
-    temp_alldocs_collection.rename("alldocs", dropTarget=True)
-    n_alldocs_documents = mdb.alldocs.estimated_document_count()
+    # Rename the temporary collection to "alldocs".
     context.log.info(
-        f"Rebuilt `alldocs` collection with {n_alldocs_documents} documents."
+        f"🪪 Renaming collection '{temp_alldocs_collection.name}' to 'alldocs'."
+    )
+    temp_alldocs_collection.rename("alldocs", dropTarget=True)
+    n_alldocs_documents = mdb.alldocs.count_documents({})
+    context.log.info(
+        "✅ Done materializing the `alldocs` collection, "
+        f"which contains {n_alldocs_documents} documents."
     )
     return n_alldocs_documents

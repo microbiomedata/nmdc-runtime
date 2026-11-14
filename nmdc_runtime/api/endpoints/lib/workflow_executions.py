@@ -368,7 +368,7 @@ def update_superseded_by_field_of_data_objects_having_id_in_list(
     return num_written
 
 
-def make_filter_to_omit_superseded_documents() -> Dict[str, Any]:
+def make_filter_to_omit_superseded_documents() -> Dict[str, None]:
     """
     Helper function that returns a pymongo filter that filters out documents having a field named
     `superseded_by` whose value is not `null`.
@@ -390,7 +390,7 @@ def make_filter_to_omit_superseded_documents() -> Dict[str, Any]:
     return {"superseded_by": None}
 
 
-def make_filter_to_omit_qc_failed_documents() -> Dict[str, Any]:
+def make_filter_to_omit_qc_failed_documents() -> Dict[str, Dict[str, str]]:
     """
     Helper function that returns a pymongo filter that filters out documents having a field named
     `qc_status` whose value is `fail`.

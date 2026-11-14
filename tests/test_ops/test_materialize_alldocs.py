@@ -58,6 +58,42 @@ def test_materialize_alldocs(op_context):
     for document in field_research_site_documents:
         field_research_site_set_collection.replace_one(document, document, upsert=True)
 
+    # Here, we insert documents into the `data_generation_set` collection (a `DataGeneration` is
+    # a `PlannedProcess`, according to the NMDC Schema). This is so we can confirm that the
+    # documents that end up in the "alldocs" collection _include_ the "qc_status" field.
+    # Docs: https://microbiomedata.github.io/nmdc-schema/qc_status/
+    data_generation_documents = [
+        {
+            "id": "nmdc:dgns-99-00000001",
+            "type": "nmdc:NucleotideSequencing",
+            "qc_status": "pass",
+            "analyte_category": "metagenome",
+            "associated_studies": ["nmdc:sty-99-00000001"],
+            "has_input": ["nmdc:bsm-99-00000001"],
+        },
+        {
+            "id": "nmdc:dgns-99-00000002",
+            "type": "nmdc:NucleotideSequencing",
+            "qc_status": "fail",
+            "analyte_category": "metagenome",
+            "associated_studies": ["nmdc:sty-99-00000001"],
+            "has_input": ["nmdc:bsm-99-00000001"],
+        },
+        {
+            "id": "nmdc:dgns-99-00000003",
+            "type": "nmdc:NucleotideSequencing",
+            # "qc_status" field is absent
+            "analyte_category": "metagenome",
+            "associated_studies": ["nmdc:sty-99-00000001"],
+            "has_input": ["nmdc:bsm-99-00000001"],
+        },
+    ]
+    data_generation_set_collection = mdb.get_collection("data_generation_set")
+    for document in data_generation_documents:
+        data_generation_set_collection.replace_one(
+            {"id": document["id"]}, document, upsert=True
+        )
+
     # Get a list of non-empty collections in which at least one document has an `id` field.
     #
     # Note: That is the same criteria the function-under-test uses to identify which upstream collections
@@ -111,6 +147,15 @@ def test_materialize_alldocs(op_context):
         }
         assert alldocs_collection.count_documents(alldocs_document) == 1
 
+    # Verify that the documents in the `data_generation_set` collection have the same `qc_status`
+    # fields (or lack thereof) as the documents in the upstream collections.
+    for document in data_generation_documents:
+        alldocs_document = alldocs_collection.find_one({"id": document["id"]})
+        if "qc_status" in document:
+            assert alldocs_document["qc_status"] == document["qc_status"]
+        else:
+            assert "qc_status" not in alldocs_document
+
     # Verify the total number of documents in all the upstream collections, combined,
     # equals the number of documents in the `alldocs` collection.
     assert num_upstream_docs == num_alldocs_docs
@@ -118,6 +163,8 @@ def test_materialize_alldocs(op_context):
     # Clean up: Delete the documents we created within this test, from the database.
     for document in field_research_site_documents:
         field_research_site_set_collection.delete_one(document)
+    for document in data_generation_documents:
+        data_generation_set_collection.delete_one({"id": document["id"]})
     alldocs_collection.delete_many({})
 
 
