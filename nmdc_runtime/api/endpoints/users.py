@@ -14,12 +14,9 @@ from nmdc_runtime.api.core.auth import (
     Token,
     ACCESS_TOKEN_EXPIRES,
     create_access_token,
-    ORCID_NMDC_CLIENT_ID,
     ORCID_JWK,
     ORCID_JWS_VERITY_ALGORITHM,
     credentials_exception,
-    ORCID_NMDC_CLIENT_SECRET,
-    ORCID_BASE_URL,
 )
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.util import generate_secret
@@ -31,6 +28,11 @@ from nmdc_runtime.api.models.user import (
     authenticate_user,
     User,
     get_current_active_user,
+)
+from nmdc_runtime.config import (
+    ORCID_BASE_URL,
+    ORCID_NMDC_CLIENT_ID,
+    ORCID_NMDC_CLIENT_SECRET,
 )
 
 router = APIRouter()

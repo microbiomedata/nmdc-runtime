@@ -56,6 +56,20 @@ IS_SCALAR_ENABLED: bool = is_env_var_true("IS_SCALAR_ENABLED", default="true")
 IS_PROFILING_ENABLED: bool = is_env_var_true("IS_PROFILING_ENABLED", default="false")
 
 # ────────────────────────────────────────────────────────────────────────────┐
+# ORCID
+# ────────────────────────────────────────────────────────────────────────────┘
+
+# The base URL at which the application can access an instance of ORCID.
+# Note: If the environment variable's value ends with a "/", we remove it.
+ORCID_BASE_URL: str = os.environ.get("ORCID_BASE_URL", "https://orcid.org").removesuffix("/")
+
+# An ORCID Client ID obtained from: https://orcid.org/developer-tools
+ORCID_NMDC_CLIENT_ID: str = os.environ.get("ORCID_NMDC_CLIENT_ID", "")
+
+# The ORCID Client Secret associated with the above ORCID Client ID.
+ORCID_NMDC_CLIENT_SECRET: str = os.environ.get("ORCID_NMDC_CLIENT_SECRET", "")
+
+# ────────────────────────────────────────────────────────────────────────────┐
 # Sentry
 # ────────────────────────────────────────────────────────────────────────────┘
 

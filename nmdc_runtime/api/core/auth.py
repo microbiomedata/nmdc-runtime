@@ -20,13 +20,12 @@ from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 
+from nmdc_runtime.config import ORCID_BASE_URL
+
 ORCID_PRODUCTION_BASE_URL = "https://orcid.org"
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = "HS256"
-ORCID_NMDC_CLIENT_ID = os.getenv("ORCID_NMDC_CLIENT_ID")
-ORCID_NMDC_CLIENT_SECRET = os.getenv("ORCID_NMDC_CLIENT_SECRET")
-ORCID_BASE_URL = os.getenv("ORCID_BASE_URL", default=ORCID_PRODUCTION_BASE_URL)
 
 # Define the JSON Web Key Set (JWKS) for ORCID.
 #
