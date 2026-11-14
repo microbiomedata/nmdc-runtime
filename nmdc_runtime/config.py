@@ -61,7 +61,9 @@ IS_PROFILING_ENABLED: bool = is_env_var_true("IS_PROFILING_ENABLED", default="fa
 
 # The base URL at which the application can access an instance of ORCID.
 # Note: If the environment variable's value ends with a "/", we remove it.
-ORCID_BASE_URL: str = os.environ.get("ORCID_BASE_URL", "https://orcid.org").removesuffix("/")
+ORCID_BASE_URL: str = os.environ.get(
+    "ORCID_BASE_URL", "https://orcid.org"
+).removesuffix("/")
 
 # An ORCID Client ID obtained from: https://orcid.org/developer-tools
 ORCID_NMDC_CLIENT_ID: str = os.environ.get("ORCID_NMDC_CLIENT_ID", "")
