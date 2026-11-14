@@ -1,8 +1,11 @@
 from json import dumps
 
 import pytest
+import requests
+from starlette import status
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.config import IS_LINKED_INSTANCES_ENDPOINT_ENABLED
 from nmdc_runtime.site.ops.alldocs import materialize_alldocs
 from tests.lib.faker import Faker
 
@@ -400,6 +403,115 @@ class TestInclusionFlags:
         ) == {
             "nmdc:dobj-00-001001",
             "nmdc:dobj-00-001002",
+            "nmdc:dobj-00-002001",
+            "nmdc:dobj-00-003001",
+        }
+
+    @pytest.mark.skipif(
+        not IS_LINKED_INSTANCES_ENDPOINT_ENABLED,
+        reason="Target endpoint is disabled",
+    )
+    def test_get_linked_instances_endpoint(
+        self, api_user_client, db_seeded_for_inclusion_flag_testing
+    ):
+        def fetch_linked_instance_ids(
+            starting_id: str, params: dict | None = None
+        ) -> set[str]:
+            """
+            Helper function that submits an API request and returns the IDs of all
+            "instances" (i.e. documents) represented in the API response body.
+            """
+            query_params = {
+                "ids": [starting_id],
+                "max_page_size": 200,
+                **(params or {}),
+            }
+            body = api_user_client.request(
+                "GET",
+                "/nmdcschema/linked_instances",
+                query_params,
+            ).json()
+            assert body.get("next_page_token") is None
+            return {r["id"] for r in body["resources"]}
+
+        study_id = self.study_ids[0]
+
+        # The `id` values of instances that are neither superseded nor failed, and are reachable
+        # from the seeded study via instances that are neither superseded nor failed.
+        ids_linked_via_normal_instances = {
+            self.biosample_ids[0],
+            self.data_generation_ids[0],
+            "nmdc:dobj-00-002001",
+            "nmdc:wfmga-00-001001.2",
+            "nmdc:dobj-00-001001",
+        }
+
+        # The `id` values of instances that are superseded and/or are only reachable
+        # from the seeded study via instances that are superseded.
+        ids_linked_via_superseded_instances = {
+            "nmdc:wfmga-00-001001.1",
+            "nmdc:dobj-00-001002",
+        }
+
+        # The `id` values of instances that are failed and/or are only reachable
+        # from the seeded study via instances that are failed.
+        ids_linked_via_failed_instances = {
+            "nmdc:wfmga-00-001002.1",
+            "nmdc:dobj-00-003001",
+        }
+
+        # Test 1: By default, the response does not include superseded and failed instances
+        #         (and instances only reachable via them).
+        assert fetch_linked_instance_ids(study_id) == ids_linked_via_normal_instances
+
+        # Test 2: When `include_superseded` is true, the response includes superseded instances
+        #         (and instances only reachable via them) in addition to the baseline result.
+        assert (
+            fetch_linked_instance_ids(study_id, params={"include_superseded": True})
+            == ids_linked_via_normal_instances | ids_linked_via_superseded_instances
+        )
+
+        # Test 3: When `include_failed` is true, the response includes failed instances
+        #         (and instances only reachable via them) in addition to the baseline result.
+        assert (
+            fetch_linked_instance_ids(study_id, params={"include_failed": True})
+            == ids_linked_via_normal_instances | ids_linked_via_failed_instances
+        )
+
+        # Test 4: When both `include_superseded` and `include_failed` are true, all
+        #         linked instances are included in the response.
+        assert (
+            fetch_linked_instance_ids(
+                starting_id=study_id,
+                params={"include_superseded": True, "include_failed": True}
+            )
+            == ids_linked_via_normal_instances | ids_linked_via_superseded_instances | ids_linked_via_failed_instances
+        )
+
+        # Test 5: By default, when trying to start from a superseded or failed instance, the
+        #         endpoint returns an HTTP 404 response. The endpoint will only start from such
+        #         an instance when the request includes the relevant inclusion flag.
+        with pytest.raises(requests.HTTPError) as exc_info:
+            fetch_linked_instance_ids("nmdc:wfmga-00-001001.1")
+        assert exc_info.value.response.status_code == status.HTTP_404_NOT_FOUND
+        with pytest.raises(requests.HTTPError) as exc_info:
+            fetch_linked_instance_ids(starting_id="nmdc:wfmga-00-001002.1")
+        assert exc_info.value.response.status_code == status.HTTP_404_NOT_FOUND
+        assert (
+            fetch_linked_instance_ids(
+                starting_id="nmdc:wfmga-00-001001.1",
+                params={"include_superseded": True},
+            )
+            == (ids_linked_via_normal_instances | {study_id} | ids_linked_via_superseded_instances)
+            - {"nmdc:wfmga-00-001001.1"}
+        )
+        assert fetch_linked_instance_ids(
+            starting_id="nmdc:wfmga-00-001002.1",
+            params={"include_failed": True},
+        ) == {
+            study_id,
+            self.biosample_ids[0],
+            self.data_generation_ids[0],
             "nmdc:dobj-00-002001",
             "nmdc:dobj-00-003001",
         }
