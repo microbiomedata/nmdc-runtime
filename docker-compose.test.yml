@@ -118,7 +118,14 @@ services:
     # Note: Including a KeyFile is necessary when doing the combination of (a) running MongoDB in
     #       replica set mode and (b) running MongoDB with authentication enabled.
     #
-    command: ["--replSet", "rs0", "--bind_ip_all", "--keyFile", "/keyFile"]
+    # Note: We use `--wiredTigerCacheSizeGB` to limit the size of the WiredTiger cache. WiredTiger
+    #       is an internal component of MongoDB. This is in an attempt to prevent the cache from
+    #       growing so large (e.g. when materializing the "alldocs" cache collection) that the
+    #       Docker host's kernel kills the container. At the time of this writing, we haven't
+    #       observed this in the test suite (only the dev stack), but we're aiming to keep
+    #       the configuration identical across the two.
+    #
+    command: ["--replSet", "rs0", "--bind_ip_all", "--keyFile", "/keyFile", "--wiredTigerCacheSizeGB", "2"]
     volumes:
       - mongo_data:/data/db
       - ./.docker/mongoKeyFile:/keyFile:ro
