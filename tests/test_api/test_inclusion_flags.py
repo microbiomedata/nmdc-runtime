@@ -55,7 +55,7 @@ class TestInclusionFlags:
         - DataObject        "nmdc:dobj-00-001001"    (output of non-superseded, non-failed WorkflowExecution)
         - DataObject        "nmdc:dobj-00-001002"    is superseded (and output of superseded WorkflowExecution)
         - DataObject        "nmdc:dobj-00-003001"    (output of failed WorkflowExecution)
-        
+
         Note: `op_context` is a pytest fixture (it's currently defined in the `conftest.py` file).
         """
 

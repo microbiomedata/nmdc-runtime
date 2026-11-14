@@ -132,7 +132,7 @@ services:
     #       growing so large (e.g. when materializing the "alldocs" cache collection) that the
     #       Docker host's kernel kills the container.
     #
-    #       References: 
+    #       References:
     #       - https://hirendave.com/insights/docker-mongodb-memory/
     #       - https://www.mongodb.com/docs/v8.0/reference/program/mongod/#std-option-mongod.--wiredTigerCacheSizeGB
     #
