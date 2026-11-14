@@ -185,8 +185,10 @@ def _add_linked_instances_to_alldocs(
         )
 
     # Count the total number of referring documents.
-    total_updates = len(links_by_doc_id.keys())
-    context.log.info(f"✅ Prepared to update {total_updates} referring documents.")
+    total_num_referring_documents = len(links_by_doc_id.keys())
+    context.log.info(
+        f"✅ Prepared to update {total_num_referring_documents} referring documents."
+    )
 
     # Submit one `UpdateOne` operation per referring document (a.k.a. "source" document).
     #
@@ -194,10 +196,10 @@ def _add_linked_instances_to_alldocs(
     #       log progress when the progress reaches a new increment of 5% (e.g. "5%...", "10%...").
     #
     log_step_size: float = 0.05  # decimal representation of a percent (i.e. 5% -> 0.05)
-    next_log_step: float = log_step_size
-    bulk_operations, update_count = [], 0
+    next_log_threshold: float = log_step_size
+    bulk_write_requests, num_submitted_bulk_write_requests = [], 0
     for source_document_id, fields_and_values in links_by_doc_id.items():
-        bulk_operations.append(
+        bulk_write_requests.append(
             UpdateOne(
                 filter={"id": source_document_id},
                 update={"$set": dict(fields_and_values)},
@@ -211,25 +213,30 @@ def _add_linked_instances_to_alldocs(
         #       in order to perform the writes in any particular order.
         #       Docs: https://www.mongodb.com/docs/manual/core/bulk-write-operations/#ordered-vs-unordered-operations
         #
-        if len(bulk_operations) >= BULK_WRITE_BATCH_SIZE:
-            temp_collection.bulk_write(bulk_operations, ordered=False)
-            update_count += len(bulk_operations)
-            portion_updates_done = update_count / total_updates
-            if portion_updates_done >= next_log_step:
+        if len(bulk_write_requests) >= BULK_WRITE_BATCH_SIZE:
+            temp_collection.bulk_write(bulk_write_requests, ordered=False)
+            num_submitted_bulk_write_requests += len(bulk_write_requests)
+            portion_updates_done = num_submitted_bulk_write_requests / total_num_referring_documents
+            if portion_updates_done >= next_log_threshold:
                 context.log.info(
-                    f"Updated {portion_updates_done:.1%} of the "
-                    f"{total_updates} referring documents so far."
+                    f"Updated {portion_updates_done:.0%} of "
+                    f"{total_num_referring_documents} referring documents so far."
                 )
-                while next_log_step <= portion_updates_done:
-                    next_log_step = round(next_log_step + log_step_size, ndigits=3)
-            bulk_operations = []
+                while next_log_threshold <= portion_updates_done:
+                    next_log_threshold = round(next_log_threshold + log_step_size, ndigits=2)
+            bulk_write_requests = []
 
     # Execute any remaining operations.
-    if bulk_operations:
-        temp_collection.bulk_write(bulk_operations, ordered=False)
-        update_count += len(bulk_operations)
+    if len(bulk_write_requests) > 0:
+        temp_collection.bulk_write(bulk_write_requests, ordered=False)
+        num_submitted_bulk_write_requests += len(bulk_write_requests)
 
-    context.log.info(f"✅ Updated {update_count} documents in total.")
+    context.log.debug(
+        f"Submitted a total of {num_submitted_bulk_write_requests} bulk write requests."
+    )
+    context.log.info(
+        f"✅ Finished updating all {total_num_referring_documents} of the referring documents."
+    )
 
 
 def drop_temporary_alldocs_collections(
