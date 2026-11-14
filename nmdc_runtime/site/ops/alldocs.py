@@ -216,14 +216,18 @@ def _add_linked_instances_to_alldocs(
         if len(bulk_write_requests) >= BULK_WRITE_BATCH_SIZE:
             temp_collection.bulk_write(bulk_write_requests, ordered=False)
             num_submitted_bulk_write_requests += len(bulk_write_requests)
-            portion_updates_done = num_submitted_bulk_write_requests / total_num_referring_documents
+            portion_updates_done = (
+                num_submitted_bulk_write_requests / total_num_referring_documents
+            )
             if portion_updates_done >= next_log_threshold:
                 context.log.info(
                     f"Updated {portion_updates_done:.0%} of "
                     f"{total_num_referring_documents} referring documents so far."
                 )
                 while next_log_threshold <= portion_updates_done:
-                    next_log_threshold = round(next_log_threshold + log_step_size, ndigits=2)
+                    next_log_threshold = round(
+                        next_log_threshold + log_step_size, ndigits=2
+                    )
             bulk_write_requests = []
 
     # Execute any remaining operations.
