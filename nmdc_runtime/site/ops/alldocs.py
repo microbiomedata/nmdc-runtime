@@ -165,7 +165,7 @@ def _add_linked_instances_to_alldocs(
             raise Failure(f"Unknown slot {slot_name} for document {source_document_id}")
 
         # Get the `type` value to which our map maps the target document's `id` value.
-        # 
+        #
         # Note: If our map does not have the target document's `id` value as a key, it means that
         #       the source document (i.e. the "referring" document) has a referential integrity
         #       violation (i.e. a dangling reference). Long term, I want this function to raise
@@ -187,7 +187,7 @@ def _add_linked_instances_to_alldocs(
                 f"'{target_document_id}' (encountered in field '{slot_name}' "
                 f"of document '{source_document_id}')."
             )
-        
+
         links_by_doc_id[source_document_id][source_document_field_name].append(
             {
                 "id": target_document_id,
