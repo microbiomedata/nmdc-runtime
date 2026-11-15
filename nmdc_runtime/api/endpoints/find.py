@@ -21,8 +21,8 @@ from pymongo.database import Database as MongoDatabase
 from nmdc_schema.get_nmdc_view import ViewGetter
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import (
+    get_collection_names_eligible_for_class,
     get_mongo_db,
-    get_planned_process_collection_names,
     get_nonempty_nmdc_schema_collection_names,
 )
 from nmdc_runtime.api.endpoints.lib.linked_instances import (
@@ -506,7 +506,7 @@ def find_planned_processes(
     return find_resources_spanning(
         req,
         mdb,
-        get_planned_process_collection_names()
+        get_collection_names_eligible_for_class("PlannedProcess")
         & get_nonempty_nmdc_schema_collection_names(mdb),
         include_superseded=req.include_superseded,
         include_failed=req.include_failed,
@@ -538,10 +538,9 @@ def find_planned_process_by_id(
 
     # Note: We exclude empty collections as a performance optimization
     #       (we already know they don't contain the document).
-    collection_names = (
-        get_planned_process_collection_names()
-        & get_nonempty_nmdc_schema_collection_names(mdb)
-    )
+    collection_names = get_collection_names_eligible_for_class(
+        "PlannedProcess"
+    ) & get_nonempty_nmdc_schema_collection_names(mdb)
 
     # For each collection, search it for a document having the specified `id`.
     for name in collection_names:
