@@ -538,10 +538,9 @@ def find_planned_process_by_id(
 
     # Note: We exclude empty collections as a performance optimization
     #       (we already know they don't contain the document).
-    collection_names = (
-        get_collection_names_eligible_for_class("PlannedProcess")
-        & get_nonempty_nmdc_schema_collection_names(mdb)
-    )
+    collection_names = get_collection_names_eligible_for_class(
+        "PlannedProcess"
+    ) & get_nonempty_nmdc_schema_collection_names(mdb)
 
     # For each collection, search it for a document having the specified `id`.
     for name in collection_names:
