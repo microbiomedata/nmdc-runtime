@@ -301,3 +301,25 @@ That'll only work for `GET` requests, though, since you're limited to specifying
 </details>
 
 <!-- ---------------------------------------------------------------------- -->
+
+<details>
+<summary>4. Maintaining GitHub Actions workflows</summary>
+
+## Maintaining GitHub Actions workflows
+
+There are a few ways to protect GitHub Actions workflows from supply chain attacks (i.e. the same
+dependency reference referring to a different thing over time). One way is to hard-code hashes
+in the GHA workflow files. A newer way is to use a [lockfile](https://docs.github.com/en/actions/how-tos/secure-your-work/lock-workflow-dependencies#5-keep-the-lockfile-current).
+
+In November, 2026, we transitioned this repository from the former (i.e. hashes in workflow files)
+to the latter (i.e. using a lockfile: `.github/workflows/actions.lock`).
+
+### Changing a dependency
+
+When you change a dependency, run `$ gh actions-lock` to regenerate the lockfile. GitHub's documentation says:
+
+> If a lockfile looks wrong, fix your workflow files and regenerate it. Never edit the lockfile manually.
+
+</details>
+
+<!-- ---------------------------------------------------------------------- -->
