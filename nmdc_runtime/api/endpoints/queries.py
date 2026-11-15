@@ -5,6 +5,7 @@ from typing import Annotated
 import bson.json_util
 from fastapi import APIRouter, Depends, Query, status, HTTPException
 from pymongo.database import Database as MongoDatabase
+from refscan.lib.helpers import get_collection_names_from_schema
 from toolz import assoc_in
 
 from nmdc_runtime.api.core.provenance import (
@@ -49,6 +50,7 @@ from nmdc_runtime.api.models.lib.helpers import derive_delete_specs, derive_upda
 from nmdc_runtime.api.models.user import get_current_active_user, User
 from nmdc_runtime.api.models.util import IncludeFailedQuery, IncludeSupersededQuery
 from nmdc_runtime.lib.mongo_command_processor import MongoCommandProcessor
+from nmdc_runtime.util import nmdc_schema_view
 
 router = APIRouter()
 
@@ -261,8 +263,43 @@ def run_query(
     if isinstance(cmd, AggregateCommand):
         check_can_aggregate(user)
 
-    # For `find` commands targeting planned process and data object collections, augment the filter based upon whether
-    # the requester wants to include superseded and/or failed documents.
+    # Check whether the specified collection is a schema-described collection.
+    # This prevents clients from accessing _other_ collections in the database.
+    #
+    # Note: There is one exception to this: instances of `GetMoreCommand` don't include
+    #       a collection name (that command is used to continue a previous operation,
+    #       which would have undergone this check), so we bypass this check for `GetMoreCommand`.
+    #
+    if not isinstance(cmd, GetMoreCommand):
+        collection_name: str = ""
+        if isinstance(cmd, AggregateCommand):
+            collection_name = cmd.aggregate
+        elif isinstance(cmd, CollStatsCommand):
+            collection_name = cmd.collStats
+        elif isinstance(cmd, CountCommand):
+            collection_name = cmd.count
+        elif isinstance(cmd, DeleteCommand):
+            collection_name = cmd.delete
+        elif isinstance(cmd, FindCommand):
+            collection_name = cmd.find
+        elif isinstance(cmd, UpdateCommand):
+            collection_name = cmd.update
+        if collection_name not in get_collection_names_from_schema(
+            schema_view=nmdc_schema_view()
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Collection '{collection_name}' is not described by the NMDC Schema.",
+            )
+
+    # For `find` commands targeting collections that can contain documents representing instances of
+    # the `PlannedProcess`, `WorkflowExecution`, or `DataObject` schema classes, augment the filter
+    # based upon whether the requester wants to include superseded and/or failed documents.
+    #
+    # TODO: Generate this list of collections at _run_ time, cache the result, and reference it here.
+    #       The refscan library provides `refscan.lib.helpers.get_collection_name_to_class_names_map`,
+    #       which is memoized and can be used to generate the list.
+    #
     if isinstance(cmd, FindCommand) and cmd.find in (
         "collecting_biosamples_from_site_set",
         "data_object_set",
