@@ -2,7 +2,7 @@ import gzip
 import os
 from contextlib import AbstractContextManager
 from copy import deepcopy
-from functools import lru_cache
+from functools import cache, lru_cache
 from typing import Dict, List, Set
 from uuid import uuid4
 
@@ -109,24 +109,49 @@ def activity_collection_names(mdb: MongoDatabase) -> Set[str]:
     }
 
 
-@lru_cache
-def get_planned_process_collection_names() -> Set[str]:
+@cache
+def get_collection_names_eligible_for_class(class_name: str) -> frozenset[str]:
     r"""
     Returns the names of all collections that the schema says can contain documents
-    that represent instances of the `PlannedProcess` class or any of its subclasses.
+    that represent instances of the specified class or any of its descendant classes.
+
+    Note: We return a `frozenset` (which is immutable) instead of a `set` (which is mutable)
+          in order to prevent callers from modifying the return value, which gets cached
+          and returned on subsequent calls (because we decorate this function with `@cache`).
+
+    # Concrete class with no descendant classes:
+    >>> get_collection_names_eligible_for_class("Study") == frozenset({"study_set"})
+    True
+
+    # Abstract class with multiple levels of descendant classes:
+    >>> get_collection_names_eligible_for_class("PlannedProcess") == frozenset({
+    ...    "collecting_biosamples_from_site_set",
+    ...    "storage_process_set",
+    ...    "data_generation_set",
+    ...    "workflow_execution_set",
+    ...    "material_processing_set",
+    ... })
+    True
+
+    # Non-existent class:
+    >>> get_collection_names_eligible_for_class("NoSuchClass") == frozenset()
+    True
     """
     schema_view = nmdc_schema_view()
     collection_names = set()
-    planned_process_descendants = set(schema_view.class_descendants("PlannedProcess"))
+    own_and_descendant_class_names = set(
+        schema_view.class_descendants(class_name=class_name, reflexive=True)
+    )
 
     for collection_name, class_names in collection_name_to_class_names.items():
-        for class_name in class_names:
-            # If the name of this class is the name of the `PlannedProcess` class
-            # or any of its subclasses, add it to the result set.
-            if class_name in planned_process_descendants:
+        for cls_name in class_names:
+            # If the name of this class matches the name of the specified class
+            # or any of its descendant classes, add it to the result set.
+            if cls_name in own_and_descendant_class_names:
                 collection_names.add(collection_name)
 
-    return collection_names
+    # Return a `frozenset` containing the same things the `set` contains.
+    return frozenset(collection_names)
 
 
 def mongodump_excluded_collections() -> str:

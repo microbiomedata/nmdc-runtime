@@ -5,7 +5,9 @@ from typing import Annotated
 import bson.json_util
 from fastapi import APIRouter, Depends, Query, status, HTTPException
 from pymongo.database import Database as MongoDatabase
-from refscan.lib.helpers import get_collection_names_from_schema
+from refscan.lib.helpers import (
+    get_collection_names_from_schema,
+)
 from toolz import assoc_in
 
 from nmdc_runtime.api.core.provenance import (
@@ -14,6 +16,7 @@ from nmdc_runtime.api.core.provenance import (
 )
 from nmdc_runtime.api.core.util import now
 from nmdc_runtime.api.db.mongo import (
+    get_collection_names_eligible_for_class,
     get_mongo_db,
     get_nonempty_nmdc_schema_collection_names,
     OverlayDB,
@@ -295,18 +298,10 @@ def run_query(
     # For `find` commands targeting collections that can contain documents representing instances of
     # the `PlannedProcess`, `WorkflowExecution`, or `DataObject` schema classes, augment the filter
     # based upon whether the requester wants to include superseded and/or failed documents.
-    #
-    # TODO: Generate this list of collections at _run_ time, cache the result, and reference it here.
-    #       The refscan library provides `refscan.lib.helpers.get_collection_name_to_class_names_map`,
-    #       which is memoized and can be used to generate the list.
-    #
-    if isinstance(cmd, FindCommand) and cmd.find in (
-        "collecting_biosamples_from_site_set",
-        "data_object_set",
-        "data_generation_set",
-        "material_processing_set",
-        "storage_process_set",
-        "workflow_execution_set",
+    if isinstance(cmd, FindCommand) and cmd.find in set().union(
+        get_collection_names_eligible_for_class("PlannedProcess"),
+        get_collection_names_eligible_for_class("WorkflowExecution"),
+        get_collection_names_eligible_for_class("DataObject"),
     ):
         cmd = cmd.model_copy(
             update={

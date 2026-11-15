@@ -20,7 +20,10 @@ from nmdc_runtime.api.core.util import (
     expiry_dt_from_now,
     raise404_if_none,
 )
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.mongo import (
+    get_collection_names_eligible_for_class,
+    get_mongo_db,
+)
 from nmdc_runtime.api.endpoints.lib.workflow_executions import augment_filter
 from nmdc_runtime.api.models.job import Job, JobClaim, JobOperationMetadata
 from nmdc_runtime.api.models.object import (
@@ -103,7 +106,6 @@ def list_resources(
     """
     Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
 
-
     For invocations targeting the `data_object_set` or `workflow_execution_set` collection, you can
     use the `include_superseded` flag to control whether the function will include or omit superseded
     `DataObject`s or `WorkflowExecution`s.
@@ -161,15 +163,13 @@ def list_resources(
     max_page_size = req.max_page_size
     filter_ = json_util.loads(check_filter(req.filter)) if req.filter else {}
 
-    # If the collection is one that contain documents representing `DataObject`s or `PlannedProcess`es,
-    # augment the filter based upon whether the caller wants to include superseded and/or failed documents.
-    if collection_name in (
-        "collecting_biosamples_from_site_set",
-        "data_object_set",
-        "data_generation_set",
-        "material_processing_set",
-        "storage_process_set",
-        "workflow_execution_set",
+    # If the specified collection is one that can contain documents representing instances of
+    # the `PlannedProcess`, `WorkflowExecution`, or `DataObject` schema classes, augment the filter
+    # based upon whether the caller wants to include superseded and/or failed documents.
+    if collection_name in set().union(
+        get_collection_names_eligible_for_class("PlannedProcess"),
+        get_collection_names_eligible_for_class("WorkflowExecution"),
+        get_collection_names_eligible_for_class("DataObject"),
     ):
         filter_ = augment_filter(
             original_filter=filter_,
@@ -398,15 +398,13 @@ def find_resources(
 
     filter_ = get_mongo_filter(req.filter)
 
-    # If the collection is one that contain documents representing `DataObject`s or `PlannedProcess`es,
-    # augment the filter based upon whether the caller wants to include superseded and/or failed documents.
-    if collection_name in (
-        "collecting_biosamples_from_site_set",
-        "data_object_set",
-        "data_generation_set",
-        "material_processing_set",
-        "storage_process_set",
-        "workflow_execution_set",
+    # If the specified collection is one that can contain documents representing instances of
+    # the `PlannedProcess`, `WorkflowExecution`, or `DataObject` schema classes, augment the filter
+    # based upon whether the caller wants to include superseded and/or failed documents.
+    if collection_name in set().union(
+        get_collection_names_eligible_for_class("PlannedProcess"),
+        get_collection_names_eligible_for_class("WorkflowExecution"),
+        get_collection_names_eligible_for_class("DataObject"),
     ):
         filter_ = augment_filter(
             original_filter=filter_,

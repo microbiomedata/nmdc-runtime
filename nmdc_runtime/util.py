@@ -8,7 +8,6 @@ from collections import defaultdict
 from collections.abc import Iterable
 from datetime import datetime, timezone
 from functools import lru_cache
-from itertools import chain
 from pathlib import Path
 from time import perf_counter
 from typing import Callable, List, Optional, Set, Dict
@@ -430,20 +429,14 @@ def specialize_activity_set_docs(docs):
 
 
 # Define a mapping from collection name to a list of class names allowable for that collection's documents.
-# TODO: Remove or replace this with an invocation of the tested `get_collection_name_to_class_names_map` function from the `refscan` library.
-collection_name_to_class_names: Dict[str, List[str]] = {
-    collection_name: list(
-        set(
-            chain.from_iterable(
-                nmdc_schema_view().class_descendants(cls_name)
-                for cls_name in get_class_names_from_collection_spec(spec)
-            )
-        )
-    )
-    for collection_name, spec in nmdc_jsonschema["$defs"]["Database"][
-        "properties"
-    ].items()
-}
+#
+# Note: We would have just made dependent code call the function directly (it is memoized), but we
+#       didn't want to refactor that much code right now. For now, we have just replaced some ad hoc
+#       JSON Schema traversal code with an invocation of a tested function from the `refscan` package.
+#
+collection_name_to_class_names: Dict[str, List[str]] = (
+    get_collection_name_to_class_names_map(schema_view=nmdc_schema_view())
+)
 
 
 def class_hierarchy_as_list(obj) -> list[str]:
