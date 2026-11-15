@@ -31,10 +31,9 @@ from nmdc_runtime.util import (
     REPO_ROOT_DIR,
     nmdc_schema_view,
 )
+from nmdc_runtime.config import ORCID_BASE_URL, ORCID_NMDC_CLIENT_ID
 from nmdc_runtime.api.core.auth import (
     get_password_hash,
-    ORCID_NMDC_CLIENT_ID,
-    ORCID_BASE_URL,
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints import (
