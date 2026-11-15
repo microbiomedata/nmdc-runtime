@@ -24,6 +24,38 @@ In practice, we deploy it as follows:
    container image. The CronJob is reconfigured before use, so that the relevant migrator is run and
    the appropriate MongoDB server is used as the "origin" MongoDB server.
 
+## Quick start
+
+Run a container based on a container image hosted on
+[GitHub Container Registry](https://github.com/microbiomedata/nmdc-runtime/pkgs/container/nmdc-migration-cli) (GHCR).
+For example:
+
+```sh
+# Read the latest help messages.
+docker run --rm -it ghcr.io/microbiomedata/nmdc-migration-cli:prod --help
+docker run --rm -it ghcr.io/microbiomedata/nmdc-migration-cli:prod migrate --help
+
+# Supply any sensitive values to the container via environment variables,
+# in order to keep them out of your shell's command history.
+export ORIGIN_MONGO_PASSWORD=`cat ~/.my_mongo_password`
+
+# Perform a dry run of a migration.
+docker run --rm -it -e ORIGIN_MONGO_PASSWORD ghcr.io/microbiomedata/nmdc-migration-cli:prod \
+  --migrator-git-ref v11.26.0 \
+  --migrator-module-name migrator_from_11_25_0_to_11_26_0 \
+  --collection biosample_set \
+  --origin-mongo-host host.docker.internal \
+  --origin-mongo-username my_mongo_username \
+  --log-file /tmp/nmdc-migration-cli.log \
+  --show-diff \
+  --skip-origin-writes
+```
+
+> You can replace the `:prod` image tag with `:main` above in order to use the container image built
+> from the **latest commit** on the `main` branch (as opposed to the one built from the
+> **latest GitHub Release**). All of the available container images are listed on
+> [GHCR](https://github.com/microbiomedata/nmdc-runtime/pkgs/container/nmdc-migration-cli).
+
 ## Development
 
 All commands shown below were designed to be run from the "root" directory of the NMDC Migration CLI project:
