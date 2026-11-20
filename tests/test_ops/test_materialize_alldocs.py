@@ -29,7 +29,7 @@ def test_materialize_alldocs(op_context):
     #       not (currently) leaving "residual documents" in it (note: at the time of this writing, the
     #       test database is _not_ being rolled back to a pristine state in between tests).
     #
-    # Reference: https://microbiomedata.github.io/berkeley-schema-fy24/FieldResearchSite/#direct
+    # Reference: https://microbiomedata.github.io/nmdc-schema/FieldResearchSite/#direct
     #
     field_research_site_class_ancestry_chain = [
         "nmdc:FieldResearchSite",
