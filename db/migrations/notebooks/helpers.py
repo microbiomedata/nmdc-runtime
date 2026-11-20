@@ -247,7 +247,7 @@ def derive_schema_class_name_from_document(
 
     This function is written under the assumption that the document has a `type` field whose value is the `class_uri`
     belonging to the schema class of which the document represents an instance. Slot definition for such a field:
-    https://github.com/microbiomedata/berkeley-schema-fy24/blob/fc2d9600/src/schema/basic_slots.yaml#L420-L436
+    https://github.com/microbiomedata/nmdc-schema/blob/72df105e/src/schema/attribute_values.yaml#L212-L236
 
     Source: This function was copied from https://github.com/microbiomedata/refscan/blob/main/refscan/lib/helpers.py
             with permission from its author.
