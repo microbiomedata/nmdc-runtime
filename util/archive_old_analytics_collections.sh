@@ -105,6 +105,9 @@ fi
 # ---------------------------------------------------------------------------
 # Step 4: Dump each matching collection (and drop it if `--drop` was passed)
 # ---------------------------------------------------------------------------
+if [ -d "$OUTPUT_DIR" ] && [ -n "$(ls -A "$OUTPUT_DIR")" ]; then
+    echo "Warning: Output directory '$OUTPUT_DIR' is not empty. Existing dump files may be overwritten." >&2
+fi
 mkdir -p "$OUTPUT_DIR"
 
 echo "Collections to archive:"
