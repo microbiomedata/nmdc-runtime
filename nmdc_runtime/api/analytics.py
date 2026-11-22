@@ -99,12 +99,18 @@ def group_requests_by_collection(
 
     documents_by_collection_name: Dict[str, List[Dict]] = defaultdict(list)
     for request_data in requests_data:
-        request_timestamp = get_request_timestamp(request_data, fallback=fallback_timestamp)
-        collection_name = get_analytics_collection_name(collection_prefix, request_timestamp)
+        request_timestamp = get_request_timestamp(
+            request_data, fallback=fallback_timestamp
+        )
+        collection_name = get_analytics_collection_name(
+            collection_prefix, request_timestamp
+        )
         document = merge(request_data, {"source": source})
         documents_by_collection_name[collection_name].append(document)
 
-    return dict(documents_by_collection_name)  # converts `defaultdict` into regular `dict`
+    return dict(
+        documents_by_collection_name
+    )  # converts `defaultdict` into regular `dict`
 
 
 def _post_requests(collection_name: str, requests_data: List[Dict], source: str):
@@ -118,7 +124,10 @@ def _post_requests(collection_name: str, requests_data: List[Dict], source: str)
         requests_data=requests_data,
         source=source,
     )
-    for target_collection_name, documents in request_descriptors_by_collection_name.items():
+    for (
+        target_collection_name,
+        documents,
+    ) in request_descriptors_by_collection_name.items():
         mdb[target_collection_name].insert_many(documents)
 
 
