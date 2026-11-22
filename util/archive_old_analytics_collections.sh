@@ -11,8 +11,8 @@ set -euo pipefail
 #   `MONGO_HOST`, `MONGO_PORT`, `MONGO_USERNAME`, `MONGO_PASSWORD`, `MONGO_DBNAME`
 #
 # Usage (from repository root):
-#   $ ./util/archive-analytics-collections.sh 2026_10 --output-dir /tmp/analytics-archives
-#   $ ./util/archive-analytics-collections.sh 2026_10 --output-dir /tmp/analytics-archives --drop
+#   $ ./util/archive_old_analytics_collections.sh 2026_10 --output-dir /tmp/analytics-archives
+#   $ ./util/archive_old_analytics_collections.sh 2026_10 --output-dir /tmp/analytics-archives --drop
 #
 # Output:
 #   Writes gzipped BSON dumps under:
