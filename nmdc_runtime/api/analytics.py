@@ -3,10 +3,11 @@ Based on <https://github.com/tom-draper/api-analytics/tree/main/analytics/python
 under MIT License <https://github.com/tom-draper/api-analytics/blob/main/analytics/python/fastapi/LICENSE>
 """
 
+from collections import defaultdict
 from datetime import datetime
 import threading
 from time import time
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
@@ -21,10 +22,104 @@ _requests = []
 _last_posted = datetime.now()
 
 
-def _post_requests(collection: str, requests_data: List[Dict], source: str):
-    """Inserts the specified request descriptors into the specified MongoDB collection."""
+def get_analytics_collection_name(collection_prefix: str, timestamp: datetime) -> str:
+    """Return the year-month-partitioned collection name for `timestamp`.
+
+    >>> from datetime import datetime
+    >>> get_analytics_collection_name("_runtime.analytics", datetime(2026, 11, 21, 14, 3, 25))
+    '_runtime.analytics.2026_11'
+    >>> get_analytics_collection_name("_runtime.analytics", datetime(2025, 3, 5, 0, 0, 0))
+    '_runtime.analytics.2025_03'
+    >>> get_analytics_collection_name("custom_prefix", datetime(2025, 3, 5))
+    'custom_prefix.2025_03'
+    """
+    return f"{collection_prefix}.{timestamp.strftime('%Y_%m')}"
+
+
+def get_request_timestamp(
+    request_data: Dict, fallback: Optional[datetime] = None
+) -> datetime:
+    """Extract `created_at` from `request_data` as a `datetime`, or return `fallback`.
+
+    >>> from datetime import datetime
+    >>> fb = datetime(2026, 11, 1, 0, 0, 0)
+    >>> get_request_timestamp({"created_at": "2026-10-31T23:59:59.123456"}, fallback=fb)
+    datetime.datetime(2026, 10, 31, 23, 59, 59, 123456)
+    >>> get_request_timestamp({"path": "/health"}, fallback=fb)
+    datetime.datetime(2026, 11, 1, 0, 0)
+    >>> get_request_timestamp({"created_at": "not-a-timestamp"}, fallback=fb)
+    datetime.datetime(2026, 11, 1, 0, 0)
+    """
+    created_at = request_data.get("created_at")
+    if isinstance(created_at, str):
+        try:
+            return datetime.fromisoformat(created_at)
+        except ValueError:
+            pass
+    return fallback if fallback is not None else datetime.now()
+
+
+def group_requests_by_collection(
+    collection_prefix: str,
+    requests_data: List[Dict],
+    source: str,
+    fallback_timestamp: Optional[datetime] = None,
+) -> Dict[str, List[Dict]]:
+    """Group request descriptors by target year-month collection and attach `source`.
+
+    >>> from datetime import datetime
+    >>> fb = datetime(2026, 11, 15, 12, 0, 0)
+    >>> group_requests_by_collection("_runtime.analytics", [], "FastAPI", fb)
+    {}
+    >>> requests_data = [
+    ...     {"path": "/a", "created_at": "2026-10-31T23:59:59"},
+    ...     {"path": "/b", "created_at": "2026-11-01T00:00:01"},
+    ...     {"path": "/b", "created_at": "2026-11-02T00:00:01"},
+    ...     {"path": "/c"},
+    ... ]
+    >>> requests_by_collection_name = group_requests_by_collection(
+    ...     collection_prefix="_runtime.analytics",
+    ...     requests_data=requests_data,
+    ...     source="FastAPI",
+    ...     fallback_timestamp=fb,
+    ... )
+    >>> sorted(requests_by_collection_name.keys())
+    ['_runtime.analytics.2026_10', '_runtime.analytics.2026_11']
+    >>> len(requests_by_collection_name["_runtime.analytics.2026_10"])
+    1
+    >>> len(requests_by_collection_name["_runtime.analytics.2026_11"])
+    3
+    >>> requests_by_collection_name["_runtime.analytics.2026_10"]
+    [{'path': '/a', 'created_at': '2026-10-31T23:59:59', 'source': 'FastAPI'}]
+    >>> [d["path"] for d in requests_by_collection_name["_runtime.analytics.2026_11"]]
+    ['/b', '/b', '/c']
+    """
+    if len(requests_data) == 0:
+        return {}
+
+    documents_by_collection_name: Dict[str, List[Dict]] = defaultdict(list)
+    for request_data in requests_data:
+        request_timestamp = get_request_timestamp(request_data, fallback=fallback_timestamp)
+        collection_name = get_analytics_collection_name(collection_prefix, request_timestamp)
+        document = merge(request_data, {"source": source})
+        documents_by_collection_name[collection_name].append(document)
+
+    return dict(documents_by_collection_name)  # converts `defaultdict` into regular `dict`
+
+
+def _post_requests(collection_name: str, requests_data: List[Dict], source: str):
+    """
+    Inserts request descriptors into year/month-specific MongoDB collections based on each request's
+    `created_at` timestamp.
+    """
     mdb = get_mongo_db()
-    mdb[collection].insert_many([merge(d, {"source": source}) for d in requests_data])
+    request_descriptors_by_collection_name = group_requests_by_collection(
+        collection_prefix=collection_name,
+        requests_data=requests_data,
+        source=source,
+    )
+    for target_collection_name, documents in request_descriptors_by_collection_name.items():
+        mdb[target_collection_name].insert_many(documents)
 
 
 def log_request(collection: str, request_data: Dict, source: str = "FastAPI"):
@@ -64,6 +159,7 @@ class Analytics(BaseHTTPMiddleware):
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         start = time()
+        request_received_at = datetime.now()
         response = await call_next(request)
 
         # Use a fallback IP address value (currently an empty string) if we can't derive one from the request.
@@ -83,7 +179,7 @@ class Analytics(BaseHTTPMiddleware):
             "method": request.method,
             "status": response.status_code,
             "response_time": int((time() - start) * 1000),
-            "created_at": datetime.now().isoformat(),
+            "created_at": request_received_at.isoformat(),
         }
 
         log_request(self.collection, request_data, "FastAPI")
