@@ -28,8 +28,8 @@ if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
 fi
 
 YYYY_MM="$1"
-if [[ ! "$YYYY_MM" =~ ^[0-9]{4}_[0-9]{2}$ ]]; then
-    echo "Error: Cutoff year_month must be in format YYYY_MM (e.g. 2026_10), got: '$YYYY_MM'" >&2
+if [[ ! "$YYYY_MM" =~ ^[0-9]{4}_(0[1-9]|1[0-2])$ ]]; then
+    echo "Error: Cutoff year_month must be in format YYYY_MM with month 01-12 (e.g. 2026_10), got: '$YYYY_MM'" >&2
     exit 1
 fi
 
