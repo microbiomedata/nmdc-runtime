@@ -7,7 +7,7 @@ from collections import defaultdict
 from datetime import datetime
 import threading
 from time import time
-from typing import Dict, List, Optional
+from typing import Dict, FrozenSet, Iterable, List, Optional, Tuple
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
@@ -20,6 +20,37 @@ from nmdc_runtime.api.db.mongo import get_mongo_db
 # This is a queue of the "request descriptors" that we will eventually insert into the database.
 _requests = []
 _last_posted = datetime.now()
+
+# Requests matching any `(method, path)` entry here are ignored by the analytics middleware.
+IGNORED_REQUESTS: FrozenSet[Tuple[str, str]] = frozenset(
+    {
+        ("GET", "/health"),
+        ("GET", "/version"),
+    }
+)
+
+
+def is_ignored_request(
+    method: str,
+    path: str,
+    ignore_list: FrozenSet[Tuple[str, str]] = IGNORED_REQUESTS,
+) -> bool:
+    """
+    Return a boolean indicating whether a request having the specified `method` and `path`
+    combination is in the ignore list.
+
+    >>> is_ignored_request("GET", "/health")
+    True
+    >>> is_ignored_request("get", "/version")
+    True
+    >>> is_ignored_request("POST", "/health")
+    False
+    >>> is_ignored_request("GET", "/studies")
+    False
+    >>> is_ignored_request("GET", "/health", ignore_list=frozenset())
+    False
+    """
+    return (method.upper(), path) in ignore_list
 
 
 def get_analytics_collection_name(collection_prefix: str, timestamp: datetime) -> str:
@@ -160,13 +191,31 @@ def log_request(collection: str, request_data: Dict, source: str = "FastAPI"):
 
 
 class Analytics(BaseHTTPMiddleware):
-    def __init__(self, app: ASGIApp, collection: str = "_runtime.analytics"):
+    def __init__(
+        self,
+        app: ASGIApp,
+        collection: str = "_runtime.analytics",
+        ignore_list: Optional[Iterable[Tuple[str, str]]] = None,
+    ):
         super().__init__(app)
         self.collection = collection
+
+        # Set our ignore list to be either the default one, or (if one was passed in), the one
+        # passed in (after capitalizing the method names in it).
+        self.ignore_list: FrozenSet[Tuple[str, str]] = (
+            IGNORED_REQUESTS
+            if ignore_list is None
+            else frozenset((method.upper(), path) for method, path in ignore_list)
+        )
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
+        # If the request is one we are configured to ignore, we are done. Invoke the next middleware
+        # in the chain.
+        if is_ignored_request(request.method, request.url.path, self.ignore_list):
+            return await call_next(request)
+
         start = time()
         request_received_at = datetime.now()
         response = await call_next(request)
