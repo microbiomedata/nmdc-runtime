@@ -21,7 +21,6 @@ from ontology_loader.ontology_load_controller import OntologyLoaderController
         # Which ancestor closures ontology-loader stores in ontology_relation_set:
         # "combined" (is_a plus part of), "isa", "partof", "all" (all three) or "none".
         # nmdc-server builds its environment filters from "combined", so keep that in any choice.
-        # https://github.com/microbiomedata/nmdc-runtime/issues/1563
         "closure": Field(str, default_value="combined", is_required=False),
     },
 )
