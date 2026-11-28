@@ -462,7 +462,8 @@ def synchronize_superseded_by_field(
             if isinstance(update_statement, UpdateOne):
                 logger.debug(
                     f"workflow_execution_set: filter={update_statement._filter!r}, "
-                    f"update={update_statement._doc!r}"
+                    f"update={update_statement._doc!r} "
+                    f"(initial={wfe_descriptor.superseded_by!r})"
                 )
                 workflow_execution_set_update_statements.append(update_statement)
 
@@ -527,7 +528,8 @@ def synchronize_superseded_by_field(
         if update_statement is not None:
             logger.debug(
                 f"data_object_set: filter={update_statement._filter!r}, "
-                f"update={update_statement._doc!r}"
+                f"update={update_statement._doc!r} "
+                f"(initial={superseded_by!r})"
             )
             data_object_set_update_statements.append(update_statement)
 
