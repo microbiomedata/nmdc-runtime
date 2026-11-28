@@ -264,7 +264,13 @@ load_envo_ontology_weekly = ScheduleDefinition(
         config=unfreeze(
             merge(
                 run_config_frozen__normal_env,
-                {"ops": {"load_ontology": {"config": {"source_ontology": "envo"}}}},
+                {
+                    "ops": {
+                        "load_ontology": {
+                            "config": {"source_ontology": "envo", "closure": "all"}
+                        }
+                    }
+                },
             )
         ),
         resource_defs=resource_defs,
@@ -280,7 +286,13 @@ load_uberon_ontology_weekly = ScheduleDefinition(
         config=unfreeze(
             merge(
                 run_config_frozen__normal_env,
-                {"ops": {"load_ontology": {"config": {"source_ontology": "uberon"}}}},
+                {
+                    "ops": {
+                        "load_ontology": {
+                            "config": {"source_ontology": "uberon", "closure": "all"}
+                        }
+                    }
+                },
             )
         ),
         resource_defs=resource_defs,
@@ -296,7 +308,13 @@ load_po_ontology_weekly = ScheduleDefinition(
         config=unfreeze(
             merge(
                 run_config_frozen__normal_env,
-                {"ops": {"load_ontology": {"config": {"source_ontology": "po"}}}},
+                {
+                    "ops": {
+                        "load_ontology": {
+                            "config": {"source_ontology": "po", "closure": "all"}
+                        }
+                    }
+                },
             )
         ),
         resource_defs=resource_defs,

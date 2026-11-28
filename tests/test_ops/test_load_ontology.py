@@ -66,6 +66,7 @@ def test_load_ontology(mock_ontology_loader, op_context):
         source_ontology="envo",
         output_directory=op_context.op_config["output_directory"],
         generate_reports=False,
+        closure="combined",
         mongo_client=op_context.resources.mongo.client,
         db_name=op_context.resources.mongo.db.name
     )
@@ -76,6 +77,22 @@ def test_load_ontology(mock_ontology_loader, op_context):
     # The function doesn't have a return value
     assert result is None
 
+
+
+@patch('nmdc_runtime.site.ops.ontology.OntologyLoaderController')
+def test_load_ontology_passes_closure(mock_ontology_loader, client_config, tmp_path):
+    """A closure set in the op config reaches OntologyLoaderController unchanged"""
+    context = build_op_context(
+        resources={"mongo": mongo_resource.configured(client_config)},
+        op_config={
+            "source_ontology": "envo",
+            "output_directory": str(tmp_path),
+            "generate_reports": False,
+            "closure": "all",
+        },
+    )
+    load_ontology(context)
+    assert mock_ontology_loader.call_args.kwargs["closure"] == "all"
 
 
 @pytest.mark.skipif(
