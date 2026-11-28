@@ -421,7 +421,7 @@ class SubmissionPortalTranslator(Translator):
         :param raw_value: string to parse
         :return: nmdc.OntologyClass
         """
-        match = re.match("_*([^\[]+)(?:\[([^\]]+)\])", raw_value)
+        match = re.match(r"_*([^\[]+)(?:\[([^\]]+)\])", raw_value)
         if not match or not match.group(2):
             logging.warning(
                 f'Could not infer OntologyClass id from value "{raw_value}"'
@@ -498,7 +498,7 @@ class SubmissionPortalTranslator(Translator):
             return None
 
         match = re.fullmatch(
-            "([-+]?(?:[1-8]?\d(?:\.\d+)?|90(?:\.0+)?))[\s,]+([-+]?(?:180(?:\.0+)?|(?:(?:1[0-7]\d)|(?:[1-9]?\d))(?:\.\d+)?))",
+            r"([-+]?(?:[1-8]?\d(?:\.\d+)?|90(?:\.0+)?))[\s,]+([-+]?(?:180(?:\.0+)?|(?:(?:1[0-7]\d)|(?:[1-9]?\d))(?:\.\d+)?))",
             raw_value,
         )
         if match is None:
